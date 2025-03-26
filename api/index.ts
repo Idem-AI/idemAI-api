@@ -1,27 +1,8 @@
-import express from "express";
-
-const port = process.env.PORT || 3000;
+const express = require("express");
 const app = express();
-var cors = require("cors");
-import promptRouter from "./routes/promptRoute";
 
-app.use(express.json());
-app.use(
-  cors({
-    origin: ["https://lexis.pharaon.me", "http://localhost:4200"],
-    methods: ["POST"],
-  })
-);
+app.get("/", (req:any, res:any) => res.send("Congratulation 🎉🎉! Our Express server is Running on Vercel"));
 
-app.get("/", (req, res) => {
-  res.status(200).json("Welcome to Lexis Api");
-});
-
-app.use("/api", promptRouter);
-
-app.listen(port, () => {
-  console.log(`our application is running at port ${port}`);
-});
-
+app.listen(3000, () => console.log("Server ready on port 3000."));
 
 module.exports = app;
