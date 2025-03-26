@@ -1,13 +1,34 @@
-const express = require("express");
-const app = express();
-
-const port = process.env.PORT || 3000;
-
-var cors = require("cors");
+import express, { Request, Response, NextFunction } from "express";
+import admin from "firebase-admin";
 import {
   GenerateContentResult,
   GoogleGenerativeAI,
 } from "@google/generative-ai";
+
+// Initialiser Firebase Admin SDK
+// import serviceAccount from "../firebase-admin.json";
+const serviceAccountFromEnv = {
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID,
+  privateKey: process.env.FIREBASE_PRIVATE_KEY,
+  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+};
+
+admin.initializeApp({
+  credential: admin.credential.cert(
+    serviceAccountFromEnv as admin.ServiceAccount
+  ),
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  
+});
+
+const app = express();
+const port = process.env.PORT || 3000;
 
 app.use(express.json());
 // app.use(
@@ -17,41 +38,32 @@ app.use(express.json());
 //   })
 // );
 
-app.get("/", (req: any, res: any) => {
-  res.status(201).json("Welcome to Lexis Api");
-});
+// Middleware pour vérifier l'authentification Firebase
+async function authenticate(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
 
-async function runGeminiPrompt(
-  chatHistory: ChatHistory[],
-  prompt: string
-): Promise<GenerateContentResult> {
-  console.log("chatHistory", chatHistory);
-  const apiKey = process.env.GEMINI_API_KEY;
-  const genAI = new GoogleGenerativeAI(apiKey!);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-  const chat = model.startChat({
-    history: chatHistory,
-    generationConfig: {
-      maxOutputTokens: 100,
-    },
-  });
-
-  // const chat = model.startChat({
-  //   history: [
-  //     {
-  //       role: "user",
-  //       parts: [{ text: "Hello" }],
-  //     },
-  //     {
-  //       role: "model",
-  //       parts: [{ text: "Great to meet you. What would you like to know?" }],
-  //     },
-  //   ],
-  // });
-
-  console.log("chatHIstoryText", chat);
-  return await chat.sendMessage(prompt);
+  const idToken = authHeader.split(" ")[1];
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    (req as any).user = decodedToken;
+    return next(); // ✅ Ajout d'un `return next();`
+  } catch (error) {
+    res.status(403).json({ message: "Forbidden" });
+    return;
+  }
 }
+
+app.get("/", (req: Request, res: Response) => {
+  res.status(200).json("Welcome to Lexis API");
+});
 
 export type ChatHistory = {
   role: string;
@@ -59,27 +71,42 @@ export type ChatHistory = {
     text: string;
   }[];
 };
-app.use("/api/prompt", async (req: any, res: any) => {
+
+async function runGeminiPrompt(
+  chatHistory: ChatHistory[],
+  prompt: string
+): Promise<GenerateContentResult> {
+  console.log("chatHistory", chatHistory);
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not defined");
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const chat = model.startChat({
+    history: chatHistory,
+    generationConfig: { maxOutputTokens: 100 },
+  });
+
+  return await chat.sendMessage(prompt);
+}
+
+app.post("/api/prompt", authenticate, async (req: Request, res: Response) => {
   try {
     console.log("req.body", req.body);
 
-    const content = await runGeminiPrompt(
-      req.body.history as ChatHistory[],
-      req.body.prompt
-    );
+    const content = await runGeminiPrompt(req.body.history, req.body.prompt);
 
-    console.log("content", content);
     res.status(201).json({
-      message: req.body,
+      message: content,
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
 
 app.listen(port, () => {
-  console.log(`our application is running at port ${port}`);
+  console.log(`Application running at port ${port}`);
 });
 
-module.exports = app;
+export default app;

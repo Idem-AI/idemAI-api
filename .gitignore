@@ -68,6 +68,8 @@ typings/
 # Serverless directories
 .serverless/
 
+
+firebase-admin.json
 # FuseBox cache
 .fusebox/
 
