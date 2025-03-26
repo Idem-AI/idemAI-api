@@ -19,6 +19,7 @@
     "firebase-admin": "^13.2.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
     "@types/node": "^22.13.11",
     "concurrently": "^9.1.2",

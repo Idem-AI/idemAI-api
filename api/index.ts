@@ -4,7 +4,7 @@ import {
   GenerateContentResult,
   GoogleGenerativeAI,
 } from "@google/generative-ai";
-
+import cors from "cors";
 // Initialiser Firebase Admin SDK
 // import serviceAccount from "../firebase-admin.json";
 const serviceAccountFromEnv = {
@@ -24,19 +24,18 @@ admin.initializeApp({
     serviceAccountFromEnv as admin.ServiceAccount
   ),
   projectId: process.env.FIREBASE_PROJECT_ID,
-  
 });
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
-// app.use(
-//   cors({
-//     origin: ["https://lexis.pharaon.me", "http://localhost:4200"],
-//     methods: ["POST"],
-//   })
-// );
+app.use(
+  cors({
+    origin: ["https://lexis.pharaon.me", "http://localhost:4200"],
+    methods: ["POST"],
+  })
+);
 
 // Middleware pour vérifier l'authentification Firebase
 async function authenticate(
