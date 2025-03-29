@@ -1,12 +1,11 @@
-import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response, NextFunction, response } from "express";
 import admin from "firebase-admin";
 import {
   GenerateContentResult,
   GoogleGenerativeAI,
 } from "@google/generative-ai";
 import cors from "cors";
-// Initialiser Firebase Admin SDK
-// import serviceAccount from "../firebase-admin.json";
+
 const serviceAccountFromEnv = {
   apiKey: process.env.FIREBASE_API_KEY,
   authDomain: process.env.FIREBASE_AUTH_DOMAIN,
@@ -83,7 +82,7 @@ async function runGeminiPrompt(
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   const chat = model.startChat({
     history: chatHistory,
-    generationConfig: { maxOutputTokens: 100 },
+    generationConfig: { maxOutputTokens: 900 },
   });
 
   return await chat.sendMessage(prompt);
@@ -91,16 +90,18 @@ async function runGeminiPrompt(
 
 app.post("/api/prompt", authenticate, async (req: Request, res: Response) => {
   try {
-    console.log("req.body", req.body);
-
     const content = await runGeminiPrompt(req.body.history, req.body.prompt);
 
-    res.status(201).json({
-      message: content,
-    });
+    // Vérification et conversion en string explicite
+    const responseText = content.response.candidates![0].content.parts[0].text;
+    console.log("simple", responseText);
+    res.status(200).send(responseText);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    // Envoyer l'erreur sous forme de string
+    const errorMessage =
+      error instanceof Error ? error.message : "Internal server error";
+    res.status(500).send(errorMessage);
   }
 });
 
@@ -109,3 +110,42 @@ app.listen(port, () => {
 });
 
 export default app;
+
+// {
+//   "message": {
+//       "response": {
+//           "candidates": [
+//               {
+//                   "content": {
+//                       "parts": [
+//                           {
+//                             "test":""
+//                             }
+//                       ],
+//                       "role": "model"
+//                   },
+//                   "finishReason": "MAX_TOKENS",
+//                   "avgLogprobs": -0.3878379603794643
+//               }
+//           ],
+//           "usageMetadata": {
+//               "promptTokenCount": 558,
+//               "candidatesTokenCount": 875,
+//               "totalTokenCount": 1433,
+//               "promptTokensDetails": [
+//                   {
+//                       "modality": "TEXT",
+//                       "tokenCount": 558
+//                   }
+//               ],
+//               "candidatesTokensDetails": [
+//                   {
+//                       "modality": "TEXT",
+//                       "tokenCount": 875
+//                   }
+//               ]
+//           },
+//           "modelVersion": "gemini-2.0-flash"
+//       }
+//   }
+// }
