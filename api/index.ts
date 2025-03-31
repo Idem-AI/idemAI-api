@@ -31,7 +31,7 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 app.use(
   cors({
-    origin: ["https://lexis.pharaon.me", "http://localhost:4200"],
+    origin: ["https://lexi.pharaon.me", "http://localhost:4200"],
     methods: ["POST"],
   })
 );
@@ -60,7 +60,7 @@ async function authenticate(
 }
 
 app.get("/", (req: Request, res: Response) => {
-  res.status(200).json("Welcome to Lexis API");
+  res.status(200).json("Welcome to Lexi API");
 });
 
 export type ChatHistory = {
