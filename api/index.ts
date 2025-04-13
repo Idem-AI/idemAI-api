@@ -52,7 +52,7 @@ async function authenticate(
   try {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     (req as any).user = decodedToken;
-    return next(); // ✅ Ajout d'un `return next();`
+    return next();
   } catch (error) {
     res.status(403).json({ message: "Forbidden" });
     return;
@@ -70,18 +70,13 @@ export type ChatHistory = {
   }[];
 };
 
-async function runGeminiPrompt(
-  chatHistory: ChatHistory[],
-  prompt: string
-): Promise<GenerateContentResult> {
-  console.log("chatHistory", chatHistory);
+async function runGeminiPrompt(prompt: string): Promise<GenerateContentResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY is not defined");
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   const chat = model.startChat({
-    history: chatHistory,
     generationConfig: { maxOutputTokens: 900 },
   });
 
@@ -90,15 +85,13 @@ async function runGeminiPrompt(
 
 app.post("/api/prompt", authenticate, async (req: Request, res: Response) => {
   try {
-    const content = await runGeminiPrompt(req.body.history, req.body.prompt);
+    const content = await runGeminiPrompt(req.body.prompt);
 
-    // Vérification et conversion en string explicite
     const responseText = content.response.candidates![0].content.parts[0].text;
     console.log("simple", responseText);
     res.status(200).send(responseText);
   } catch (error) {
     console.error(error);
-    // Envoyer l'erreur sous forme de string
     const errorMessage =
       error instanceof Error ? error.message : "Internal server error";
     res.status(500).send(errorMessage);
@@ -110,42 +103,3 @@ app.listen(port, () => {
 });
 
 export default app;
-
-// {
-//   "message": {
-//       "response": {
-//           "candidates": [
-//               {
-//                   "content": {
-//                       "parts": [
-//                           {
-//                             "test":""
-//                             }
-//                       ],
-//                       "role": "model"
-//                   },
-//                   "finishReason": "MAX_TOKENS",
-//                   "avgLogprobs": -0.3878379603794643
-//               }
-//           ],
-//           "usageMetadata": {
-//               "promptTokenCount": 558,
-//               "candidatesTokenCount": 875,
-//               "totalTokenCount": 1433,
-//               "promptTokensDetails": [
-//                   {
-//                       "modality": "TEXT",
-//                       "tokenCount": 558
-//                   }
-//               ],
-//               "candidatesTokensDetails": [
-//                   {
-//                       "modality": "TEXT",
-//                       "tokenCount": 875
-//                   }
-//               ]
-//           },
-//           "modelVersion": "gemini-2.0-flash"
-//       }
-//   }
-// }
