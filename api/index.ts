@@ -83,20 +83,54 @@ async function runGeminiPrompt(prompt: string): Promise<GenerateContentResult> {
   return await chat.sendMessage(prompt);
 }
 
-app.post("/api/prompt", authenticate, async (req: Request, res: Response) => {
-  try {
-    const content = await runGeminiPrompt(req.body.prompt);
+app.post(
+  "/api/prompt",
+  authenticate,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const content = await runGeminiPrompt(req.body.prompt);
 
-    const responseText = content.response.candidates![0].content.parts[0].text;
-    console.log("simple", responseText);
-    res.status(200).send(responseText);
-  } catch (error) {
-    console.error(error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Internal server error";
-    res.status(500).send(errorMessage);
+      const responseText =
+        content.response.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!responseText) {
+        res.status(500).send("No response from AI");
+        return;
+      }
+
+      console.log("Raw AI Response:", responseText);
+
+      let parsed;
+      try {
+        parsed = JSON.parse(responseText);
+      } catch (err) {
+        console.error("❌ Failed to parse AI response as JSON:", err);
+        res.status(400).json({
+          error:
+            "The AI response is not valid JSON. Ensure your prompt enforces correct JSON formatting.",
+          raw: responseText,
+        });
+        return;
+      }
+
+      const { content: aiContent, summary } = parsed;
+
+      if (typeof aiContent !== "string" || typeof summary !== "string") {
+        res.status(400).json({
+          error: "Invalid format: 'content' and 'summary' must be strings.",
+          parsed,
+        });
+        return;
+      }
+
+      res.status(200).json({ content: aiContent, summary });
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Internal server error";
+      res.status(500).send(errorMessage);
+    }
   }
-});
+);
 
 app.listen(port, () => {
   console.log(`Application running at port ${port}`);
