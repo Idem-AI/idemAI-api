@@ -1,21 +1,60 @@
-import express, { Request, Response, NextFunction, response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import admin from "firebase-admin";
 import {
-  GenerateContentResult,
   GoogleGenerativeAI,
+  GenerateContentResult,
 } from "@google/generative-ai";
 import cors from "cors";
+import OpenAI from "openai";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+export enum LLMProvider {
+  GEMINI = "GEMINI",
+  DEEPSEEK = "DEEPSEEK",
+}
+
+interface LLMOptions {
+  maxOutputTokens?: number;
+  temperature?: number;
+  topP?: number;
+  topK?: number;
+}
+
+interface DeepseekOptions {
+  siteUrl?: string;
+  siteName?: string;
+}
+
+interface PromptRequest {
+  provider: LLMProvider;
+  modelName: string;
+  prompt: string;
+  llmOptions?: LLMOptions;
+  deepseekOptions?: DeepseekOptions;
+}
+
+interface AIResponse {
+  content: string;
+  summary: string;
+}
+
+interface CustomRequest extends Request {
+  user?: admin.auth.DecodedIdToken;
+}
 
 const serviceAccountFromEnv = {
-  apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_APP_ID,
-  measurementId: process.env.FIREBASE_MEASUREMENT_ID,
-  privateKey: process.env.FIREBASE_PRIVATE_KEY,
-  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  type: "service_account",
+  project_id: process.env.FIREBASE_PROJECT_ID,
+  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+  private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+  client_email: process.env.FIREBASE_CLIENT_EMAIL,
+  client_id: process.env.FIREBASE_CLIENT_ID,
+  auth_uri: "https://accounts.google.com/o/oauth2/auth",
+  token_uri: "https://oauth2.googleapis.com/token",
+  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+  client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL,
 };
 
 admin.initializeApp({
@@ -33,107 +72,209 @@ app.use(
   cors({
     origin: ["https://lexi.pharaon.me", "http://localhost:4200"],
     methods: ["POST"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// Middleware pour vérifier l'authentification Firebase
 async function authenticate(
-  req: Request,
+  req: CustomRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    res.status(401).json({ message: "Unauthorized" });
+
+  if (!authHeader?.startsWith("Bearer ")) {
+    res.status(401).json({ message: "Unauthorized: No token provided" });
     return;
   }
 
   const idToken = authHeader.split(" ")[1];
+
   try {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
-    (req as any).user = decodedToken;
-    return next();
+    req.user = decodedToken;
+    next();
   } catch (error) {
-    res.status(403).json({ message: "Forbidden" });
-    return;
+    console.error("Error verifying token:", error);
+    res.status(403).json({ message: "Forbidden: Invalid token" });
   }
 }
 
-app.get("/", (req: Request, res: Response) => {
-  res.status(200).json("Welcome to Lexi API");
-});
-
-export type ChatHistory = {
-  role: string;
-  parts: {
-    text: string;
-  }[];
-};
-
-async function runGeminiPrompt(prompt: string): Promise<GenerateContentResult> {
+async function runGeminiPrompt(
+  modelName: string,
+  prompt: string,
+  options: LLMOptions = {
+    maxOutputTokens: 10000,
+    temperature: 0.9,
+    topP: 0.95,
+    topK: 40,
+  }
+): Promise<GenerateContentResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY is not defined");
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-  const chat = model.startChat({
-    generationConfig: { maxOutputTokens: 900 },
+  const model = genAI.getGenerativeModel({
+    model: modelName,
+    generationConfig: {
+      maxOutputTokens: options.maxOutputTokens ?? 2048,
+      temperature: options.temperature ?? 0.9,
+      topP: options.topP ?? 0.95,
+      topK: options.topK ?? 40,
+    },
   });
 
+  const chat = model.startChat();
   return await chat.sendMessage(prompt);
 }
+
+async function runDeepseekPrompt(
+  modelName: string,
+  prompt: string,
+  options: LLMOptions = {
+    maxOutputTokens: 100000,
+    temperature: 2,
+    topP: 2,
+    topK: 100,
+  },
+  deepseekOptions: DeepseekOptions = {}
+): Promise<string> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error("OPENROUTER_API_KEY is not defined");
+
+  const client = new OpenAI({
+    baseURL: "https://openrouter.ai/api/v1",
+    apiKey: apiKey,
+    defaultHeaders: {
+      "HTTP-Referer": deepseekOptions.siteUrl ?? "https://lexi.pharaon.me",
+      "X-Title": deepseekOptions.siteName ?? "Lexi API",
+    },
+  });
+
+  const completion = await client.chat.completions.create({
+    model: modelName,
+    messages: [{ role: "user", content: prompt }],
+    max_tokens: options.maxOutputTokens ?? 2048,
+    temperature: options.temperature ?? 0.7,
+  });
+
+  return completion.choices[0]?.message?.content || "";
+}
+
+async function runPrompt(
+  request: PromptRequest
+): Promise<GenerateContentResult | string> {
+  const {
+    provider,
+    modelName,
+    prompt,
+    llmOptions = {},
+    deepseekOptions = {},
+  } = request;
+
+  switch (provider) {
+    case LLMProvider.GEMINI:
+      console.log("Running Gemini prompt...");
+      return runGeminiPrompt(modelName, prompt, llmOptions);
+    case LLMProvider.DEEPSEEK:
+      console.log("Running Deepseek prompt...");
+      return runDeepseekPrompt(modelName, prompt, llmOptions, deepseekOptions);
+    default:
+      throw new Error(`Unsupported LLM provider: ${provider}`);
+  }
+}
+
+function parseAIResponse(responseText: string): AIResponse {
+  const cleanedText = responseText
+    .replace(/^```(json)?\s*/, "")
+    .replace(/```$/, "")
+    .trim();
+
+  try {
+    const parsed = JSON.parse(cleanedText);
+
+    if (
+      typeof parsed.content !== "string" ||
+      typeof parsed.summary !== "string"
+    ) {
+      throw new Error(
+        "Invalid format: 'content' and 'summary' must be strings"
+      );
+    }
+
+    return parsed as AIResponse;
+  } catch (err) {
+    console.error("Failed to parse AI response:", err);
+    throw new Error(`Invalid AI response format: ${(err as Error).message}`);
+  }
+}
+
+// Routes
+app.get("/", (req: Request, res: Response) => {
+  res.status(200).json({
+    message: "Welcome to Lexi API",
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+  });
+});
 
 app.post(
   "/api/prompt",
   authenticate,
-  async (req: Request, res: Response): Promise<void> => {
+  async (req: CustomRequest, res: Response, next: NextFunction) => {
     try {
-      const content = await runGeminiPrompt(req.body.prompt);
+      const requestBody: PromptRequest = req.body;
 
+      if (
+        !requestBody.provider ||
+        !requestBody.modelName ||
+        !requestBody.prompt
+      ) {
+        res.status(400).json({
+          error: "Missing required fields: provider, modelName or prompt",
+        });
+        return;
+      }
+
+      const content = await runPrompt(requestBody);
       const responseText =
-        content.response.candidates?.[0]?.content?.parts?.[0]?.text;
+        typeof content === "string"
+          ? content
+          : content.response.candidates?.[0]?.content?.parts?.[0]?.text;
+
       if (!responseText) {
-        res.status(500).send("No response from AI");
+        res.status(500).json({ error: "No response from AI" });
         return;
       }
 
       console.log("Raw AI Response:", responseText);
 
-      let parsed;
       try {
-        parsed = JSON.parse(responseText);
-      } catch (err) {
-        console.error("❌ Failed to parse AI response as JSON:", err);
+        const parsed = parseAIResponse(responseText);
+        res.status(200).json(parsed);
+      } catch (error) {
         res.status(400).json({
-          error:
-            "The AI response is not valid JSON. Ensure your prompt enforces correct JSON formatting.",
+          error: error instanceof Error ? error.message : "Invalid AI response",
           raw: responseText,
         });
-        return;
       }
-
-      const { content: aiContent, summary } = parsed;
-
-      if (typeof aiContent !== "string" || typeof summary !== "string") {
-        res.status(400).json({
-          error: "Invalid format: 'content' and 'summary' must be strings.",
-          parsed,
-        });
-        return;
-      }
-
-      res.status(200).json({ content: aiContent, summary });
     } catch (error) {
-      console.error("Unexpected error:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Internal server error";
-      res.status(500).send(errorMessage);
+      next(error);
     }
   }
 );
 
+app.use((req: Request, res: Response) => {
+  res.status(404).json({ error: "Endpoint not found" });
+});
+
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error("Global error handler:", err);
+  res.status(500).json({ error: "Internal server error" });
+});
+
 app.listen(port, () => {
-  console.log(`Application running at port ${port}`);
+  console.log(`Server running on port ${port}`);
 });
 
 export default app;
