@@ -249,11 +249,20 @@ app.post(
         console.warn("Initial parsing failed, attempting recovery...");
 
         const recoveryPrompt = `
-Your previous response was a partial JSON.
+The following JSON object was only partially generated.
 
-Return ONLY the missing part to complete the object (no duplicates, no intro text, only raw valid JSON fragment).
+Your task is to return ONLY the missing content needed to complete the original JSON object.
 
-Here is the partial response:
+❗ Very important:
+- Do NOT return the full object again.
+- Do NOT repeat any existing keys or values.
+- Do NOT wrap your response in triple backticks.
+- Do NOT add any explanations or text.
+- ONLY return the raw missing JSON fragment (e.g., '"summary": "A modern..."').
+- Make sure the syntax is strictly valid (double-quoted keys, no trailing commas, proper nesting).
+- The output must be a direct continuation to complete the previous JSON.
+
+Here is the partial object to complete:
 
 \`\`\`json
 ${firstRawResponse}
@@ -302,10 +311,7 @@ function mergePartialJSON(partial1: string, partial2: string): string {
   const cleaned1 = getCleanAIText(partial1);
   const cleaned2 = getCleanAIText(partial2);
 
-  const obj1 = JSON.parse(cleaned1);
-  const obj2 = JSON.parse(cleaned2);
-
-  const merged = { ...obj1, ...obj2 };
+  const merged = JSON.parse(cleaned1 + cleaned2);
   return JSON.stringify(merged, null, 2);
 }
 
