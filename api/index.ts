@@ -104,8 +104,8 @@ async function runGeminiPrompt(
   modelName: string,
   prompt: string,
   options: LLMOptions = {
-    maxOutputTokens: 998000,
-    temperature: 0.5,
+    maxOutputTokens: 40000,
+    temperature: 0.9,
     topP: 1,
     topK: 100,
   }
@@ -117,9 +117,9 @@ async function runGeminiPrompt(
   const model = genAI.getGenerativeModel({
     model: modelName,
     generationConfig: {
-      maxOutputTokens: options.maxOutputTokens ?? 198000,
-      temperature: options.temperature ?? 1,
-      topP: options.topP ?? 1,
+      maxOutputTokens: options.maxOutputTokens ?? 40000,
+      temperature: options.temperature ?? 0.9,
+      topP: options.topP ?? 0.9,
       topK: options.topK ?? 100,
     },
   });
@@ -185,31 +185,6 @@ async function runPrompt(
   }
 }
 
-function parseAIResponse(responseText: string): AIResponse {
-  const cleanedText = responseText
-    .replace(/^```(json)?\s*/, "")
-    .replace(/```$/, "")
-    .trim();
-
-  try {
-    const parsed = JSON.parse(cleanedText);
-
-    if (
-      typeof parsed.content !== "string" ||
-      typeof parsed.summary !== "string"
-    ) {
-      throw new Error(
-        "Invalid format: 'content' and 'summary' must be strings"
-      );
-    }
-
-    return parsed as AIResponse;
-  } catch (err) {
-    console.error("Failed to parse AI response:", err);
-    throw new Error(`Invalid AI response format: ${(err as Error).message}`);
-  }
-}
-
 app.get("/", (req: Request, res: Response) => {
   res.status(200).json({
     message: "Welcome to Lexi API",
@@ -236,59 +211,8 @@ app.post(
         return;
       }
 
-      const firstRawResponse = await getCleanAIText(
-        await runPrompt(requestBody)
-      );
-      console.log("Raw AI Response (initial):", firstRawResponse);
-
-      try {
-        const parsed = JSON.parse(firstRawResponse);
-        res.status(200).json(parsed);
-        return;
-      } catch (err1) {
-        console.warn("Initial parsing failed, attempting recovery...");
-
-        const recoveryPrompt = `
-The following JSON object was only partially generated.
-
-Your task is to return ONLY the missing content needed to complete the original JSON object.
-
-❗ Very important:
-- Do NOT return the full object again.
-- Do NOT repeat any existing keys or values.
-- Do NOT wrap your response in triple backticks.
-- Do NOT add any explanations or text.
-- ONLY return the raw missing JSON fragment (e.g., '"summary": "A modern..."').
-- Make sure the syntax is strictly valid (double-quoted keys, no trailing commas, proper nesting).
-- The output must be a direct continuation to complete the previous JSON.
-
-Here is the partial object to complete:
-
-\`\`\`json
-${firstRawResponse}
-\`\`\``;
-
-        const recoveryRaw = await getCleanAIText(
-          await runPrompt({
-            ...requestBody,
-            prompt: recoveryPrompt,
-          })
-        );
-
-        console.log("Raw AI Response (recovery):", recoveryRaw);
-
-        try {
-          const mergedText = mergePartialJSON(firstRawResponse, recoveryRaw);
-          const parsed = JSON.parse(mergedText);
-          res.status(200).json(parsed);
-        } catch (finalErr) {
-          console.error("Final parsing failed after recovery:", finalErr);
-          res.status(500).json({
-            error: "Invalid AI response format after recovery",
-            details: String(finalErr),
-          });
-        }
-      }
+      const json = await tryGenerateFullJSON(requestBody, runPrompt);
+      res.status(200).json(json);
     } catch (error) {
       next(error);
     }
@@ -307,12 +231,56 @@ function getCleanAIText(response: any): string {
     .trim();
 }
 
-function mergePartialJSON(partial1: string, partial2: string): string {
-  const cleaned1 = getCleanAIText(partial1);
-  const cleaned2 = getCleanAIText(partial2);
+async function tryGenerateFullJSON(
+  requestBody: any,
+  runPrompt: any
+): Promise<any> {
+  const maxAttempts = 2;
+  let partialResult = "";
 
-  const merged = JSON.parse(cleaned1 + cleaned2);
-  return JSON.stringify(merged, null, 2);
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const prompt =
+      attempt === 0 ? requestBody.prompt : getContinuationPrompt(partialResult);
+
+    const rawResponse = await getCleanAIText(
+      await runPrompt({ ...requestBody, prompt })
+    );
+    console.log(`Raw AI Response (attempt ${attempt + 1}):`, rawResponse);
+
+    try {
+      const json = JSON.parse(rawResponse);
+      return json; // fully parsed!
+    } catch (_) {
+      partialResult += rawResponse; // accumulate
+    }
+  }
+
+  // Last chance parse
+  try {
+    const finalMerged = JSON.parse(partialResult);
+    return finalMerged;
+  } catch (err) {
+    console.error("Final parsing failed after 3 attempts:", err);
+    throw new Error("Could not generate a valid JSON with content and summary");
+  }
+}
+
+function getContinuationPrompt(previousFragment: any) {
+  return `
+You previously generated an incomplete JSON object due to output limits.
+
+⚠️ Your task:
+Continue **only** the remaining part of the JSON object **without repeating** any of the existing structure or content.
+
+🚫 STRICT RULES:
+- Do NOT repeat or re-generate existing keys or values.
+- Do NOT start a new object or array.
+- Do NOT include any comments, explanations, or code blocks.
+- Only return the RAW JSON continuation, beginning **exactly** where it left off.
+
+Here is the existing partial JSON fragment:
+${previousFragment.trim()}
+`.trim();
 }
 
 app.use((req: Request, res: Response) => {
