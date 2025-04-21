@@ -104,10 +104,10 @@ async function runGeminiPrompt(
   modelName: string,
   prompt: string,
   options: LLMOptions = {
-    maxOutputTokens: 10000,
-    temperature: 0.9,
-    topP: 0.95,
-    topK: 40,
+    maxOutputTokens: 998000,
+    temperature: 0.5,
+    topP: 1,
+    topK: 100,
   }
 ): Promise<GenerateContentResult> {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -117,10 +117,10 @@ async function runGeminiPrompt(
   const model = genAI.getGenerativeModel({
     model: modelName,
     generationConfig: {
-      maxOutputTokens: options.maxOutputTokens ?? 2048,
-      temperature: options.temperature ?? 0.9,
-      topP: options.topP ?? 0.95,
-      topK: options.topK ?? 40,
+      maxOutputTokens: options.maxOutputTokens ?? 198000,
+      temperature: options.temperature ?? 1,
+      topP: options.topP ?? 1,
+      topK: options.topK ?? 100,
     },
   });
 
@@ -132,10 +132,10 @@ async function runDeepseekPrompt(
   modelName: string,
   prompt: string,
   options: LLMOptions = {
-    maxOutputTokens: 100000,
-    temperature: 2,
-    topP: 2,
-    topK: 100,
+    maxOutputTokens: 158000, // Valeur maximale supportée par l'API
+    temperature: 1, // Évitez les valeurs trop extrêmes pour garder la cohérence
+    topP: 1.0, // Permet la plus large sélection de tokens
+    topK: 100, // Conservez une valeur raisonnable pour la diversité
   },
   deepseekOptions: DeepseekOptions = {}
 ): Promise<string> {
@@ -154,9 +154,10 @@ async function runDeepseekPrompt(
   const completion = await client.chat.completions.create({
     model: modelName,
     messages: [{ role: "user", content: prompt }],
-    max_tokens: options.maxOutputTokens ?? 2048,
-    temperature: options.temperature ?? 0.7,
+    max_tokens: options.maxOutputTokens ?? 128000,
+    temperature: options.temperature ?? 1.0,
   });
+  console.log("Raw AI Response:", completion);
 
   return completion.choices[0]?.message?.content || "";
 }
@@ -209,7 +210,6 @@ function parseAIResponse(responseText: string): AIResponse {
   }
 }
 
-// Routes
 app.get("/", (req: Request, res: Response) => {
   res.status(200).json({
     message: "Welcome to Lexi API",
@@ -236,33 +236,78 @@ app.post(
         return;
       }
 
-      const content = await runPrompt(requestBody);
-      const responseText =
-        typeof content === "string"
-          ? content
-          : content.response.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      if (!responseText) {
-        res.status(500).json({ error: "No response from AI" });
-        return;
-      }
-
-      console.log("Raw AI Response:", responseText);
+      const firstRawResponse = await getCleanAIText(
+        await runPrompt(requestBody)
+      );
+      console.log("Raw AI Response (initial):", firstRawResponse);
 
       try {
-        const parsed = parseAIResponse(responseText);
+        const parsed = JSON.parse(firstRawResponse);
         res.status(200).json(parsed);
-      } catch (error) {
-        res.status(400).json({
-          error: error instanceof Error ? error.message : "Invalid AI response",
-          raw: responseText,
-        });
+        return;
+      } catch (err1) {
+        console.warn("Initial parsing failed, attempting recovery...");
+
+        const recoveryPrompt = `
+Your previous response was a partial JSON.
+
+Return ONLY the missing part to complete the object (no duplicates, no intro text, only raw valid JSON fragment).
+
+Here is the partial response:
+
+\`\`\`json
+${firstRawResponse}
+\`\`\``;
+
+        const recoveryRaw = await getCleanAIText(
+          await runPrompt({
+            ...requestBody,
+            prompt: recoveryPrompt,
+          })
+        );
+
+        console.log("Raw AI Response (recovery):", recoveryRaw);
+
+        try {
+          const mergedText = mergePartialJSON(firstRawResponse, recoveryRaw);
+          const parsed = JSON.parse(mergedText);
+          res.status(200).json(parsed);
+        } catch (finalErr) {
+          console.error("Final parsing failed after recovery:", finalErr);
+          res.status(500).json({
+            error: "Invalid AI response format after recovery",
+            details: String(finalErr),
+          });
+        }
       }
     } catch (error) {
       next(error);
     }
   }
 );
+
+function getCleanAIText(response: any): string {
+  const raw =
+    typeof response === "string"
+      ? response
+      : response?.response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+  return raw
+    .replace(/^```(json)?\s*/i, "")
+    .replace(/```$/g, "")
+    .trim();
+}
+
+function mergePartialJSON(partial1: string, partial2: string): string {
+  const cleaned1 = getCleanAIText(partial1);
+  const cleaned2 = getCleanAIText(partial2);
+
+  const obj1 = JSON.parse(cleaned1);
+  const obj2 = JSON.parse(cleaned2);
+
+  const merged = { ...obj1, ...obj2 };
+  return JSON.stringify(merged, null, 2);
+}
 
 app.use((req: Request, res: Response) => {
   res.status(404).json({ error: "Endpoint not found" });
