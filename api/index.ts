@@ -235,7 +235,7 @@ async function tryGenerateFullJSON(
   requestBody: any,
   runPrompt: any
 ): Promise<any> {
-  const maxAttempts = 2;
+  const maxAttempts = 3;
   let partialResult = "";
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
