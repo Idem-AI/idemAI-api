@@ -235,7 +235,7 @@ async function tryGenerateFullJSON(
   requestBody: any,
   runPrompt: any
 ): Promise<any> {
-  const maxAttempts = 3;
+  const maxAttempts = 4;
   let partialResult = "";
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -257,6 +257,7 @@ async function tryGenerateFullJSON(
 
   // Last chance parse
   try {
+    console.log("finalMerged", partialResult);
     const finalMerged = JSON.parse(partialResult);
     return finalMerged;
   } catch (err) {
@@ -267,18 +268,15 @@ async function tryGenerateFullJSON(
 
 function getContinuationPrompt(previousFragment: any) {
   return `
-You previously generated an incomplete JSON object due to output limits.
-
-⚠️ Your task:
-Continue **only** the remaining part of the JSON object **without repeating** any of the existing structure or content.
-
-🚫 STRICT RULES:
-- Do NOT repeat or re-generate existing keys or values.
-- Do NOT start a new object or array.
-- Do NOT include any comments, explanations, or code blocks.
-- Only return the RAW JSON continuation, beginning **exactly** where it left off.
-
-Here is the existing partial JSON fragment:
+this content is not complete and is not a valid JSON, please continue the JSON from the last line:
+finally i want json formated like this:
+{
+  "content": "string",
+  "summary": "string"
+}
+of course it is sum of all the previous content and the new content not repeating the previous content and not need to create for exemple the content and summary again, just continue the JSON from the last line:
+this is the last line: 
+just continue not repeating the previous content:
 ${previousFragment.trim()}
 `.trim();
 }
