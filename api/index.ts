@@ -248,8 +248,13 @@ async function tryGenerateFullJSON(
     console.log(`Raw AI Response (attempt ${attempt + 1}):`, rawResponse);
 
     try {
+      if (attempt > 0) {
+        const json = JSON.parse(partialResult);
+        console.log("Parsed JSON:", json);
+        return json;
+      }
       const json = JSON.parse(rawResponse);
-      return json; // fully parsed!
+      return json;
     } catch (_) {
       partialResult += rawResponse; // accumulate
     }
