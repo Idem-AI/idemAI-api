@@ -104,7 +104,7 @@ async function runGeminiPrompt(
   modelName: string,
   prompt: string,
   options: LLMOptions = {
-    maxOutputTokens: 40000,
+    maxOutputTokens: 990000,
     temperature: 0.9,
     topP: 1,
     topK: 100,
@@ -117,7 +117,7 @@ async function runGeminiPrompt(
   const model = genAI.getGenerativeModel({
     model: modelName,
     generationConfig: {
-      maxOutputTokens: options.maxOutputTokens ?? 40000,
+      maxOutputTokens: options.maxOutputTokens ?? 99000,
       temperature: options.temperature ?? 0.9,
       topP: options.topP ?? 0.9,
       topK: options.topK ?? 100,
@@ -235,7 +235,7 @@ async function tryGenerateFullJSON(
   requestBody: any,
   runPrompt: any
 ): Promise<any> {
-  const maxAttempts = 4;
+  const maxAttempts = 8;
   let partialResult = "";
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
