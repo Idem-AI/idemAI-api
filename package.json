@@ -14,12 +14,14 @@
   "license": "MIT",
   "dependencies": {
     "@google/generative-ai": "^0.24.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "firebase-admin": "^13.2.0",
     "openai": "^4.95.1"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
     "@types/node": "^22.13.11",

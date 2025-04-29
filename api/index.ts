@@ -7,6 +7,8 @@ import {
 import cors from "cors";
 import OpenAI from "openai";
 import dotenv from "dotenv";
+import type { CookieOptions } from "express"; // ajoute cette ligne si ce n’est pas déjà fait
+import cookieParser from 'cookie-parser';
 
 dotenv.config();
 
@@ -66,12 +68,27 @@ admin.initializeApp({
 
 const app = express();
 const port = process.env.PORT || 3000;
+app.use(cookieParser());
 
 app.use(express.json());
+const allowedOrigins = [
+  "http://localhost:4200", // Angular
+  "http://localhost:3001", // Svelte
+  "https://lexi.pharaon.me", // prod
+];
+
 app.use(
   cors({
-    origin: ["https://lexi.pharaon.me", "http://localhost:4200"],
-    methods: ["POST"],
+    origin: function (origin, callback) {
+      // Autoriser les appels depuis Postman ou SSR (ex: localhost sans origine)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true, // indispensable pour les cookies
+    methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -218,6 +235,52 @@ app.post(
     }
   }
 );
+
+app.post("/api/sessionLogin", async (req, res) => {
+  const idToken = req.body.idToken;
+
+  const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 jours
+
+  try {
+    const sessionCookie = await admin
+      .auth()
+      .createSessionCookie(idToken, { expiresIn });
+
+    const options: CookieOptions = {
+      maxAge: expiresIn,
+      httpOnly: true,
+      secure: false,
+      sameSite: "none", // ici c’est bien une valeur littérale
+      path: "/",
+    };
+
+    res.cookie("session", sessionCookie, options);
+    console.log("Succesfull Session save...");
+    res.status(200).send({ success: true });
+  } catch (error) {
+    res.status(401).send("UNAUTHORIZED REQUEST!");
+  }
+});
+
+app.get("/api/profile", async (req, res) => {
+  const sessionCookie = req.cookies.session || "";
+
+  try {
+    const decodedToken = await admin
+      .auth()
+      .verifySessionCookie(sessionCookie, true);
+    const userRecord = await admin.auth().getUser(decodedToken.uid);
+
+    res.status(200).json({
+      uid: userRecord.uid,
+      email: userRecord.email,
+      displayName: userRecord.displayName,
+      photoURL: userRecord.photoURL,
+    });
+  } catch (error) {
+    res.status(401).json({ message: "Unauthenticated" });
+  }
+});
 
 function getCleanAIText(response: any): string {
   const raw =
