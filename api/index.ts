@@ -278,6 +278,7 @@ app.get("/api/profile", async (req, res) => {
       photoURL: userRecord.photoURL,
     });
   } catch (error) {
+    console.log(error)
     res.status(401).json({ message: "Unauthenticated" });
   }
 });
