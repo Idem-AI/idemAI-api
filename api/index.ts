@@ -8,7 +8,7 @@ import cors from "cors";
 import OpenAI from "openai";
 import dotenv from "dotenv";
 import type { CookieOptions } from "express"; // ajoute cette ligne si ce n’est pas déjà fait
-import cookieParser from 'cookie-parser';
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 
@@ -240,7 +240,8 @@ app.post(
 app.post("/api/sessionLogin", async (req, res) => {
   const idToken = req.body.idToken;
 
-  const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 jours
+  const expiresIn = 14 * 24 * 60 * 60 * 1000; // 14 Days
+  const isProduction = process.env.NODE_ENV === 'production';
 
   try {
     const sessionCookie = await admin
@@ -251,20 +252,24 @@ app.post("/api/sessionLogin", async (req, res) => {
       maxAge: expiresIn,
       httpOnly: true,
       secure: false,
-      sameSite: "none", // ici c’est bien une valeur littérale
+      sameSite: isProduction ? "none" : "lax",
       path: "/",
     };
-
+    console.log("session", sessionCookie);
+    console.log("options", options);
     res.cookie("session", sessionCookie, options);
     console.log("Succesfull Session save...");
     res.status(200).send({ success: true });
   } catch (error) {
+    console.log(error);
     res.status(401).send("UNAUTHORIZED REQUEST!");
   }
 });
 
 app.get("/api/profile", async (req, res) => {
-  const sessionCookie = req.cookies.session || "";
+  const sessionCookie = req.cookies.session ;
+
+  console.log("sessionCookie", sessionCookie);
 
   try {
     const decodedToken = await admin
@@ -279,7 +284,7 @@ app.get("/api/profile", async (req, res) => {
       photoURL: userRecord.photoURL,
     });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(401).json({ message: "Unauthenticated" });
   }
 });
