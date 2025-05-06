@@ -74,6 +74,7 @@ app.use(express.json());
 const allowedOrigins = [
   "http://localhost:4200", // Angular
   "http://localhost:3001", // Svelte
+  "http://localhost:5173", // React
   "https://lexi.pharaon.me", // prod
 ];
 
