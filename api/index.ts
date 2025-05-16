@@ -4,6 +4,7 @@ import express, {
   NextFunction,
   CookieOptions,
 } from "express";
+import logger from './config/logger';
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { config } from "./config/config";
@@ -19,6 +20,11 @@ initializeFirebase();
 // Initialize Express app
 const app = express();
 
+logger.info('Application starting...', { 
+  environment: process.env.NODE_ENV || 'development',
+  version: process.env.npm_package_version || 'unknown'
+});
+
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
@@ -29,6 +35,10 @@ const llmController = new LLMController();
 
 // Routes
 app.get("/", (req: Request, res: Response) => {
+  logger.info('Health check request received', { 
+    ip: req.ip,
+    userAgent: req.get('user-agent')
+  });
   res.status(200).json({
     message: "Welcome to Lexi API",
     status: "healthy",
@@ -184,8 +194,38 @@ ${previousFragment.trim()}
 `.trim();
 }
 
+// Request logging middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  logger.info('Incoming request', {
+    method: req.method,
+    path: req.path,
+    ip: req.ip,
+    userAgent: req.get('user-agent')
+  });
+  next();
+});
+
+// 404 handler
 app.use((req: Request, res: Response) => {
+  logger.warn('Endpoint not found', {
+    method: req.method,
+    path: req.url,
+    ip: req.ip,
+    userAgent: req.get('user-agent')
+  });
   res.status(404).json({ error: "Endpoint not found" });
+});
+
+// Error handling middleware
+app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
+  logger.error('Unhandled error', {
+    error: error.message,
+    stack: error.stack,
+    method: req.method,
+    path: req.path,
+    ip: req.ip
+  });
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
