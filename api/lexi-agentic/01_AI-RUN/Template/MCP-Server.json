@@ -1,0 +1,146 @@
+{
+    "mcpServers": {
+      "context7": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@upstash/context7-mcp@latest"
+        ]
+      },
+      "supabase": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@supabase/mcp-server-supabase@latest",
+          "--access-token",
+          "YOUR_SUPABASE_ACCESS_TOKEN_HERE"
+        ]
+      },
+      "github": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-github"
+        ],
+        "env": {
+          "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_GITHUB_PERSONAL_ACCESS_TOKEN_HERE"
+        }
+      },
+      "puppeteer": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-puppeteer"
+        ],
+        "env": {}
+      },
+      "stripe": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@stripe/mcp",
+          "--tools=all",
+          "--api-key=YOUR_STRIPE_API_KEY_HERE"
+        ],
+        "env": {}
+      },
+      "playwright": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@executeautomation/playwright-mcp-server"
+        ],
+        "env": {}
+      },
+      "sequential-thinking": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-sequential-thinking"
+        ],
+        "env": {}
+      },
+      "shadcn": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "shadcn@canary",
+          "registry:mcp"
+        ],
+        "env": {
+          "REGISTRY_URL": "YOUR_REGISTRY_URL_HERE"
+        }
+      },
+      "ElevenLabs": {
+        "command": "uvx",
+        "args": [
+          "elevenlabs-mcp"
+        ],
+        "env": {
+          "ELEVENLABS_API_KEY": "YOUR_ELEVENLABS_API_KEY_HERE"
+        }
+      },
+      "convex": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "convex@latest",
+          "mcp",
+          "start"
+        ]
+      },
+      "mcp-server-firecrawl": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "firecrawl-mcp"
+        ],
+        "env": {
+          "FIRECRAWL_API_KEY": "YOUR_FIRECRAWL_API_KEY_HERE"
+        }
+      },
+      "everything": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-everything"
+        ]
+      },
+      "memory": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-memory"
+        ]
+      },
+      "railway": {
+        "command": "npx",
+        "args": ["-y", "@jasontanswe/railway-mcp"],
+        "env": {
+           "RAILWAY_API_TOKEN": "YOUR_RAILWAY_API_TOKEN_HERE"
+        }
+     },
+      "@21st-dev/magic": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@21st-dev/magic@latest",
+          "API_KEY=\"YOUR_21ST_DEV_MAGIC_API_KEY_HERE\""
+        ]
+      },
+      "taskmaster-ai": {
+        "command": "npx",
+        "args": ["-y", "--package=task-master-ai", "task-master-ai"],
+        "env": {
+            "ANTHROPIC_API_KEY": "YOUR_ANTHROPIC_API_KEY_HERE",
+            "PERPLEXITY_API_KEY": "YOUR_PERPLEXITY_API_KEY_HERE",
+            "OPENAI_API_KEY": "YOUR_OPENAI_KEY_HERE",
+            "GOOGLE_API_KEY": "YOUR_GOOGLE_KEY_HERE",
+            "MISTRAL_API_KEY": "YOUR_MISTRAL_KEY_HERE",
+            "OPENROUTER_API_KEY": "YOUR_OPENROUTER_KEY_HERE",
+            "XAI_API_KEY": "YOUR_XAI_KEY_HERE",
+            "AZURE_OPENAI_API_KEY": "YOUR_AZURE_KEY_HERE"
+        }
+      }
+    }
+  }

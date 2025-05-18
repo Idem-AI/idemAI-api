@@ -1,0 +1,27 @@
+{
+  "version": "1.0.0",
+  "projectName": null,
+  "projectObjective": null,
+  "prdDocumentPath": "project_prd.md",
+  "tasksDocumentPath": "tasks/tasks.json",
+  "currentWorkflowPhase": "initialization",
+  "lastCompletedStep": null,
+  "pendingAction": {
+    "mcpServer": null,
+    "toolName": null,
+    "arguments": null,
+    "expectedResponseType": null
+  },
+  "userInputHistory": {},
+  "currentContext": {
+    "activeEpicId": null,
+    "activeTaskId": null,
+    "filesBeingWorkedOn": []
+  },
+  "errorState": {
+    "hasError": false,
+    "errorMessage": null,
+    "errorTimestamp": null,
+    "recoverySuggestion": null
+  }
+}
