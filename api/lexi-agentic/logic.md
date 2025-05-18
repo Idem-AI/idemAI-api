@@ -1,4 +1,4 @@
-# Technical Manual: Agentic Coding Framework
+# Technical Manual: {{project.name}} - Agentic Coding Framework
 
 ## Introduction
 

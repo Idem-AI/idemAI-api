@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "projectName": null,
-  "projectObjective": null,
+  "projectName": "{{project.name}}",
+  "projectObjective": "{{project.description}}",
   "prdDocumentPath": "project_prd.md",
   "tasksDocumentPath": "tasks/tasks.json",
   "currentWorkflowPhase": "initialization",

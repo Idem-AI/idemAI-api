@@ -20,6 +20,6 @@ router.put('/:projectId', authenticate, projectController.updateProject);
 router.delete('/:projectId', authenticate, projectController.deleteProject);
 
 // Generate agentic ZIP for a specific project
-router.get('/:projectId/agentic', authenticate, projectController.generateProjectAgenticZip);
+router.get('/:projectId/agentic', projectController.generateProjectAgenticZip);
 
 export const projectRoutes = router;

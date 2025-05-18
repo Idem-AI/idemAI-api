@@ -1,4 +1,4 @@
-# 🚀 DafnckMachine - Agentic Coding Framework
+# 🚀 {{project.name}} - Powered by DafnckMachine
 
 *Automate Your Vision into Realit - Build anything !*
 *Transforming software / app / saas / game development with spec-driven, AI-powered agentic workflows.*

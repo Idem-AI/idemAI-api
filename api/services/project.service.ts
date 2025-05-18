@@ -182,6 +182,60 @@ class ProjectService {
 
     const zip = new JSZip();
     const sourceDirectory = '/Users/admin/Documents/pharaon/personal/lexis-api/api/lexi-agentic'; 
+    
+    // Liste des extensions de fichiers texte qu'on peut traiter pour le remplacement
+    const textFileExtensions = [
+      '.md', '.txt', '.json', '.js', '.ts', '.html', '.css', '.scss', '.yaml', '.yml',
+      '.xml', '.svg', '.jsx', '.tsx', '.vue', '.config', '.json5', '.env', '.gitignore',
+      '.eslintrc', '.prettierrc', '.babelrc'
+    ];
+
+    // Fonction récursive pour remplacer les placeholders imbriqués
+    const processNestedPlaceholders = (content: string, prefix: string, obj: any): string => {
+      if (!obj || typeof obj !== 'object') return content;
+
+      // Traiter les tableaux
+      if (Array.isArray(obj)) {
+        // Remplacer le placeholder du tableau entier par sa version JSON
+        content = content.replace(
+          new RegExp(`{{${prefix}}}`, 'g'), 
+          JSON.stringify(obj, null, 2)
+        );
+        
+        // Si le tableau a des éléments, traiter aussi les éléments indexés
+        obj.forEach((item, index) => {
+          if (typeof item === 'object' && item !== null) {
+            content = processNestedPlaceholders(content, `${prefix}[${index}]`, item);
+          } else if (item !== undefined && item !== null) {
+            content = content.replace(
+              new RegExp(`{{${prefix}\[${index}\]}}`, 'g'), 
+              String(item)
+            );
+          }
+        });
+        return content;
+      }
+
+      // Traiter les objets
+      for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          const value = obj[key];
+          const newPrefix = prefix ? `${prefix}.${key}` : key;
+          
+          if (typeof value === 'object' && value !== null) {
+            // Récursion pour les objets imbriqués
+            content = processNestedPlaceholders(content, newPrefix, value);
+          } else if (value !== undefined && value !== null) {
+            // Remplacer directement les valeurs finales
+            content = content.replace(
+              new RegExp(`{{${newPrefix}}}`, 'g'), 
+              String(value)
+            );
+          }
+        }
+      }
+      return content;
+    };
 
     const addDirectoryToZip = async (dirPath: string, zipInstance: JSZip) => {
       const entries = await fs.readdir(dirPath, { withFileTypes: true });
@@ -196,24 +250,46 @@ class ProjectService {
             await addDirectoryToZip(fullPath, folder);
           }
         } else if (entry.isFile()) {
-          let content = await fs.readFile(fullPath, 'utf-8');
+          const ext = path.extname(fullPath).toLowerCase();
           
-          content = content.replace(/{{project.id}}/g, project.id || '');
-          content = content.replace(/{{project.name}}/g, project.name);
-          content = content.replace(/{{project.description}}/g, project.description);
-          content = content.replace(/{{project.type}}/g, project.type);
-          content = content.replace(/{{project.constraints}}/g, project.constraints.join(', '));
-          content = content.replace(/{{project.teamSize}}/g, project.teamSize);
-          content = content.replace(/{{project.scope}}/g, project.scope);
-          content = content.replace(/{{project.budgetIntervals}}/g, project.budgetIntervals || '');
-          content = content.replace(/{{project.targets}}/g, project.targets);
-          content = content.replace(/{{project.createdAt}}/g, project.createdAt.toISOString());
-          content = content.replace(/{{project.updatedAt}}/g, project.updatedAt.toISOString());
-          content = content.replace(/{{project.userId}}/g, project.userId);
-          content = content.replace(/{{project.selectedPhases}}/g, project.selectedPhases.join(', '));
-          content = content.replace(/{{project.analysisResultModel}}/g, JSON.stringify(project.analysisResultModel, null, 2));
+          // Si c'est un fichier texte, traiter les placeholders
+          if (textFileExtensions.includes(ext)) {
+            try {
+              let content = await fs.readFile(fullPath, 'utf-8');
+              
+              // Remplacer les propriétés de base du projet
+              content = content.replace(/{{project.id}}/g, project.id || '');
+              content = content.replace(/{{project.name}}/g, project.name);
+              content = content.replace(/{{project.description}}/g, project.description);
+              content = content.replace(/{{project.type}}/g, project.type);
+              content = content.replace(/{{project.constraints}}/g, project.constraints.join(', '));
+              content = content.replace(/{{project.teamSize}}/g, project.teamSize);
+              content = content.replace(/{{project.scope}}/g, project.scope);
+              content = content.replace(/{{project.budgetIntervals}}/g, project.budgetIntervals || '');
+              content = content.replace(/{{project.targets}}/g, project.targets);
+              content = content.replace(/{{project.createdAt}}/g, project.createdAt.toISOString());
+              content = content.replace(/{{project.updatedAt}}/g, project.updatedAt.toISOString());
+              content = content.replace(/{{project.userId}}/g, project.userId);
+              content = content.replace(/{{project.selectedPhases}}/g, project.selectedPhases.join(', '));
+              
+              // Remplacer l'objet analysisResultModel entier si demandé
+              content = content.replace(/{{project.analysisResultModel}}/g, JSON.stringify(project.analysisResultModel, null, 2));
+              
+              // Traiter tous les placeholders imbriqués dans analysisResultModel
+              content = processNestedPlaceholders(content, 'project.analysisResultModel', project.analysisResultModel);
 
-          zipInstance.file(relativePath, content);
+              zipInstance.file(relativePath, content);
+            } catch (error) {
+              console.error(`Error processing file ${fullPath}:`, error);
+              // Pour les fichiers texte avec erreur, ajouter quand même le fichier original
+              const buffer = await fs.readFile(fullPath);
+              zipInstance.file(relativePath, buffer);
+            }
+          } else {
+            // Pour les fichiers binaires, les ajouter tels quels
+            const buffer = await fs.readFile(fullPath);
+            zipInstance.file(relativePath, buffer);
+          }
         }
       }
     };

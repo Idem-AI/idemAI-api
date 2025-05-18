@@ -1,10 +1,10 @@
-# Product Requirements Document (PRD) - Streamlined Agentic AI Workflow
+# Product Requirements Document (PRD) - {{project.name}}
 
-**Project Name:** `[User to Insert Project Name Here, or AI to Propose]`
-**Version:** `[AI to update e.g., 1.0, 1.1 after user validation cycle]`
-**Last Updated:** `[AI to Fill: Current Date]`
-**Author(s):** `[User Name/ID] (Initial Idea) & AI Coding Agent (Elaboration)`
-**Key Stakeholders:** `[User Name/ID], AI Coding Agent`
+**Project Name:** `{{project.name}}`
+**Version:** `1.0.0`
+**Last Updated:** `{{project.updatedAt}}`
+**Author(s):** `{{project.userId}} (Initial Idea) & AI Coding Agent (Elaboration)`
+**Key Stakeholders:** `{{project.userId}}, AI Coding Agent`
 
 **Preamble: Streamlined Workflow Approach**
 This PRD template is designed for a streamlined workflow where the primary user input is the core project idea and desired high-level features. The AI Coding Agent is expected to take significant initiative in proposing technical details, design elements, and specific tooling. While a Next.js and Supabase stack is suggested as a default (and detailed in Section 1.10), this is a recommendation. The user will have the final say in choosing the most appropriate frontend, backend, and other technologies based on project needs, PRD analysis, market research, or other factors. Human validation will occur at key decision points proposed by the AI, as outlined in the AI-Human Interaction Protocol (Section 1.11).
@@ -116,9 +116,22 @@ This PRD template is designed for a streamlined workflow where the primary user 
 *Comment: This document serves as the primary input for the AI Coding Agent, which will elaborate on technical specifications based on the user's high-level input. It outlines the project idea, desired features, and establishes the framework for the AI to propose detailed solutions within the "Agentic Coding System".*
 `[AI to summarize after initial user input]`
 
-### 1.2. Project Idea & Core Problem (User Input)
-*User Instruction: Please provide the core idea of your project and the main problem it aims to solve. Be as clear and concise as possible. The AI Agent can elaborate further if market research data is available or if it's instructed to perform high-level research.*
-`[User to provide Project Idea and Core Problem]`
+### 1.2. Project Idea & Core Problem
+
+**Project Type:** `{{project.type}}`
+**Project ID:** `{{project.id}}`
+**Project Description:** `{{project.description}}`
+
+**Key Constraints:**
+```
+{{project.constraints}}
+```
+
+**Team Size:** `{{project.teamSize}}`
+**Project Scope:** `{{project.scope}}`
+**Budget Intervals:** `{{project.budgetIntervals}}`
+**Targets:** `{{project.targets}}`
+**Selected Phases:** `{{project.selectedPhases}}`
 
 ### 1.3. Product Vision (AI to Propose, User to Validate)
 *Comment: Based on the user's idea, the AI will propose a long-term vision for the product.*

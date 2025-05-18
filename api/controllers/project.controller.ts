@@ -156,22 +156,22 @@ class ProjectController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const userId = req.user?.uid;
-      if (!userId) {
-        res.status(401).json({ message: "User not authenticated" });
-        return;
-      }
-      const { projectId } = req.params;
-      if (!projectId) {
-        res.status(400).json({ message: "Project ID is required" });
-        return;
-      }
+      // const userId = req.user?.uid;
+      // if (!userId) {
+      //   res.status(401).json({ message: "User not authenticated" });
+      //   return;
+      // }
+      // const { projectId } = req.params;
+      // if (!projectId) {
+      //   res.status(400).json({ message: "Project ID is required" });
+      //   return;
+      // }
 
-      const zipBuffer = await projectService.generateAgenticZip(userId, projectId);
+      const zipBuffer = await projectService.generateAgenticZip("sA6ZeSlrP9Ri8tCNAncPNKi83Nz2", "5ULCb6EwpVWYGIUivAc0");
 
       // Set headers for file download
       res.setHeader('Content-Type', 'application/zip');
-      res.setHeader('Content-Disposition', `attachment; filename="lexi-agentic-${projectId}.zip"`);
+      res.setHeader('Content-Disposition', `attachment; filename="lexi-agentic-5ULCb6EwpVWYGIUivAc0.zip"`);
       res.send(zipBuffer);
       return;
 

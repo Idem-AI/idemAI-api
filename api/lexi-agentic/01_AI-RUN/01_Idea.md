@@ -1,32 +1,35 @@
-# Project Idea Pre-Writing Template
-*For initializing the PRD "Streamlined Agentic AI Workflow" with the Agentic Agent*
+# Project Idea Template: {{project.name}}
+*For initializing the {{project.type}} project with the Agentic Agent*
 
-**Creation Date:** [Date]  
-**Idea Author:** [Your Name/ID]
+**Creation Date:** {{project.createdAt}}  
+**Last Updated:** {{project.updatedAt}}  
+**Project Author:** {{project.userId}}
 
 ## SECTION A: THE CORE IDEA
-*Purpose: Capture the essence of the project for Sections 1.2 and 3.1 of the PRD*
+*Purpose: Define the essence of the project "{{project.name}}"*
 
-### 1. Project Working Title
-
-```
-[What working name do you have in mind?]
-```
-
-**Example:** "Neighborhood Carpooling App"
-
-### 2. The Idea in a Few Words (Pitch/Central Concept)
+### 1. Project Title
 
 ```
-[Describe the main concept in 1-2 sentences. What's the big idea?]
+{{project.name}}
 ```
 
-**Example:** "A mobile application to facilitate spontaneous and local carpooling between neighbors for short trips (school, shopping, activities)."
+### 2. Project Description (Central Concept)
+
+```
+{{project.description}}
+```
 
 ### 3. Main Problem this Project Solves
 
 ```
-[What is the major pain point you're targeting? For whom is this problem most acute?]
+{{project.analysisResultModel.planning.requirementsGathering.summary}}
+```
+
+### 4. Smart Objectives
+
+```
+{{project.analysisResultModel.planning.smartObjectives.summary}}
 ```
 
 **Example:** "Difficulty organizing small shared trips without the complexity of national platforms, lack of trust for carpooling with strangers over short distances, waste of empty seats in cars for recurring neighborhood trips."
