@@ -7,13 +7,73 @@
 **Project Description:** {{project.description}}
 **Current Phase:** In-Depth Market Research & Analysis
 
-## Project Feasibility Summary
+## Project Planning Information
 
+### Feasibility Study
+
+**Summary:**
 {{project.analysisResultModel.planning.feasibilityStudy.summary}}
 
-## Risk Analysis Summary
+**Detailed Content:**
 
+```
+{{project.analysisResultModel.planning.feasibilityStudy.content}}
+```
+
+### Risk Analysis
+
+**Summary:**
 {{project.analysisResultModel.planning.riskanalysis.summary}}
+
+**Detailed Content:**
+
+```
+{{project.analysisResultModel.planning.riskanalysis.content}}
+```
+
+### Requirements Gathering
+
+**Summary:**
+{{project.analysisResultModel.planning.requirementsGathering.summary}}
+
+**Detailed Content:**
+
+```
+{{project.analysisResultModel.planning.requirementsGathering.content}}
+```
+
+### SMART Objectives
+
+**Summary:**
+{{project.analysisResultModel.planning.smartObjectives.summary}}
+
+**Detailed Content:**
+
+```
+{{project.analysisResultModel.planning.smartObjectives.content}}
+```
+
+### Stakeholders Meeting
+
+**Summary:**
+{{project.analysisResultModel.planning.stakeholdersMeeting.summary}}
+
+**Detailed Content:**
+
+```
+{{project.analysisResultModel.planning.stakeholdersMeeting.content}}
+```
+
+### Use Case Modeling
+
+**Summary:**
+{{project.analysisResultModel.planning.useCaseModeling.summary}}
+
+**Detailed Content:**
+
+```
+{{project.analysisResultModel.planning.useCaseModeling.content}}
+```
 
 ## Role Definition
 
@@ -39,69 +99,96 @@ You are **MarketStrategist AI** for project **{{project.name}}**.
 
 ## 📊 Structure for In-Depth `market_research.md` Report
 
-You MUST generate content for each of the following sections:
+You MUST generate content for each of the following sections, incorporating the project's existing planning materials when available:
 
 ### 1. Executive Summary
-    *   Brief overview of the project idea.
+
+    *   Project Overview: "{{project.name}}" - {{project.type}} application for {{project.targets}}
     *   Key findings from the market research.
-    *   Overall market viability assessment (e.g., promising, challenging, niche).
-    *   Top 2-3 strategic recommendations.
+    *   Feasibility Assessment:
+      ```
+      {{project.analysisResultModel.planning.feasibilityStudy.summary}}
+      ```
+    *   Strategic SMART Objectives:
+      ```
+      {{project.analysisResultModel.planning.smartObjectives.summary}}
+      ```
 
 ### 2. Detailed Market Analysis
-    *   **2.1. Market Definition & Segmentation:**
-        *   Clearly define the target market.
+
+    *   **2.1. Market Definition & Target Audience:**
+        *   Target Market: {{project.targets}}
+        *   Project Scope: {{project.scope}}
         *   Detailed description of primary, secondary, and tertiary target user segments (demographics, psychographics, behaviors, needs).
         *   Quantify market size if possible (e.g., TAM, SAM, SOM estimates or qualitative descriptions of scale).
-    *   **2.2. Market Trends & Dynamics:**
-        *   Current key trends impacting the market (technological, social, economic, regulatory).
-        *   Projected market growth or decline.
-        *   Emerging technologies or innovations relevant to the project.
+    *   **2.2. Market Trends & Technology Landscape:**
+        *   Current key trends relevant to {{project.type}} projects.
+        *   Projected market growth or decline in the {{project.type}} sector.
+        *   Emerging technologies or innovations relevant to the project constraints: {{project.constraints}}
         *   Barriers to entry for new players.
-    *   **2.3. User Pains & Unmet Needs (Deep Dive):**
-        *   Elaborate extensively on the core problems the project aims to solve, as identified in `idea_document.md`.
-        *   Provide evidence or examples of these pain points (e.g., common frustrations, gaps in current solutions).
-        *   Identify any related or underlying unmet needs that the project could potentially address.
+    *   **2.3. User Requirements & Needs Assessment:**
+        *   Requirements Gathering Analysis:
+          ```
+          {{project.analysisResultModel.planning.requirementsGathering.content}}
+          ```
+        *   Use Case Models:
+          ```
+          {{project.analysisResultModel.planning.useCaseModeling.content}}
+          ```
+        *   Identify any additional unmet needs that the project could potentially address.
 
 ### 3. Competitive Landscape Analysis
-    *   **3.1. Direct Competitors:**
+
+    *   **3.1. Direct Competitors in the {{project.type}} Space:**
         *   Identify 3-5 key direct competitors.
         *   For each competitor:
             *   Company overview (size, funding if known, market position).
             *   Product/Service offering (key features, technology).
             *   Pricing and business model.
-            *   Strengths.
-            *   Weaknesses.
-            *   Apparent marketing and customer acquisition strategies.
+            *   Strengths and weaknesses.
+            *   Customer acquisition strategies.
     *   **3.2. Indirect Competitors & Alternatives:**
         *   Identify significant indirect competitors or alternative solutions users might currently use.
-        *   Briefly analyze their impact on the project's potential.
+        *   Analyze their impact on the project's potential in the context of {{project.scope}}.
     *   **3.3. Competitive Differentiation & Positioning:**
-        *   Based on the analysis, how can the project differentiate itself effectively?
-        *   What is the proposed Unique Value Proposition (UVP) in light of the competition?
-        *   Identify potential positioning strategies.
+        *   Unique value proposition for {{project.name}} based on its distinguishing features.
+        *   Positioning strategy considering the project's type ({{project.type}}) and constraints ({{project.constraints}}).
 
 ### 4. SWOT Analysis
-    *   **Strengths:** Internal capabilities and resources that give the project an advantage (referencing `idea_document.md` for initial thoughts).
-    *   **Weaknesses:** Internal limitations or areas needing improvement.
-    *   **Opportunities:** External factors the project can leverage for growth.
-    *   **Threats:** External challenges or risks that could negatively impact the project.
+
+    *   **Strengths:** Internal capabilities and resources specific to {{project.name}} and the team size ({{project.teamSize}}).
+    *   **Weaknesses:** Internal limitations based on project constraints ({{project.constraints}}).
+    *   **Opportunities:** External factors the project can leverage for growth within its scope ({{project.scope}}).
+    *   **Threats:** External challenges, incorporating risk analysis:
+      ```
+      {{project.analysisResultModel.planning.riskanalysis.summary}}
+      ```
 
 ### 5. Monetization & Business Model Viability
-    *   Explore and detail 2-3 potential monetization strategies relevant to the project type and market (e.g., subscription tiers, freemium, one-time purchase, advertising, data monetization, B2B licensing).
-    *   For each strategy, discuss pros, cons, and suitability.
+
+    *   Explore monetization strategies suited to {{project.type}} with consideration to budget intervals ({{project.budgetIntervals}})
+    *   For each strategy, discuss pros, cons, and suitability for the target audience ({{project.targets}}).
     *   Initial thoughts on pricing strategy and perceived value.
-    *   Analyze the viability of the business model(s) in the context of the market and competition.
+    *   Analyze the viability of the business model(s) in relation to the project's development phases ({{project.selectedPhases}}).
 
 ### 6. Go-to-Market & User Acquisition Strategy Ideas
+
     *   Propose 2-3 potential high-level strategies for initial user acquisition and market entry.
-    *   Consider channels (e.g., digital marketing, content marketing, partnerships, community building).
-    *   Identify key messaging angles based on user pains and UVP.
+    *   Consider the most effective channels for reaching the target audience ({{project.targets}}).
+    *   Key messaging angles based on user requirements and value proposition.
+    *   Implementation strategies aligned with the selected development phases ({{project.selectedPhases}}).
 
 ### 7. Key Risks & Mitigation Strategies
-    *   Identify the top 3-5 significant risks for the project (market risks, technical risks, execution risks, financial risks).
-    *   For each risk, propose potential mitigation strategies.
+
+    *   Risk Analysis Overview:
+      ```
+      {{project.analysisResultModel.planning.riskanalysis.content}}
+      ```
+    *   Top risks specific to {{project.type}} projects with {{project.constraints}} constraints.
+    *   Mitigation strategies appropriate for the team size ({{project.teamSize}}) and scope ({{project.scope}}).
 
 ### 8. Conclusion & Strategic Recommendations
+
     *   Summarize the overall market attractiveness.
     *   Reiterate key opportunities and critical challenges.
     *   Provide 3-5 concrete, actionable strategic recommendations for the project based on the entire market research.
@@ -146,6 +233,7 @@ I'd like to develop a comprehensive core concept that bridges my initial vision 
 ### What to Expect Next (Handled by AutoPilot and `03_Core_Concept.md`)
 
 In the Core Concept Development phase, the AI will:
+
 1.  Synthesize the initial idea with the **in-depth** market research findings.
 2.  Refine the value proposition.
 3.  Develop detailed user personas.

@@ -7,17 +7,15 @@
 **Project Team Size:** {{project.teamSize}}
 **Budget Considerations:** {{project.budgetIntervals}}
 
-**Project Description:** 
+**Project Description:**
 {{project.description}}
-
-**Selected Development Phases:**
-{{project.selectedPhases}}
 
 **Current Phase:** Core Concept Development
 
 ## Stakeholder Information
 
 **Key Stakeholders Analysis:**
+
 ```
 {{project.analysisResultModel.planning.stakeholdersMeeting.content}}
 ```
@@ -25,8 +23,9 @@
 ## Use Case Models
 
 **Primary Use Cases:**
+
 ```
-{{project.analysisResultModel.planning.useCaseModeling.summary}}
+{{project.analysisResultModel.planning.useCaseModeling.content}}
 ```
 
 ## Introduction
@@ -49,6 +48,7 @@ Create a comprehensive Core Concept document that bridges the initial vision wit
 ### 1. Concept Evolution Summary (250-300 words)
 
 Provide a narrative of how the initial idea has evolved based on market research findings. Highlight:
+
 - Key validations that strengthened the original concept
 - Critical pivots or refinements needed based on market insights
 - How user pain points from research align with or modify the initial problem statement
@@ -56,6 +56,7 @@ Provide a narrative of how the initial idea has evolved based on market research
 ### 2. Refined Value Proposition (100-150 words)
 
 Articulate a clear, compelling value proposition that:
+
 - Addresses the most significant validated pain points
 - Differentiates from competitive solutions identified in the research
 - Can be communicated in a single, powerful statement
@@ -63,6 +64,7 @@ Articulate a clear, compelling value proposition that:
 ### 3. Target User Refinement
 
 #### 3.1 Primary Persona (Detailed)
+
 - Name and brief background
 - Key demographics refined by research
 - Primary pain points (directly from research)
@@ -71,6 +73,7 @@ Articulate a clear, compelling value proposition that:
 - Quote that captures their perspective
 
 #### 3.2 Secondary Persona(s) (Brief)
+
 - Name and distinguishing characteristics
 - How they differ from the primary persona
 - Specific needs to consider
@@ -78,6 +81,7 @@ Articulate a clear, compelling value proposition that:
 ### 4. Core Functionality Matrix
 
 Create a table mapping:
+
 - Validated user pain points (from research)
 - Corresponding core features that address each pain point
 - Value delivered by each feature
@@ -100,6 +104,7 @@ Then elaborate on how this positioning aligns with market gaps identified in the
 ### 7. Success Metrics
 
 Based on market research, define 3-5 key metrics that will determine if this concept is successful in addressing the market need. For each metric:
+
 - Define what will be measured
 - Set a specific target threshold
 - Explain why this metric matters (tied to research findings)
@@ -138,7 +143,7 @@ Before submitting your final Core Concept, verify that it:
 
 ---
 
-*This Core Concept document will serve as the strategic foundation for the PRD, ensuring that what we build is both true to the original vision and validated by market research.*
+_This Core Concept document will serve as the strategic foundation for the PRD, ensuring that what we build is both true to the original vision and validated by market research._
 
 ## Next Steps
 
