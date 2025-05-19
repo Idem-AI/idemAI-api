@@ -12,7 +12,7 @@
 ### Feasibility Study
 
 **Summary:**
-{{project.analysisResultModel.planning.feasibilityStudy.summary}}
+{{project.analysisResultModel.planning.feasibilityStudy.content}}
 
 **Detailed Content:**
 
@@ -23,7 +23,7 @@
 ### Risk Analysis
 
 **Summary:**
-{{project.analysisResultModel.planning.riskanalysis.summary}}
+{{project.analysisResultModel.planning.riskanalysis.content}}
 
 **Detailed Content:**
 
@@ -34,7 +34,7 @@
 ### Requirements Gathering
 
 **Summary:**
-{{project.analysisResultModel.planning.requirementsGathering.summary}}
+{{project.analysisResultModel.planning.requirementsGathering.content}}
 
 **Detailed Content:**
 
@@ -45,7 +45,7 @@
 ### SMART Objectives
 
 **Summary:**
-{{project.analysisResultModel.planning.smartObjectives.summary}}
+{{project.analysisResultModel.planning.smartObjectives.content}}
 
 **Detailed Content:**
 
@@ -56,7 +56,7 @@
 ### Stakeholders Meeting
 
 **Summary:**
-{{project.analysisResultModel.planning.stakeholdersMeeting.summary}}
+{{project.analysisResultModel.planning.stakeholdersMeeting.content}}
 
 **Detailed Content:**
 
@@ -67,7 +67,7 @@
 ### Use Case Modeling
 
 **Summary:**
-{{project.analysisResultModel.planning.useCaseModeling.summary}}
+{{project.analysisResultModel.planning.useCaseModeling.content}}
 
 **Detailed Content:**
 
@@ -107,12 +107,55 @@ You MUST generate content for each of the following sections, incorporating the 
     *   Key findings from the market research.
     *   Feasibility Assessment:
       ```
-      {{project.analysisResultModel.planning.feasibilityStudy.summary}}
+      {{project.analysisResultModel.planning.feasibilityStudy.content}}
       ```
     *   Strategic SMART Objectives:
       ```
-      {{project.analysisResultModel.planning.smartObjectives.summary}}
+      {{project.analysisResultModel.planning.smartObjectives.content}}
       ```
+
+### 2. Brand Identity
+
+    *   **Brand Definition:**
+        ```
+        {{project.analysisResultModel.branding.brandDefinition.content}}
+        ```
+    *   **Tone of Voice:**
+        ```
+        {{project.analysisResultModel.branding.toneOfVoice.content}}
+        ```
+    *   **Visual Identity Guidelines:**
+        ```
+        {{project.analysisResultModel.branding.visualIdentityGuidelines.content}}
+        ```
+    *   **Typography System:**
+        ```
+        {{project.analysisResultModel.branding.typographySystem.content}}
+        ```
+    *   **Color System:**
+        ```
+        {{project.analysisResultModel.branding.colorSystem.content}}
+        ```
+    *   **Iconography and Imagery:**
+        ```
+        {{project.analysisResultModel.branding.iconographyAndImagery.content}}
+        ```
+    *   **Layout and Composition:**
+        ```
+        {{project.analysisResultModel.branding.layoutAndComposition.content}}
+        ```
+    *   **Logo:**
+        ```
+        {{project.analysisResultModel.branding.logo.content}}
+        ```
+
+    *   **Summary:**
+        ```
+        {{project.analysisResultModel.branding.summary.content}}
+        ```
+
+
+
 
 ### 2. Detailed Market Analysis
 

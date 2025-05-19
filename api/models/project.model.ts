@@ -4,7 +4,7 @@ export interface ProjectModel {
   id?: string;
   name: string;
   description: string;
-  type: 'web' | 'mobile' | 'iot' | 'desktop';
+  type: string;
   constraints: string[];
   teamSize: string;
   scope: string;

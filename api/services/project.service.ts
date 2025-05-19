@@ -1,9 +1,9 @@
 import { ProjectModel } from "../models/project.model";
 import { IRepository } from "../repository/IRepository";
 import { RepositoryFactory } from "../repository/RepositoryFactory";
-import * as fs from 'fs-extra'; 
-import * as path from 'path';
-import JSZip from 'jszip';
+import * as fs from "fs-extra";
+import * as path from "path";
+import JSZip from "jszip";
 
 class ProjectService {
   private projectRepository: IRepository<ProjectModel>;
@@ -171,44 +171,71 @@ class ProjectService {
     return projectDescription.trim();
   }
 
-  async generateAgenticZip(
-    userId: string,
-    projectId: string
-  ): Promise<Buffer> {
+  async generateAgenticZip(userId: string, projectId: string): Promise<Buffer> {
     const project = await this.projectRepository.findById(projectId, userId);
     if (!project) {
-      throw new Error(`Project with ID ${projectId} not found for user ${userId}`);
+      throw new Error(
+        `Project with ID ${projectId} not found for user ${userId}`
+      );
     }
 
     const zip = new JSZip();
-    const sourceDirectory = '/Users/admin/Documents/pharaon/personal/lexis-api/api/lexi-agentic'; 
-    
+    const sourceDirectory =
+      "/Users/admin/Documents/pharaon/personal/lexis-api/api/lexi-agentic";
+
     // Liste des extensions de fichiers texte qu'on peut traiter pour le remplacement
     const textFileExtensions = [
-      '.md', '.txt', '.json', '.js', '.ts', '.html', '.css', '.scss', '.yaml', '.yml',
-      '.xml', '.svg', '.jsx', '.tsx', '.vue', '.config', '.json5', '.env', '.gitignore',
-      '.eslintrc', '.prettierrc', '.babelrc'
+      ".md",
+      ".txt",
+      ".json",
+      ".js",
+      ".ts",
+      ".html",
+      ".css",
+      ".scss",
+      ".yaml",
+      ".yml",
+      ".xml",
+      ".svg",
+      ".jsx",
+      ".tsx",
+      ".vue",
+      ".config",
+      ".json5",
+      ".env",
+      ".gitignore",
+      ".eslintrc",
+      ".prettierrc",
+      ".babelrc",
     ];
 
     // Fonction récursive pour remplacer les placeholders imbriqués
-    const processNestedPlaceholders = (content: string, prefix: string, obj: any): string => {
-      if (!obj || typeof obj !== 'object') return content;
+    const processNestedPlaceholders = (
+      content: string,
+      prefix: string,
+      obj: any
+    ): string => {
+      if (!obj || typeof obj !== "object") return content;
 
       // Traiter les tableaux
       if (Array.isArray(obj)) {
         // Remplacer le placeholder du tableau entier par sa version JSON
         content = content.replace(
-          new RegExp(`{{${prefix}}}`, 'g'), 
+          new RegExp(`{{${prefix}}}`, "g"),
           JSON.stringify(obj, null, 2)
         );
-        
+
         // Si le tableau a des éléments, traiter aussi les éléments indexés
         obj.forEach((item, index) => {
-          if (typeof item === 'object' && item !== null) {
-            content = processNestedPlaceholders(content, `${prefix}[${index}]`, item);
+          if (typeof item === "object" && item !== null) {
+            content = processNestedPlaceholders(
+              content,
+              `${prefix}[${index}]`,
+              item
+            );
           } else if (item !== undefined && item !== null) {
             content = content.replace(
-              new RegExp(`{{${prefix}\[${index}\]}}`, 'g'), 
+              new RegExp(`{{${prefix}\[${index}\]}}`, "g"),
               String(item)
             );
           }
@@ -221,14 +248,14 @@ class ProjectService {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
           const value = obj[key];
           const newPrefix = prefix ? `${prefix}.${key}` : key;
-          
-          if (typeof value === 'object' && value !== null) {
+
+          if (typeof value === "object" && value !== null) {
             // Récursion pour les objets imbriqués
             content = processNestedPlaceholders(content, newPrefix, value);
           } else if (value !== undefined && value !== null) {
             // Remplacer directement les valeurs finales
             content = content.replace(
-              new RegExp(`{{${newPrefix}}}`, 'g'), 
+              new RegExp(`{{${newPrefix}}}`, "g"),
               String(value)
             );
           }
@@ -246,37 +273,188 @@ class ProjectService {
 
         if (entry.isDirectory()) {
           const folder = zipInstance.folder(relativePath);
-          if (folder) { 
+          if (folder) {
             await addDirectoryToZip(fullPath, folder);
           }
         } else if (entry.isFile()) {
           const ext = path.extname(fullPath).toLowerCase();
-          
+
           // Si c'est un fichier texte, traiter les placeholders
           if (textFileExtensions.includes(ext)) {
             try {
-              let content = await fs.readFile(fullPath, 'utf-8');
-              
+              let content = await fs.readFile(fullPath, "utf-8");
+
               // Remplacer les propriétés de base du projet
-              content = content.replace(/{{project.id}}/g, project.id || '');
-              content = content.replace(/{{project.name}}/g, project.name);
-              content = content.replace(/{{project.description}}/g, project.description);
-              content = content.replace(/{{project.type}}/g, project.type);
-              content = content.replace(/{{project.constraints}}/g, project.constraints.join(', '));
-              content = content.replace(/{{project.teamSize}}/g, project.teamSize);
-              content = content.replace(/{{project.scope}}/g, project.scope);
-              content = content.replace(/{{project.budgetIntervals}}/g, project.budgetIntervals || '');
-              content = content.replace(/{{project.targets}}/g, project.targets);
-              content = content.replace(/{{project.createdAt}}/g, project.createdAt.toISOString());
-              content = content.replace(/{{project.updatedAt}}/g, project.updatedAt.toISOString());
-              content = content.replace(/{{project.userId}}/g, project.userId);
-              content = content.replace(/{{project.selectedPhases}}/g, project.selectedPhases.join(', '));
-              
+              content = content.replace(
+                /{{project.id}}/g,
+                JSON.stringify(project.id)
+              );
+              content = content.replace(
+                /{{project.name}}/g,
+                JSON.stringify(project.name)
+              );
+              content = content.replace(
+                /{{project.description}}/g,
+                JSON.stringify(project.description)
+              );
+              content = content.replace(
+                /{{project.type}}/g,
+                JSON.stringify(project.type)
+              );
+              content = content.replace(
+                /{{project.constraints}}/g,
+                JSON.stringify(project.constraints)
+              );
+              content = content.replace(
+                /{{project.teamSize}}/g,
+                JSON.stringify(project.teamSize)
+              );
+              content = content.replace(
+                /{{project.scope}}/g,
+                JSON.stringify(project.scope)
+              );
+              content = content.replace(
+                /{{project.budgetIntervals}}/g,
+                JSON.stringify(project.budgetIntervals)
+              );
+              content = content.replace(
+                /{{project.targets}}/g,
+                JSON.stringify(project.targets)
+              );
+              content = content.replace(
+                /{{project.createdAt}}/g,
+                JSON.stringify(project.createdAt.toISOString())
+              );
+              content = content.replace(
+                /{{project.updatedAt}}/g,
+                JSON.stringify(project.updatedAt.toISOString())
+              );
+              content = content.replace(
+                /{{project.userId}}/g,
+                JSON.stringify(project.userId)
+              );
+              content = content.replace(
+                /{{project.selectedPhases}}/g,
+                JSON.stringify(project.selectedPhases)
+              );
+
               // Remplacer l'objet analysisResultModel entier si demandé
-              content = content.replace(/{{project.analysisResultModel}}/g, JSON.stringify(project.analysisResultModel, null, 2));
-              
+              content = content.replace(
+                /{{project.analysisResultModel}}/g,
+                JSON.stringify(project.analysisResultModel, null, 2)
+              );
+
+              content = content.replace(
+                /{{project.analysisResultModel.planning.feasibilityStudy.content}}/g,
+                JSON.stringify(
+                  project.analysisResultModel.planning.feasibilityStudy.content
+                )
+              );
+
+              content = content.replace(
+                /{{project.analysisResultModel.planning.riskanalysis.content}}/g,
+                JSON.stringify(
+                  project.analysisResultModel.planning.riskanalysis.content
+                )
+              );
+
+              content = content.replace(
+                /{{project.analysisResultModel.planning.requirementsGathering.content}}/g,
+                JSON.stringify(
+                  project.analysisResultModel.planning.requirementsGathering
+                    .content
+                )
+              );
+              content = content.replace(
+                /{{project.analysisResultModel.planning.smartObjectives.content}}/g,
+                JSON.stringify(
+                  project.analysisResultModel.planning.smartObjectives.content
+                )
+              );
+              content = content.replace(
+                /{{project.analysisResultModel.planning.stakeholdersMeeting.content}}/g,
+                JSON.stringify(
+                  project.analysisResultModel.planning.stakeholdersMeeting
+                    .content
+                )
+              );
+              content = content.replace(
+                /{{project.analysisResultModel.planning.useCaseModeling.content}}/g,
+                JSON.stringify(
+                  project.analysisResultModel.planning.useCaseModeling.content
+                )
+              );
+
+              content = content.replace(
+                /{{project.analysisResultModel.branding.brandDefinition.content}}/g,
+                JSON.stringify(
+                  project.analysisResultModel.branding.brandDefinition.content
+                )
+              );
+              content = content.replace(
+                /{{project.analysisResultModel.branding.toneOfVoice.content}}/g,
+                JSON.stringify(
+                  project.analysisResultModel.branding.toneOfVoice.content
+                )
+              );
+              content = content.replace(
+                /{{project.analysisResultModel.branding.visualIdentityGuidelines.content}}/g,
+                JSON.stringify(
+                  project.analysisResultModel.branding.visualIdentityGuidelines
+                    .content
+                )
+              );
+              content = content.replace(
+                /{{project.analysisResultModel.branding.typographySystem.content}}/g,
+                JSON.stringify(
+                  project.analysisResultModel.branding.typographySystem.content
+                )
+              );
+              content = content.replace(
+                /{{project.analysisResultModel.branding.colorSystem.content}}/g,
+                JSON.stringify(
+                  project.analysisResultModel.branding.colorSystem.content
+                )
+              );
+              content = content.replace(
+                /{{project.analysisResultModel.branding.iconographyAndImagery.content}}/g,
+                JSON.stringify(
+                  project.analysisResultModel.branding.iconographyAndImagery
+                    .content
+                )
+              );
+              content = content.replace(
+                /{{project.analysisResultModel.branding.layoutAndComposition.content}}/g,
+                JSON.stringify(
+                  project.analysisResultModel.branding.layoutAndComposition
+                    .content
+                )
+              );
+              content = content.replace(
+                /{{project.analysisResultModel.branding.logo.content}}/g,
+                JSON.stringify(
+                  project.analysisResultModel.branding.logo.content
+                )
+              );
+              content = content.replace(
+                /{{project.analysisResultModel.branding.globalCss.content}}/g,
+                JSON.stringify(
+                  project.analysisResultModel.branding.globalCss.content
+                )
+              );
+              content = content.replace(
+                /{{project.analysisResultModel.branding.summary.content}}/g,
+                JSON.stringify(
+                  project.analysisResultModel.branding.summary.content
+                )
+              );
+
               // Traiter tous les placeholders imbriqués dans analysisResultModel
-              content = processNestedPlaceholders(content, 'project.analysisResultModel', project.analysisResultModel);
+              content = processNestedPlaceholders(
+                content,
+                "project.analysisResultModel",
+                project.analysisResultModel
+              );
 
               zipInstance.file(relativePath, content);
             } catch (error) {
@@ -296,7 +474,11 @@ class ProjectService {
 
     await addDirectoryToZip(sourceDirectory, zip);
 
-    return zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', compressionOptions: { level: 9 } });
+    return zip.generateAsync({
+      type: "nodebuffer",
+      compression: "DEFLATE",
+      compressionOptions: { level: 9 },
+    });
   }
 }
 
