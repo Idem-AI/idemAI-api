@@ -171,6 +171,139 @@ class ProjectService {
     return projectDescription.trim();
   }
 
+  private createDirectoryStructure(zipInstance: JSZip) {
+    // Root level files
+    zipInstance.file("Inspiration.md", "");
+    zipInstance.file("logic.md", "");
+    zipInstance.file("project_session_state.json", "");
+    zipInstance.file("README.md", "");
+    zipInstance.file("workflow.md", "");
+
+    // 01_AI-RUN directory
+    const aiRunDir = zipInstance.folder("01_AI-RUN");
+    if (aiRunDir) {
+      aiRunDir.file("00_Getting_Started.md", "");
+      aiRunDir.file("01_AutoPilot.md", "");
+      aiRunDir.file("01_Idea.md", "");
+      aiRunDir.file("02_Market_Research.md", "");
+      aiRunDir.file("03_Core_Concept.md", "");
+      aiRunDir.file("04_PRD_Generation.md", "");
+      aiRunDir.file("05_Specs_Docs.md", "");
+      aiRunDir.file("06_Task_Manager.md", "");
+      aiRunDir.file("07_Start_Building.md", "");
+      aiRunDir.file("08_Testing.md", "");
+      aiRunDir.file("09_Deployment.md", "");
+
+      // Template subdirectory
+      const templateDir = aiRunDir.folder("Template");
+      if (templateDir) {
+        templateDir.file("PRD_template.md", "");
+        templateDir.file("MCP-Server.json", "");
+        templateDir.file("MCP-Context.md", "");
+      }
+    }
+
+    // 02_AI-DOCS directory
+    const aiDocsDir = zipInstance.folder("02_AI-DOCS");
+    if (aiDocsDir) {
+      // TaskManagement
+      const taskManagementDir = aiDocsDir.folder("TaskManagement");
+      if (taskManagementDir) {
+        taskManagementDir.file("Tasks_JSON_Structure.md", "");
+        taskManagementDir.file("Roo_Task_Workflow.md", "");
+      }
+
+      // Integrations
+      const integrationsDir = aiDocsDir.folder("Integrations");
+      if (integrationsDir) {
+        integrationsDir.file("api_integration_template.md", "");
+      }
+
+      // Documentation
+      const documentationDir = aiDocsDir.folder("Documentation");
+      if (documentationDir) {
+        documentationDir.file("AI_Task_Management_Optimization.md", "");
+        documentationDir.file("AI_Design_Agent_Optimization.md", "");
+        documentationDir.file("AI_Coding_Agent_Optimization.md", "");
+      }
+
+      // Deployment
+      const deploymentDir = aiDocsDir.folder("Deployment");
+      if (deploymentDir) {
+        deploymentDir.file("deployment_guide_template.md", "");
+      }
+
+      // Conventions
+      const conventionsDir = aiDocsDir.folder("Conventions");
+      if (conventionsDir) {
+        conventionsDir.file("design_conventions_template.md", "");
+        conventionsDir.file("coding_conventions_template.md", "");
+      }
+
+      // BusinessLogic
+      const businessLogicDir = aiDocsDir.folder("BusinessLogic");
+      if (businessLogicDir) {
+        businessLogicDir.file("business_logic_template.md", "");
+      }
+
+      // Architecture
+      const architectureDir = aiDocsDir.folder("Architecture");
+      if (architectureDir) {
+        architectureDir.file("architecture_template.md", "");
+      }
+
+      // AI-Coder
+      const aiCoderDir = aiDocsDir.folder("AI-Coder");
+      if (aiCoderDir) {
+        // TestGenerators
+        const testGeneratorsDir = aiCoderDir.folder("TestGenerators");
+        if (testGeneratorsDir) {
+          testGeneratorsDir.file("test_generator_template.md", "");
+        }
+
+        // Refactoring
+        const refactoringDir = aiCoderDir.folder("Refactoring");
+        if (refactoringDir) {
+          refactoringDir.file("refactoring_template.md", "");
+        }
+
+        // ContextPrime
+        const contextPrimeDir = aiCoderDir.folder("ContextPrime");
+        if (contextPrimeDir) {
+          contextPrimeDir.file("context_prime_template.md", "");
+        }
+
+        // CommonTasks
+        const commonTasksDir = aiCoderDir.folder("CommonTasks");
+        if (commonTasksDir) {
+          commonTasksDir.file("api_endpoint_template.md", "");
+        }
+      }
+    }
+
+    // 03_SPECS directory
+    const specsDir = zipInstance.folder("03_SPECS");
+    if (specsDir) {
+      // features
+      const featuresDir = specsDir.folder("features");
+      if (featuresDir) {
+        featuresDir.file("feature_spec_template.md", "");
+      }
+
+      // bugfixes
+      const bugfixesDir = specsDir.folder("bugfixes");
+      if (bugfixesDir) {
+        bugfixesDir.file("bugfix_spec_template.md", "");
+      }
+    }
+
+    // tasks directory
+    const tasksDir = zipInstance.folder("tasks");
+    if (tasksDir) {
+      tasksDir.file("tasks.json", "");
+    }
+  }
+
   async generateAgenticZip(userId: string, projectId: string): Promise<Buffer> {
     const project = await this.projectRepository.findById(projectId, userId);
     if (!project) {
@@ -180,143 +313,231 @@ class ProjectService {
     }
 
     const zip = new JSZip();
+    const sourceDirectory = path.resolve(__dirname, "../lexi-agentic");
 
-    // Create the exact directory structure
-    const createDirectoryStructure = (zipInstance: JSZip) => {
-      // Root level files
-      zipInstance.file("Inspiration.md", "");
-      zipInstance.file("logic.md", "");
-      zipInstance.file("project_session_state.json", "");
-      zipInstance.file("README.md", "");
-      zipInstance.file("workflow.md", "");
+    // Liste des extensions de fichiers texte qu'on peut traiter pour le remplacement
+    const textFileExtensions = [
+      ".md",
+      ".txt",
+      ".json",
+      ".js",
+      ".ts",
+      ".html",
+      ".css",
+      ".scss",
+      ".yaml",
+      ".yml",
+      ".xml",
+      ".svg",
+      ".jsx",
+      ".tsx",
+      ".vue",
+      ".config",
+      ".json5",
+      ".env",
+      ".gitignore",
+      ".eslintrc",
+      ".prettierrc",
+      ".babelrc",
+    ];
 
-      // 01_AI-RUN directory
-      const aiRunDir = zipInstance.folder("01_AI-RUN");
-      if (aiRunDir) {
-        aiRunDir.file("00_Getting_Started.md", "");
-        aiRunDir.file("01_AutoPilot.md", "");
-        aiRunDir.file("01_Idea.md", "");
-        aiRunDir.file("02_Market_Research.md", "");
-        aiRunDir.file("03_Core_Concept.md", "");
-        aiRunDir.file("04_PRD_Generation.md", "");
-        aiRunDir.file("05_Specs_Docs.md", "");
-        aiRunDir.file("06_Task_Manager.md", "");
-        aiRunDir.file("07_Start_Building.md", "");
-        aiRunDir.file("08_Testing.md", "");
-        aiRunDir.file("09_Deployment.md", "");
+    // Fonction récursive pour remplacer les placeholders imbriqués
+    const processNestedPlaceholders = (
+      content: string,
+      prefix: string,
+      obj: any
+    ): string => {
+      if (!obj || typeof obj !== "object") return content;
 
-        // Template subdirectory
-        const templateDir = aiRunDir.folder("Template");
-        if (templateDir) {
-          templateDir.file("PRD_template.md", "");
-          templateDir.file("MCP-Server.json", "");
-          templateDir.file("MCP-Context.md", "");
-        }
+      // Traiter les tableaux
+      if (Array.isArray(obj)) {
+        // Remplacer le placeholder du tableau entier par sa version JSON
+        content = content.replace(
+          new RegExp(`{{${prefix}}}`, "g"),
+          JSON.stringify(obj, null, 2)
+        );
+
+        // Si le tableau a des éléments, traiter aussi les éléments indexés
+        obj.forEach((item, index) => {
+          if (typeof item === "object" && item !== null) {
+            content = processNestedPlaceholders(
+              content,
+              `${prefix}[${index}]`,
+              item
+            );
+          } else if (item !== undefined && item !== null) {
+            content = content.replace(
+              new RegExp(`{{${prefix}\[${index}\]}}`, "g"),
+              String(item)
+            );
+          }
+        });
+        return content;
       }
 
-      // 02_AI-DOCS directory
-      const aiDocsDir = zipInstance.folder("02_AI-DOCS");
-      if (aiDocsDir) {
-        // TaskManagement
-        const taskManagementDir = aiDocsDir.folder("TaskManagement");
-        if (taskManagementDir) {
-          taskManagementDir.file("Tasks_JSON_Structure.md", "");
-          taskManagementDir.file("Roo_Task_Workflow.md", "");
-        }
+      // Traiter les objets
+      for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          const value = obj[key];
+          const newPrefix = prefix ? `${prefix}.${key}` : key;
 
-        // Integrations
-        const integrationsDir = aiDocsDir.folder("Integrations");
-        if (integrationsDir) {
-          integrationsDir.file("api_integration_template.md", "");
-        }
-
-        // Documentation
-        const documentationDir = aiDocsDir.folder("Documentation");
-        if (documentationDir) {
-          documentationDir.file("AI_Task_Management_Optimization.md", "");
-          documentationDir.file("AI_Design_Agent_Optimization.md", "");
-          documentationDir.file("AI_Coding_Agent_Optimization.md", "");
-        }
-
-        // Deployment
-        const deploymentDir = aiDocsDir.folder("Deployment");
-        if (deploymentDir) {
-          deploymentDir.file("deployment_guide_template.md", "");
-        }
-
-        // Conventions
-        const conventionsDir = aiDocsDir.folder("Conventions");
-        if (conventionsDir) {
-          conventionsDir.file("design_conventions_template.md", "");
-          conventionsDir.file("coding_conventions_template.md", "");
-        }
-
-        // BusinessLogic
-        const businessLogicDir = aiDocsDir.folder("BusinessLogic");
-        if (businessLogicDir) {
-          businessLogicDir.file("business_logic_template.md", "");
-        }
-
-        // Architecture
-        const architectureDir = aiDocsDir.folder("Architecture");
-        if (architectureDir) {
-          architectureDir.file("architecture_template.md", "");
-        }
-
-        // AI-Coder
-        const aiCoderDir = aiDocsDir.folder("AI-Coder");
-        if (aiCoderDir) {
-          // TestGenerators
-          const testGeneratorsDir = aiCoderDir.folder("TestGenerators");
-          if (testGeneratorsDir) {
-            testGeneratorsDir.file("test_generator_template.md", "");
-          }
-
-          // Refactoring
-          const refactoringDir = aiCoderDir.folder("Refactoring");
-          if (refactoringDir) {
-            refactoringDir.file("refactoring_template.md", "");
-          }
-
-          // ContextPrime
-          const contextPrimeDir = aiCoderDir.folder("ContextPrime");
-          if (contextPrimeDir) {
-            contextPrimeDir.file("context_prime_template.md", "");
-          }
-
-          // CommonTasks
-          const commonTasksDir = aiCoderDir.folder("CommonTasks");
-          if (commonTasksDir) {
-            commonTasksDir.file("api_endpoint_template.md", "");
+          if (typeof value === "object" && value !== null) {
+            // Récursion pour les objets imbriqués
+            content = processNestedPlaceholders(content, newPrefix, value);
+          } else if (value !== undefined && value !== null) {
+            // Remplacer directement les valeurs finales
+            content = content.replace(
+              new RegExp(`{{${newPrefix}}}`, "g"),
+              String(value)
+            );
           }
         }
       }
+      return content;
+    };
 
-      // 03_SPECS directory
-      const specsDir = zipInstance.folder("03_SPECS");
-      if (specsDir) {
-        // features
-        const featuresDir = specsDir.folder("features");
-        if (featuresDir) {
-          featuresDir.file("feature_spec_template.md", "");
+    // Fonction pour remplacer les placeholders dans le contenu
+    const replacePlaceholders = (content: string): string => {
+      // Remplacer les propriétés de base du projet
+      content = content.replace(/{{project.id}}/g, JSON.stringify(project.id));
+      content = content.replace(
+        /{{project.name}}/g,
+        JSON.stringify(project.name)
+      );
+      content = content.replace(
+        /{{project.description}}/g,
+        JSON.stringify(project.description)
+      );
+      content = content.replace(
+        /{{project.type}}/g,
+        JSON.stringify(project.type)
+      );
+      content = content.replace(
+        /{{project.constraints}}/g,
+        JSON.stringify(project.constraints)
+      );
+      content = content.replace(
+        /{{project.teamSize}}/g,
+        JSON.stringify(project.teamSize)
+      );
+      content = content.replace(
+        /{{project.scope}}/g,
+        JSON.stringify(project.scope)
+      );
+      content = content.replace(
+        /{{project.budgetIntervals}}/g,
+        JSON.stringify(project.budgetIntervals)
+      );
+      content = content.replace(
+        /{{project.targets}}/g,
+        JSON.stringify(project.targets)
+      );
+      content = content.replace(
+        /{{project.createdAt}}/g,
+        JSON.stringify(project.createdAt.toISOString())
+      );
+      content = content.replace(
+        /{{project.updatedAt}}/g,
+        JSON.stringify(project.updatedAt.toISOString())
+      );
+      content = content.replace(
+        /{{project.userId}}/g,
+        JSON.stringify(project.userId)
+      );
+      content = content.replace(
+        /{{project.selectedPhases}}/g,
+        JSON.stringify(project.selectedPhases)
+      );
+
+      // Remplacer l'objet analysisResultModel entier
+      content = content.replace(
+        /{{project.analysisResultModel}}/g,
+        JSON.stringify(project.analysisResultModel, null, 2)
+      );
+
+      // Remplacer les sections spécifiques de analysisResultModel
+      const sections = [
+        "planning.feasibilityStudy",
+        "planning.riskanalysis",
+        "planning.requirementsGathering",
+        "planning.smartObjectives",
+        "planning.stakeholdersMeeting",
+        "planning.useCaseModeling",
+        "branding.brandDefinition",
+        "branding.toneOfVoice",
+        "branding.visualIdentityGuidelines",
+        "branding.typographySystem",
+        "branding.colorSystem",
+        "branding.iconographyAndImagery",
+        "branding.layoutAndComposition",
+        "branding.logo",
+        "branding.globalCss",
+        "branding.summary",
+      ];
+
+      sections.forEach((section) => {
+        const path = section.split(".");
+        let value: any = project.analysisResultModel;
+        for (const key of path) {
+          value = value?.[key];
         }
+        content = content.replace(
+          new RegExp(`{{project.analysisResultModel.${section}.content}}`, "g"),
+          JSON.stringify(value?.content || "")
+        );
+      });
 
-        // bugfixes
-        const bugfixesDir = specsDir.folder("bugfixes");
-        if (bugfixesDir) {
-          bugfixesDir.file("bugfix_spec_template.md", "");
-        }
-      }
+      // Traiter tous les placeholders imbriqués dans analysisResultModel
+      content = processNestedPlaceholders(
+        content,
+        "project.analysisResultModel",
+        project.analysisResultModel
+      );
 
-      // tasks directory
-      const tasksDir = zipInstance.folder("tasks");
-      if (tasksDir) {
-        tasksDir.file("tasks.json", "");
+      return content;
+    };
+
+    // Créer la structure de base
+    this.createDirectoryStructure(zip);
+
+    // Fonction pour lire le contenu d'un fichier source
+    const readSourceFile = async (relativePath: string): Promise<string | null> => {
+      try {
+        const fullPath = path.join(sourceDirectory, relativePath);
+        const content = await fs.readFile(fullPath, "utf-8");
+        return content;
+      } catch (error) {
+        console.error(`Error reading source file ${relativePath}:`, error);
+        return null;
       }
     };
 
-    // Create the directory structure
-    createDirectoryStructure(zip);
+    // Parcourir tous les fichiers dans le zip et remplacer leur contenu
+    const processZipFiles = async (zipInstance: JSZip) => {
+      const promises: Promise<void>[] = [];
+
+      zipInstance.forEach((relativePath, file) => {
+        if (!file.dir) {
+          const ext = path.extname(relativePath).toLowerCase();
+          if (textFileExtensions.includes(ext)) {
+            promises.push(
+              (async () => {
+                const sourceContent = await readSourceFile(relativePath);
+                if (sourceContent) {
+                  const updatedContent = replacePlaceholders(sourceContent);
+                  zipInstance.file(relativePath, updatedContent);
+                }
+              })()
+            );
+          }
+        }
+      });
+
+      await Promise.all(promises);
+    };
+
+    // Traiter tous les fichiers
+    await processZipFiles(zip);
 
     return zip.generateAsync({
       type: "nodebuffer",
