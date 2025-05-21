@@ -8,7 +8,7 @@ This document outlines the general automated workflow for the "Agentic Coding Fr
 flowchart TD
     A0[Phase 0: Startup & Initialization (00_Getting_Started.md, 01_AutoPilot.md)] --> A
     A[Phase 1: Idea (01_Idea.md)] --> B
-    B[Phase 2: Market Research (02_Market_Research.md)] --> C
+    B[Phase 2: Market Research, Diagrams & Brand Identity (02_Market_Research.md)] --> C
     C[Phase 3: Core Concept (03_Core_Concept.md)] --> D
     D[Phase 4: PRD Generation (04_PRD_Generation.md)] --> E
     E[Phase 5: Specifications & Technical Docs (05_Specs_Docs.md)] --> F

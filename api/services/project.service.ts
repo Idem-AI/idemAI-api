@@ -316,30 +316,7 @@ class ProjectService {
     const sourceDirectory = path.resolve(__dirname, "../lexi-agentic");
 
     // List of text file extensions that can be processed for replacement
-    const textFileExtensions = [
-      ".md",
-      ".txt",
-      ".json",
-      ".js",
-      ".ts",
-      ".html",
-      ".css",
-      ".scss",
-      ".yaml",
-      ".yml",
-      ".xml",
-      ".svg",
-      ".jsx",
-      ".tsx",
-      ".vue",
-      ".config",
-      ".json5",
-      ".env",
-      ".gitignore",
-      ".eslintrc",
-      ".prettierrc",
-      ".babelrc",
-    ];
+    const textFileExtensions = [".md", ".txt", ".json"];
 
     // Recursive function to replace nested placeholders
     const processNestedPlaceholders = (
@@ -447,6 +424,27 @@ class ProjectService {
       content = content.replace(
         /{{project.selectedPhases}}/g,
         JSON.stringify(project.selectedPhases)
+      );
+
+      content = content.replace(
+        /{{project.analysisResultModel.design.useCaseDiagram.content}}/g,
+        JSON.stringify(project.analysisResultModel.design.useCaseDiagram.content)
+      );
+      content = content.replace(
+        /{{project.analysisResultModel.design.classDiagram.content}}/g,
+        JSON.stringify(project.analysisResultModel.design.classDiagram.content)
+      );
+      content = content.replace(
+        /{{project.analysisResultModel.design.erDiagram.content}}/g,
+        JSON.stringify(project.analysisResultModel.design.erDiagram.content)
+      );
+      content = content.replace(
+        /{{project.analysisResultModel.design.sequenceDiagram.content}}/g,
+        JSON.stringify(project.analysisResultModel.design.sequenceDiagram.content)
+      );
+      content = content.replace(
+        /{{project.analysisResultModel.design.architectureDiagram.content}}/g,
+        JSON.stringify(project.analysisResultModel.design.architectureDiagram.content)
       );
 
       // Replace entire analysisResultModel object

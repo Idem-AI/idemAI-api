@@ -27,7 +27,7 @@ The result? Unprecedented consistency, adherence to detailed specs, and the auto
 This framework is built to solve key challenges in modern software development, especially when leveraging AI:
 
 *   **Consistency & Quality:** Ensures that development adheres to predefined standards and specifications, reducing variability and improving the quality of outputs.
-*   **Full-Cycle Automation:** Automates the entire pre-development lifecycle, from idea refinement and market research to PRD and technical spec generation.
+*   **Full-Cycle Automation:** Automates the entire pre-development lifecycle, from idea refinement, market research, diagrams, and brand identity to PRD and technical spec generation.
 *   **Enhanced Agentic Coding:** Provides a structured environment for AI coding agents (like Cline, Cursor, Windsurf) to perform "Agentic Coding" – where the AI takes on significant responsibility for the development lifecycle based on clear logic and instructions.
 *   **Reduced Tedium:** Automates the creation of comprehensive documentation and detailed task lists, which are often time-consuming but critical for project success.
 *   **Scalable Planning:** The structured approach allows for complex projects to be broken down methodically, making them manageable for AI-driven development.
@@ -36,7 +36,7 @@ This framework is built to solve key challenges in modern software development, 
 
 ## ✨ Core Features
 
-*   🧠 **AI-Driven Idea to PRD:** Guides AI agents through a comprehensive process from initial idea capture, market research, and core concept definition to a detailed Product Requirements Document (PRD).
+*   🧠 **AI-Driven Idea to PRD:** Guides AI agents through a comprehensive process from initial idea capture, market research, diagrams, and brand identity, and core concept definition to a detailed Product Requirements Document (PRD).
 *   📄 **Automated Specification Generation:** AI agents update and populate technical documentation and feature specifications based on the PRD and project context.
 *   📊 **Systematic Task Breakdown:** Leverages an AI orchestrator (Roo) to decompose the PRD and technical specs into a structured hierarchy of epics, tasks, and sub-tasks, ready for implementation.
 *   🤖 **Agentic Code Generation Support:** Designed to feed detailed, validated specifications directly to AI coding agents for implementation, ensuring code aligns with requirements.
@@ -49,8 +49,8 @@ This framework is built to solve key challenges in modern software development, 
 Agentic Coding Framework operates on the principle of "Agentic Coding Logic," a structured methodology that guides AI agents through distinct development phases. The process is typically orchestrated by an `AutoPilot` script ([`01_AI-RUN/01_AutoPilot.md`](./01_AI-RUN/01_AutoPilot.md)) which invokes a series of detailed prompts.
 
 1.  **Initialization & Idea Capture:** The user provides an initial idea, which the AI refines through targeted questions.
-2.  **Market Research:** The AI, acting as a market analyst, researches the idea's viability using integrated tools.
-3.  **Core Concept Definition:** The idea is further refined into a solid concept based on market insights.
+2.  **Market Research, Diagrams & Brand Identity:** The AI, acting as a market analyst, researches the idea's viability, including diagramming and brand identity aspects, using integrated tools.
+3.  **Core Concept Development:** The idea is further refined into a solid concept based on market insights.
 4.  **PRD Generation:** A comprehensive Product Requirements Document is created.
 5.  **Technical Documentation & Specs:** Existing documentation templates within the project (in `02_AI-DOCS/` and `03_SPECS/`) are updated by the AI with project-specific details derived from the PRD. This includes architecture, coding conventions, feature specs, etc. The AI is guided by [`02_AI-DOCS/Documentation/AI_Coding_Agent_Optimization.md`](./02_AI-DOCS/Documentation/AI_Coding_Agent_Optimization.md).
 6.  **Task Management:** The PRD and specs are broken down into a detailed task list ([`tasks/tasks.json`](./tasks/tasks.json)) by an AI orchestrator, following the workflow defined in [`02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md`](./02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md).
@@ -138,12 +138,12 @@ This workflow is designed for comprehensive AI assistance, orchestrated by the [
 10. **AI Agent:** Presents the completed `idea_document.md` to the user for quick validation.
 11. **User:** Validates or requests minor adjustments.
 
-**Phase 2: Automated Market Research (Logic from [`01_AI-RUN/02_Market_Research.md`](./01_AI-RUN/02_Market_Research.md))**
+**Phase 2: Automated Market Research, Diagrams & Brand Identity (Logic from [`01_AI-RUN/02_Market_Research.md`](./01_AI-RUN/02_Market_Research.md))**
 
-12. **AI Agent:** Announces it's conducting market research.
+12. **AI Agent:** Announces it's conducting market research, including diagrams and brand identity.
 13. **AI Agent (as `MarketMaster Pro`):** Internally uses the `02_Market_Research.md` logical prompt, taking `idea_document.md` as input.
 14. **AI Agent:** Leverages MCPs (e.g., `context7`, `firecrawl`) as needed to simulate data gathering.
-15. **AI Agent:** Generates a comprehensive market analysis.
+15. **AI Agent:** Generates a comprehensive market analysis, including diagrams and brand identity aspects.
 16. **AI Agent:** Saves this analysis as `market_research.md` in the root.
 17. **AI Agent:** Presents a summary of main findings to the user.
 18. **User:** Decides whether to review the full analysis or proceed.
@@ -152,7 +152,7 @@ This workflow is designed for comprehensive AI assistance, orchestrated by the [
 
 19. **AI Agent:** Announces it's developing the core concept.
 20. **AI Agent (as `ConceptForge`):** Internally uses the `03_Core_Concept.md` logical prompt, taking `idea_document.md` and `market_research.md` as inputs.
-21. **AI Agent:** Synthesizes the idea and market research into a refined concept.
+21. **AI Agent:** Synthesizes the idea, market research, diagrams, and brand identity into a refined concept.
 22. **AI Agent:** Saves this concept as `core_concept.md` in the root.
 23. **AI Agent:** Presents the value proposition and key feature matrix to the user.
 24. **User:** Validates the core concept before proceeding.

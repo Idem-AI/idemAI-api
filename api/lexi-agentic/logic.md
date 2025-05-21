@@ -21,7 +21,7 @@ This workflow is designed to guide a software development project from the initi
 flowchart TD
     A0[Startup & Initialization (00_Getting_Started.md, 01_AutoPilot.md)] --> A
     A[Phase 1: Idea (01_Idea.md)] --> B
-    B[Phase 2: Market Research (02_Market_Research.md)] --> C
+    B[Phase 2: Market Research, Diagrams & Brand Identity (02_Market_Research.md)] --> C
     C[Phase 3: Core Concept (03_Core_Concept.md)] --> D
     D[Phase 4: PRD Generation (04_PRD_Generation.md)] --> E
     E[Phase 5: Specifications & Technical Docs (05_Specs_Docs.md)] --> F
@@ -91,23 +91,25 @@ flowchart TD
 *   **Transition:** After user validation, `lastCompletedStep` is updated to "ideaDocumentValidated" in [`project_session_state.json`](project_session_state.json:1), and `currentWorkflowPhase` transitions to "marketResearch".
 *   **Why:** Formalizing the initial idea in a structured document ensures that all key aspects are considered and serves as a solid basis for subsequent steps, particularly market research.
 
-### Phase 2: Automated (Interactive) Market Research
+### Phase 2: Automated (Interactive) Market Research, Diagrams & Brand Identity
 
 *   **Logic Prompt File:** [`01_AI-RUN/02_Market_Research.md`](01_AI-RUN/02_Market_Research.md:1)
 *   **AI Role:** "MarketResearch Assistant".
 *   **Input:** The `idea_document.md` file.
 *   **Process:**
-    1.  The AI announces that it is conducting market research.
+    1.  The AI announces that it is conducting market research, including diagrams and brand identity aspects.
     2.  It uses the `02_Market_Research.md` prompt to structure an **interactive discussion** with the user (or an internal analysis if in AutoPilot mode) on:
         *   Understanding the idea and user pain points.
         *   Market and trends.
         *   Competition.
         *   Monetization and viability.
         *   Key opportunities and risks.
+        *   Diagrams (e.g., user flow, architecture).
+        *   Brand Identity (e.g., naming, tone, visual direction).
         *   Overall market attractiveness.
     3.  The AI synthesizes the discussion points. [`project_session_state.json`](project_session_state.json:1) is updated with `pendingAction` set to `create_market_research_document` before creation.
 *   **Output:**
-    *   `market_research.md` file created at the root, containing a concise summary of the market analysis.
+    *   `market_research.md` file created at the root, containing a concise summary of the market analysis, diagrams, and brand identity.
     *   The AI presents a summary of the main conclusions and asks if the user wants to review the full analysis or continue.
 *   **Transition:** After user confirmation, `lastCompletedStep` is updated to "marketResearchCompleted" in [`project_session_state.json`](project_session_state.json:1) (and `pendingAction` cleared), and `currentWorkflowPhase` transitions to "coreConceptDevelopment".
 *   **Why:** Validate the idea against the existing market, identify competitors, understand user segments, and assess economic viability before investing more time in concept development.
