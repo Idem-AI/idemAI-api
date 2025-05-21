@@ -180,299 +180,143 @@ class ProjectService {
     }
 
     const zip = new JSZip();
-    const sourceDirectory =
-      "/Users/admin/Documents/pharaon/personal/lexis-api/api/lexi-agentic";
 
-    // Liste des extensions de fichiers texte qu'on peut traiter pour le remplacement
-    const textFileExtensions = [
-      ".md",
-      ".txt",
-      ".json",
-      ".js",
-      ".ts",
-      ".html",
-      ".css",
-      ".scss",
-      ".yaml",
-      ".yml",
-      ".xml",
-      ".svg",
-      ".jsx",
-      ".tsx",
-      ".vue",
-      ".config",
-      ".json5",
-      ".env",
-      ".gitignore",
-      ".eslintrc",
-      ".prettierrc",
-      ".babelrc",
-    ];
+    // Create the exact directory structure
+    const createDirectoryStructure = (zipInstance: JSZip) => {
+      // Root level files
+      zipInstance.file("Inspiration.md", "");
+      zipInstance.file("logic.md", "");
+      zipInstance.file("project_session_state.json", "");
+      zipInstance.file("README.md", "");
+      zipInstance.file("workflow.md", "");
 
-    // Fonction récursive pour remplacer les placeholders imbriqués
-    const processNestedPlaceholders = (
-      content: string,
-      prefix: string,
-      obj: any
-    ): string => {
-      if (!obj || typeof obj !== "object") return content;
+      // 01_AI-RUN directory
+      const aiRunDir = zipInstance.folder("01_AI-RUN");
+      if (aiRunDir) {
+        aiRunDir.file("00_Getting_Started.md", "");
+        aiRunDir.file("01_AutoPilot.md", "");
+        aiRunDir.file("01_Idea.md", "");
+        aiRunDir.file("02_Market_Research.md", "");
+        aiRunDir.file("03_Core_Concept.md", "");
+        aiRunDir.file("04_PRD_Generation.md", "");
+        aiRunDir.file("05_Specs_Docs.md", "");
+        aiRunDir.file("06_Task_Manager.md", "");
+        aiRunDir.file("07_Start_Building.md", "");
+        aiRunDir.file("08_Testing.md", "");
+        aiRunDir.file("09_Deployment.md", "");
 
-      // Traiter les tableaux
-      if (Array.isArray(obj)) {
-        // Remplacer le placeholder du tableau entier par sa version JSON
-        content = content.replace(
-          new RegExp(`{{${prefix}}}`, "g"),
-          JSON.stringify(obj, null, 2)
-        );
-
-        // Si le tableau a des éléments, traiter aussi les éléments indexés
-        obj.forEach((item, index) => {
-          if (typeof item === "object" && item !== null) {
-            content = processNestedPlaceholders(
-              content,
-              `${prefix}[${index}]`,
-              item
-            );
-          } else if (item !== undefined && item !== null) {
-            content = content.replace(
-              new RegExp(`{{${prefix}\[${index}\]}}`, "g"),
-              String(item)
-            );
-          }
-        });
-        return content;
+        // Template subdirectory
+        const templateDir = aiRunDir.folder("Template");
+        if (templateDir) {
+          templateDir.file("PRD_template.md", "");
+          templateDir.file("MCP-Server.json", "");
+          templateDir.file("MCP-Context.md", "");
+        }
       }
 
-      // Traiter les objets
-      for (const key in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          const value = obj[key];
-          const newPrefix = prefix ? `${prefix}.${key}` : key;
+      // 02_AI-DOCS directory
+      const aiDocsDir = zipInstance.folder("02_AI-DOCS");
+      if (aiDocsDir) {
+        // TaskManagement
+        const taskManagementDir = aiDocsDir.folder("TaskManagement");
+        if (taskManagementDir) {
+          taskManagementDir.file("Tasks_JSON_Structure.md", "");
+          taskManagementDir.file("Roo_Task_Workflow.md", "");
+        }
 
-          if (typeof value === "object" && value !== null) {
-            // Récursion pour les objets imbriqués
-            content = processNestedPlaceholders(content, newPrefix, value);
-          } else if (value !== undefined && value !== null) {
-            // Remplacer directement les valeurs finales
-            content = content.replace(
-              new RegExp(`{{${newPrefix}}}`, "g"),
-              String(value)
-            );
+        // Integrations
+        const integrationsDir = aiDocsDir.folder("Integrations");
+        if (integrationsDir) {
+          integrationsDir.file("api_integration_template.md", "");
+        }
+
+        // Documentation
+        const documentationDir = aiDocsDir.folder("Documentation");
+        if (documentationDir) {
+          documentationDir.file("AI_Task_Management_Optimization.md", "");
+          documentationDir.file("AI_Design_Agent_Optimization.md", "");
+          documentationDir.file("AI_Coding_Agent_Optimization.md", "");
+        }
+
+        // Deployment
+        const deploymentDir = aiDocsDir.folder("Deployment");
+        if (deploymentDir) {
+          deploymentDir.file("deployment_guide_template.md", "");
+        }
+
+        // Conventions
+        const conventionsDir = aiDocsDir.folder("Conventions");
+        if (conventionsDir) {
+          conventionsDir.file("design_conventions_template.md", "");
+          conventionsDir.file("coding_conventions_template.md", "");
+        }
+
+        // BusinessLogic
+        const businessLogicDir = aiDocsDir.folder("BusinessLogic");
+        if (businessLogicDir) {
+          businessLogicDir.file("business_logic_template.md", "");
+        }
+
+        // Architecture
+        const architectureDir = aiDocsDir.folder("Architecture");
+        if (architectureDir) {
+          architectureDir.file("architecture_template.md", "");
+        }
+
+        // AI-Coder
+        const aiCoderDir = aiDocsDir.folder("AI-Coder");
+        if (aiCoderDir) {
+          // TestGenerators
+          const testGeneratorsDir = aiCoderDir.folder("TestGenerators");
+          if (testGeneratorsDir) {
+            testGeneratorsDir.file("test_generator_template.md", "");
+          }
+
+          // Refactoring
+          const refactoringDir = aiCoderDir.folder("Refactoring");
+          if (refactoringDir) {
+            refactoringDir.file("refactoring_template.md", "");
+          }
+
+          // ContextPrime
+          const contextPrimeDir = aiCoderDir.folder("ContextPrime");
+          if (contextPrimeDir) {
+            contextPrimeDir.file("context_prime_template.md", "");
+          }
+
+          // CommonTasks
+          const commonTasksDir = aiCoderDir.folder("CommonTasks");
+          if (commonTasksDir) {
+            commonTasksDir.file("api_endpoint_template.md", "");
           }
         }
       }
-      return content;
-    };
 
-    const addDirectoryToZip = async (dirPath: string, zipInstance: JSZip) => {
-      const entries = await fs.readdir(dirPath, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const fullPath = path.join(dirPath, entry.name);
-        const relativePath = path.relative(sourceDirectory, fullPath);
-
-        if (entry.isDirectory()) {
-          const folder = zipInstance.folder(relativePath);
-          if (folder) {
-            await addDirectoryToZip(fullPath, folder);
-          }
-        } else if (entry.isFile()) {
-          const ext = path.extname(fullPath).toLowerCase();
-
-          // Si c'est un fichier texte, traiter les placeholders
-          if (textFileExtensions.includes(ext)) {
-            try {
-              let content = await fs.readFile(fullPath, "utf-8");
-
-              // Remplacer les propriétés de base du projet
-              content = content.replace(
-                /{{project.id}}/g,
-                JSON.stringify(project.id)
-              );
-              content = content.replace(
-                /{{project.name}}/g,
-                JSON.stringify(project.name)
-              );
-              content = content.replace(
-                /{{project.description}}/g,
-                JSON.stringify(project.description)
-              );
-              content = content.replace(
-                /{{project.type}}/g,
-                JSON.stringify(project.type)
-              );
-              content = content.replace(
-                /{{project.constraints}}/g,
-                JSON.stringify(project.constraints)
-              );
-              content = content.replace(
-                /{{project.teamSize}}/g,
-                JSON.stringify(project.teamSize)
-              );
-              content = content.replace(
-                /{{project.scope}}/g,
-                JSON.stringify(project.scope)
-              );
-              content = content.replace(
-                /{{project.budgetIntervals}}/g,
-                JSON.stringify(project.budgetIntervals)
-              );
-              content = content.replace(
-                /{{project.targets}}/g,
-                JSON.stringify(project.targets)
-              );
-              content = content.replace(
-                /{{project.createdAt}}/g,
-                JSON.stringify(project.createdAt.toISOString())
-              );
-              content = content.replace(
-                /{{project.updatedAt}}/g,
-                JSON.stringify(project.updatedAt.toISOString())
-              );
-              content = content.replace(
-                /{{project.userId}}/g,
-                JSON.stringify(project.userId)
-              );
-              content = content.replace(
-                /{{project.selectedPhases}}/g,
-                JSON.stringify(project.selectedPhases)
-              );
-
-              // Remplacer l'objet analysisResultModel entier si demandé
-              content = content.replace(
-                /{{project.analysisResultModel}}/g,
-                JSON.stringify(project.analysisResultModel, null, 2)
-              );
-
-              content = content.replace(
-                /{{project.analysisResultModel.planning.feasibilityStudy.content}}/g,
-                JSON.stringify(
-                  project.analysisResultModel.planning.feasibilityStudy.content
-                )
-              );
-
-              content = content.replace(
-                /{{project.analysisResultModel.planning.riskanalysis.content}}/g,
-                JSON.stringify(
-                  project.analysisResultModel.planning.riskanalysis.content
-                )
-              );
-
-              content = content.replace(
-                /{{project.analysisResultModel.planning.requirementsGathering.content}}/g,
-                JSON.stringify(
-                  project.analysisResultModel.planning.requirementsGathering
-                    .content
-                )
-              );
-              content = content.replace(
-                /{{project.analysisResultModel.planning.smartObjectives.content}}/g,
-                JSON.stringify(
-                  project.analysisResultModel.planning.smartObjectives.content
-                )
-              );
-              content = content.replace(
-                /{{project.analysisResultModel.planning.stakeholdersMeeting.content}}/g,
-                JSON.stringify(
-                  project.analysisResultModel.planning.stakeholdersMeeting
-                    .content
-                )
-              );
-              content = content.replace(
-                /{{project.analysisResultModel.planning.useCaseModeling.content}}/g,
-                JSON.stringify(
-                  project.analysisResultModel.planning.useCaseModeling.content
-                )
-              );
-
-              content = content.replace(
-                /{{project.analysisResultModel.branding.brandDefinition.content}}/g,
-                JSON.stringify(
-                  project.analysisResultModel.branding.brandDefinition.content
-                )
-              );
-              content = content.replace(
-                /{{project.analysisResultModel.branding.toneOfVoice.content}}/g,
-                JSON.stringify(
-                  project.analysisResultModel.branding.toneOfVoice.content
-                )
-              );
-              content = content.replace(
-                /{{project.analysisResultModel.branding.visualIdentityGuidelines.content}}/g,
-                JSON.stringify(
-                  project.analysisResultModel.branding.visualIdentityGuidelines
-                    .content
-                )
-              );
-              content = content.replace(
-                /{{project.analysisResultModel.branding.typographySystem.content}}/g,
-                JSON.stringify(
-                  project.analysisResultModel.branding.typographySystem.content
-                )
-              );
-              content = content.replace(
-                /{{project.analysisResultModel.branding.colorSystem.content}}/g,
-                JSON.stringify(
-                  project.analysisResultModel.branding.colorSystem.content
-                )
-              );
-              content = content.replace(
-                /{{project.analysisResultModel.branding.iconographyAndImagery.content}}/g,
-                JSON.stringify(
-                  project.analysisResultModel.branding.iconographyAndImagery
-                    .content
-                )
-              );
-              content = content.replace(
-                /{{project.analysisResultModel.branding.layoutAndComposition.content}}/g,
-                JSON.stringify(
-                  project.analysisResultModel.branding.layoutAndComposition
-                    .content
-                )
-              );
-              content = content.replace(
-                /{{project.analysisResultModel.branding.logo.content}}/g,
-                JSON.stringify(
-                  project.analysisResultModel.branding.logo.content
-                )
-              );
-              content = content.replace(
-                /{{project.analysisResultModel.branding.globalCss.content}}/g,
-                JSON.stringify(
-                  project.analysisResultModel.branding.globalCss.content
-                )
-              );
-              content = content.replace(
-                /{{project.analysisResultModel.branding.summary.content}}/g,
-                JSON.stringify(
-                  project.analysisResultModel.branding.summary.content
-                )
-              );
-
-              // Traiter tous les placeholders imbriqués dans analysisResultModel
-              content = processNestedPlaceholders(
-                content,
-                "project.analysisResultModel",
-                project.analysisResultModel
-              );
-
-              zipInstance.file(relativePath, content);
-            } catch (error) {
-              console.error(`Error processing file ${fullPath}:`, error);
-              // Pour les fichiers texte avec erreur, ajouter quand même le fichier original
-              const buffer = await fs.readFile(fullPath);
-              zipInstance.file(relativePath, buffer);
-            }
-          } else {
-            // Pour les fichiers binaires, les ajouter tels quels
-            const buffer = await fs.readFile(fullPath);
-            zipInstance.file(relativePath, buffer);
-          }
+      // 03_SPECS directory
+      const specsDir = zipInstance.folder("03_SPECS");
+      if (specsDir) {
+        // features
+        const featuresDir = specsDir.folder("features");
+        if (featuresDir) {
+          featuresDir.file("feature_spec_template.md", "");
         }
+
+        // bugfixes
+        const bugfixesDir = specsDir.folder("bugfixes");
+        if (bugfixesDir) {
+          bugfixesDir.file("bugfix_spec_template.md", "");
+        }
+      }
+
+      // tasks directory
+      const tasksDir = zipInstance.folder("tasks");
+      if (tasksDir) {
+        tasksDir.file("tasks.json", "");
       }
     };
 
-    await addDirectoryToZip(sourceDirectory, zip);
+    // Create the directory structure
+    createDirectoryStructure(zip);
 
     return zip.generateAsync({
       type: "nodebuffer",

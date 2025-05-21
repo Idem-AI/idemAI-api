@@ -79,3 +79,8 @@ firebase-admin.json
 # TernJS port file
 .tern-port
 .vercel
+.DS_Store
+api/.DS_Store
+api/lexi-agentic/.DS_Store
+api/lexi-agentic/02_AI-DOCS/.DS_Store
+api/lexi-agentic/03_SPECS/.DS_Store
