@@ -315,7 +315,7 @@ class ProjectService {
     const zip = new JSZip();
     const sourceDirectory = path.resolve(__dirname, "../lexi-agentic");
 
-    // Liste des extensions de fichiers texte qu'on peut traiter pour le remplacement
+    // List of text file extensions that can be processed for replacement
     const textFileExtensions = [
       ".md",
       ".txt",
@@ -341,7 +341,7 @@ class ProjectService {
       ".babelrc",
     ];
 
-    // Fonction récursive pour remplacer les placeholders imbriqués
+    // Recursive function to replace nested placeholders
     const processNestedPlaceholders = (
       content: string,
       prefix: string,
@@ -349,15 +349,15 @@ class ProjectService {
     ): string => {
       if (!obj || typeof obj !== "object") return content;
 
-      // Traiter les tableaux
+      // Handle arrays
       if (Array.isArray(obj)) {
-        // Remplacer le placeholder du tableau entier par sa version JSON
+        // Replace the placeholder for the entire array with its JSON version
         content = content.replace(
           new RegExp(`{{${prefix}}}`, "g"),
           JSON.stringify(obj, null, 2)
         );
 
-        // Si le tableau a des éléments, traiter aussi les éléments indexés
+        // If the array has elements, also process the indexed elements
         obj.forEach((item, index) => {
           if (typeof item === "object" && item !== null) {
             content = processNestedPlaceholders(
@@ -375,17 +375,17 @@ class ProjectService {
         return content;
       }
 
-      // Traiter les objets
+      // Handle objects
       for (const key in obj) {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
           const value = obj[key];
           const newPrefix = prefix ? `${prefix}.${key}` : key;
 
           if (typeof value === "object" && value !== null) {
-            // Récursion pour les objets imbriqués
+            // Recursion for nested objects
             content = processNestedPlaceholders(content, newPrefix, value);
           } else if (value !== undefined && value !== null) {
-            // Remplacer directement les valeurs finales
+            // Replace final values directly
             content = content.replace(
               new RegExp(`{{${newPrefix}}}`, "g"),
               String(value)
@@ -396,9 +396,9 @@ class ProjectService {
       return content;
     };
 
-    // Fonction pour remplacer les placeholders dans le contenu
+    // Function to replace placeholders in the content
     const replacePlaceholders = (content: string): string => {
-      // Remplacer les propriétés de base du projet
+      // Replace project properties
       content = content.replace(/{{project.id}}/g, JSON.stringify(project.id));
       content = content.replace(
         /{{project.name}}/g,
@@ -449,13 +449,13 @@ class ProjectService {
         JSON.stringify(project.selectedPhases)
       );
 
-      // Remplacer l'objet analysisResultModel entier
+      // Replace entire analysisResultModel object
       content = content.replace(
         /{{project.analysisResultModel}}/g,
         JSON.stringify(project.analysisResultModel, null, 2)
       );
 
-      // Remplacer les sections spécifiques de analysisResultModel
+      // Replace specific sections of analysisResultModel
       const sections = [
         "planning.feasibilityStudy",
         "planning.riskanalysis",
@@ -487,7 +487,7 @@ class ProjectService {
         );
       });
 
-      // Traiter tous les placeholders imbriqués dans analysisResultModel
+      // Process all nested placeholders in analysisResultModel
       content = processNestedPlaceholders(
         content,
         "project.analysisResultModel",
@@ -497,11 +497,13 @@ class ProjectService {
       return content;
     };
 
-    // Créer la structure de base
+    // Create the base structure
     this.createDirectoryStructure(zip);
 
-    // Fonction pour lire le contenu d'un fichier source
-    const readSourceFile = async (relativePath: string): Promise<string | null> => {
+    // Function to read the content of a source file
+    const readSourceFile = async (
+      relativePath: string
+    ): Promise<string | null> => {
       try {
         const fullPath = path.join(sourceDirectory, relativePath);
         const content = await fs.readFile(fullPath, "utf-8");
@@ -512,7 +514,7 @@ class ProjectService {
       }
     };
 
-    // Parcourir tous les fichiers dans le zip et remplacer leur contenu
+    // Process all files in the zip and replace their content
     const processZipFiles = async (zipInstance: JSZip) => {
       const promises: Promise<void>[] = [];
 
@@ -536,7 +538,7 @@ class ProjectService {
       await Promise.all(promises);
     };
 
-    // Traiter tous les fichiers
+    // Process all files
     await processZipFiles(zip);
 
     return zip.generateAsync({
