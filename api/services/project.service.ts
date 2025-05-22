@@ -184,6 +184,7 @@ class ProjectService {
     if (aiRunDir) {
       aiRunDir.file("00_Getting_Started.md", "");
       aiRunDir.file("01_AutoPilot.md", "");
+      
       aiRunDir.file("01_Idea.md", "");
       aiRunDir.file("02_Market_Research.md", "");
       aiRunDir.file("03_Core_Concept.md", "");
@@ -197,7 +198,6 @@ class ProjectService {
       // Template subdirectory
       const templateDir = aiRunDir.folder("Template");
       if (templateDir) {
-        templateDir.file("PRD_template.md", "");
         templateDir.file("MCP-Server.json", "");
         templateDir.file("MCP-Context.md", "");
       }
@@ -428,7 +428,9 @@ class ProjectService {
 
       content = content.replace(
         /{{project.analysisResultModel.design.useCaseDiagram.content}}/g,
-        JSON.stringify(project.analysisResultModel.design.useCaseDiagram.content)
+        JSON.stringify(
+          project.analysisResultModel.design.useCaseDiagram.content
+        )
       );
       content = content.replace(
         /{{project.analysisResultModel.design.classDiagram.content}}/g,
@@ -440,11 +442,15 @@ class ProjectService {
       );
       content = content.replace(
         /{{project.analysisResultModel.design.sequenceDiagram.content}}/g,
-        JSON.stringify(project.analysisResultModel.design.sequenceDiagram.content)
+        JSON.stringify(
+          project.analysisResultModel.design.sequenceDiagram.content
+        )
       );
       content = content.replace(
         /{{project.analysisResultModel.design.architectureDiagram.content}}/g,
-        JSON.stringify(project.analysisResultModel.design.architectureDiagram.content)
+        JSON.stringify(
+          project.analysisResultModel.design.architectureDiagram.content
+        )
       );
 
       // Replace entire analysisResultModel object

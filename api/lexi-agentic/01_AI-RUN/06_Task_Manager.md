@@ -1,12 +1,5 @@
 # Task Management Process for {{project.name}}
 
-## Project Context
-
-**Project Name:** {{project.name}}
-**Project Type:** {{project.type}}
-**Project Description:** {{project.description}}
-**Project ID:** {{project.id}}
-
 The primary documentation for this {{project.type}} project's task management process, including workflow with Roo Orchestrator/Code and the structure of `tasks/tasks.json`, has been moved.
 
 Please refer to the new centralized documentation here:

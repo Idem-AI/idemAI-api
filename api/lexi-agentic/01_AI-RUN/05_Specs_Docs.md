@@ -1,34 +1,25 @@
-# Technical Specifications & Documentation for {{project.name}}
+# Technical Specifications & Documentation Gathering Prompt
 
-## Project Context
+## Context Awareness
 
-**Project Details:**
-- **Name:** {{project.name}}
-- **Type:** {{project.type}}
-- **Description:** {{project.description}}
-- **Scope:** {{project.scope}}
-- **Team Size:** {{project.teamSize}}
-- **Constraints:** {{project.constraints}}
-- **Created:** {{project.createdAt}}
-- **Updated:** {{project.updatedAt}}
-- **ID:** {{project.id}}
+**Previous Phases:**
 
-**Project Architecture Information:**
-```
-{{project.analysisResultModel.architectures[0].content}}
-```
+- Idea Document 01_Idea.md
+- Market Research 02_Market_Research.md
+- Core Concept 03_Core_Concept.md
+- PRD Generation 04_PRD_Generation.md
 
-**Project Design Information:**
-```
-{{project.analysisResultModel.design.content}}
-```
+**Expected Inputs:**
 
-**Project Branding Information:**
-```
-{{project.analysisResultModel.branding.description}}
-```
- 
-**Current Phase:** Technical Specifications & Documentation Creation
+- A comprehensive `04_PRD_Generation.md`
+
+**Expected Outputs:**
+
+- **Creation and initial population** of project-specific technical documentation files in `02_AI-DOCS/` (e.g., `architecture.md`, `coding_conventions.md`, `design_conventions.md`) based on templates and the PRD.
+- **Creation** of project-specific feature/bugfix specification files in `03_SPECS/` (e.g., `features/feature_spec_FEAT-001.md`) based on templates.
+- Creation/Update of `03_SPECS/documentation_index.md` linking to the **newly created** documents.
+
+**Current Phase:** Technical Specifications & Documentation **Creation**
 
 ## Role Definition
 
@@ -51,11 +42,13 @@ You have access to:
 ### Phase 1: Analysis & Planning
 
 1. **PRD Technical Analysis**
+
    - Extract all technologies, frameworks, libraries, APIs, and services mentioned in the PRD
    - Identify integration points, data models, and architectural components
    - Create a comprehensive list of all technical elements requiring documentation
 
 2. **Documentation Needs Assessment**
+
    - For each identified technology, determine what documentation is required:
      - API references and integration guides
      - Architecture patterns and best practices
@@ -73,6 +66,7 @@ You have access to:
 ### Phase 2: Documentation Gathering
 
 1. **Automated Collection** (Using available MCPs)
+
    - Use `context7` MCP to retrieve library documentation:
      ```
      resolve-library-id: Find exact library IDs
@@ -99,12 +93,14 @@ You have access to:
 ### Phase 3: Knowledge Organization
 
 1. **Creating Project-Specific Documents from Templates**
+
    - The AI will **create new files** based on the templates found in `02_AI-DOCS/` and `03_SPECS/`. The original templates **MUST NOT** be modified.
    - **Naming Convention:**
      - General Docs (in `02_AI-DOCS/` subdirs): Copy `[subdir]/[name]_template.md` to `[subdir]/[name].md` (e.g., `02_AI-DOCS/Architecture/architecture_template.md` becomes `02_AI-DOCS/Architecture/architecture.md`).
      - Feature/Bugfix Specs (in `03_SPECS/` subdirs): Copy `[subdir]/[type]_spec_template.md` to `[subdir]/[type]_spec_[ID].md` (e.g., `03_SPECS/features/feature_spec_template.md` becomes `03_SPECS/features/feature_spec_FEAT-001.md` for feature FEAT-001).
      - Other Specs (technical, integration, data, security in `03_SPECS/`): Create new files as needed (e.g., `03_SPECS/data/data_model.md`), potentially using relevant templates if they exist, or structuring logically based on PRD content.
    - **Structure Overview (Templates & Output):**
+
      ```
      # Templates (Source - DO NOT MODIFY)
      02_AI-DOCS/
@@ -138,6 +134,7 @@ You have access to:
      ```
 
 2. **Documentation Processing for Creation**
+
    - For each required project document (e.g., `architecture.md`, `feature_spec_FEAT-001.md`):
      - **Copy** the corresponding template file (e.g., `architecture_template.md`) to the new target filename.
      - Read the structure from the **newly copied file**.
@@ -148,22 +145,25 @@ You have access to:
      - Ensure cross-references are logical within the updated document and potentially to other updated documents.
 
 3. **Summary and Index Creation**
+
    - For each major technology or component, ensure the relevant updated document (e.g., `api_integration_template.md` for an API) contains a clear overview.
    - Create or update `03_SPECS/documentation_index.md` to reflect the updated documentation.
 
-   ---
+   ***
+
    #### Processing for `AI_Coding_Agent_Optimization.md` (Reference Only)
- 
+
    - **Review and Internalize:** The AI agent must thoroughly review the content of `02_AI-DOCS/Documentation/AI_Coding_Agent_Optimization.md`. **This file is NOT a template and should NOT be copied or directly modified for project-specific content.**
    - **Contextual Referencing:** When generating **new** project-specific technical documents (e.g., `architecture.md`, `coding_conventions.md`, `design_conventions.md`) or later when generating code, the AI agent must actively reference and adhere to the relevant principles outlined in `AI_Coding_Agent_Optimization.md`. This is especially crucial when populating `design_conventions.md`.
-   - **Project-Specific Application:** If the current project (`project_prd.md`) requires specific interpretations or highlights particular applications of these best practices, these details should be documented within the **newly created project-specific documents** (e.g., in `02_AI-DOCS/Architecture/architecture.md` or `02_AI-DOCS/Conventions/design_conventions.md`), potentially with cross-references pointing back to the relevant sections of `AI_Coding_Agent_Optimization.md`.
+   - **Project-Specific Application:** If the current project (`04_PRD_Generation.md`) requires specific interpretations or highlights particular applications of these best practices, these details should be documented within the **newly created project-specific documents** (e.g., in `02_AI-DOCS/Architecture/architecture.md` or `02_AI-DOCS/Conventions/design_conventions.md`), potentially with cross-references pointing back to the relevant sections of `AI_Coding_Agent_Optimization.md`.
    - **Indexation:** Ensure `../02_AI-DOCS/Documentation/AI_Coding_Agent_Optimization.md`, `../02_AI-DOCS/Documentation/AI_Design_Agent_Optimization.md`, and `../02_AI-DOCS/Documentation/AI_Task_Management_Optimization.md` are correctly listed and linked in the `../03_SPECS/documentation_index.md` as foundational reference documents.
-   ---
 
+   ***
 
 ### Phase 4: Knowledge Enhancement
 
 1. **Gap Analysis**
+
    - Identify missing or incomplete documentation
    - Generate supplementary documentation for gaps:
      - Create explanatory guides for complex concepts
@@ -171,6 +171,7 @@ You have access to:
      - Document project-specific patterns and approaches
 
 2. **AI-Specific Documentation**
+
    - Create guides specifically for AI agent consumption:
      - Prompt templates for specific technical tasks
      - Decision trees for implementation choices
@@ -184,17 +185,20 @@ You have access to:
 ## Output Deliverables
 
 1. **Technical Specification Files**
+
    - Comprehensive specifications for each system component
    - Detailed API integration specifications
    - Data model and schema specifications
    - Security and compliance specifications
 
 2. **Technical Documentation Repository**
+
    - Organized library of all relevant documentation
    - Processed and formatted for easy consumption
    - Cross-referenced and indexed for quick access
 
 3. **AI Documentation Guides**
+
    - Specialized documentation for AI agent consumption
    - Prompt templates and decision frameworks
    - Implementation patterns and best practices
@@ -211,22 +215,23 @@ You have access to:
 Use the following approach to automate documentation collection:
 
 1. **For Each Technology in the PRD:**
+
    ```
    // Pseudocode for documentation gathering
    for each technology in PRD.technologies:
      // Get official documentation
      libraryId = context7.resolve-library-id(technology.name)
      officialDocs = context7.get-library-docs(libraryId)
-     
+
      // Find GitHub examples
      repos = github.search_repositories(technology.name + " example")
      for each repo in repos (limit 5 most relevant):
        readme = github.get_file_contents(repo, "README.md")
        examples = github.search_code(repo, technology.name + " implementation")
-     
+
      // Get web resources
      webDocs = firecrawl.firecrawl_deep_research(technology.name + " tutorial")
-     
+
      // Process and organize
      processedDocs = processDocumentation(officialDocs, repos, webDocs)
      saveToRepository(processedDocs, technology)
@@ -238,10 +243,10 @@ Use the following approach to automate documentation collection:
    for each integration in PRD.integrations:
      // Get integration documentation
      integrationDocs = context7.get-library-docs(integration.name)
-     
+
      // Find implementation examples
      examples = github.search_code(integration.name + " integration example")
-     
+
      // Process and organize
      processedDocs = processIntegrationDocs(integrationDocs, examples)
      saveToRepository(processedDocs, integration)
@@ -252,15 +257,18 @@ Use the following approach to automate documentation collection:
 For each piece of documentation:
 
 1. **Extract Relevant Content**
+
    - Focus on sections directly applicable to the project
    - Prioritize implementation details and integration guidance
 
 2. **Format Consistently**
+
    - Convert all documentation to Markdown format
    - Use consistent heading structure and formatting
    - Add syntax highlighting for code examples
 
 3. **Add Context**
+
    - Explain why this documentation is relevant to the project
    - Highlight specific sections most applicable to implementation
    - Note any project-specific considerations
@@ -288,7 +296,7 @@ During the documentation gathering process:
 
 ---
 
-*This comprehensive technical documentation repository will serve as the persistent memory for the AI development team, ensuring all necessary technical knowledge is readily available throughout the implementation process.*
+_This comprehensive technical documentation repository will serve as the persistent memory for the AI development team, ensuring all necessary technical knowledge is readily available throughout the implementation process._
 
 ## Next Steps
 
@@ -299,20 +307,20 @@ Once this technical documentation update process is complete:
 1. Ensure all required project-specific documents have been **created** in `03_SPECS/` and `02_AI-DOCS/` based on the templates, and populated with relevant information.
 2. Confirm that the original template files remain unmodified.
 3. Ensure the master index file `03_SPECS/documentation_index.md` is created or updated, linking to the **newly created** project documents.
- 
+
 ### Moving to Task Management
 
 To proceed with breaking down the project into implementable tasks:
 
 1. The AI agent will automatically proceed to follow the workflow outlined in [`../02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md`](../02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md:1).
-2. The AI agent will reference your completed `project_prd.md` and the **created** project-specific technical specifications in `../03_SPECS/` and `../02_AI-DOCS/`.
+2. The AI agent will reference your completed `04_PRD_Generation.md` and the **created** project-specific technical specifications in `../03_SPECS/` and `../02_AI-DOCS/`.
 3. All tasks will be organized and saved in [`../tasks/tasks.json`](../tasks/tasks.json:1), adhering to the structure defined in [`../02_AI-DOCS/TaskManagement/Tasks_JSON_Structure.md`](../02_AI-DOCS/TaskManagement/Tasks_JSON_Structure.md:1).
 
 ```
 @Roo Orchestrator
 
 I will now break down the project into a hierarchical task system based on:
-- The complete PRD at: `project_prd.md`
+- The complete PRD at: `04_PRD_Generation.md`
 - The technical specifications in the `03_SPECS/` directory
 
 I will create a comprehensive task management setup with features broken down into precise, implementable units of work in the `../tasks/` directory, following the process in [`../02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md`](../02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md:1) and storing results in [`../tasks/tasks.json`](../tasks/tasks.json:1) as per [`../02_AI-DOCS/TaskManagement/Tasks_JSON_Structure.md`](../02_AI-DOCS/TaskManagement/Tasks_JSON_Structure.md:1).
@@ -325,6 +333,7 @@ This prompt is designed to run completely automatically as part of the AI-assist
 1. **Analyze the PRD** - Extract all technical requirements without requiring user intervention.
 
 2. **Create Project Documentation** - Automatically **create** necessary project-specific documentation files based on templates by:
+
    - Identifying the required document type (e.g., Architecture, Feature Spec).
    - Locating the corresponding template file (e.g., `02_AI-DOCS/Architecture/architecture_template.md`).
    - **Copying** the template to a new project-specific filename (e.g., `02_AI-DOCS/Architecture/architecture.md` or `03_SPECS/features/feature_spec_FEAT-XXX.md`).
@@ -343,8 +352,9 @@ This prompt is designed to run completely automatically as part of the AI-assist
      - `03_SPECS/bugfixes/bugfix_spec_template.md` -> `bugfixes/bugfix_spec_[ID].md`
    - AI Coder templates in `02_AI-DOCS/AI-Coder/` remain static unless explicitly instructed otherwise.
    - `02_AI-DOCS/Documentation/AI_Coding_Agent_Optimization.md` and `02_AI-DOCS/Documentation/AI_Design_Agent_Optimization.md` are for reference only and are not copied/modified per project. They serve as foundational knowledge for populating the convention documents and guiding development.
- 
+
 3. **Process for Creating Files from Templates**:
+
    - For each required project document:
      - **Copy** the relevant template to the new filename.
      - Parse the structure of the **copied file**.

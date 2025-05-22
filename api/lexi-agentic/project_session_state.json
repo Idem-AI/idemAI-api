@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "projectName": "{{project.name}}",
   "projectObjective": "{{project.description}}",
-  "prdDocumentPath": "project_prd.md",
+  "prdDocumentPath": "04_PRD_Generation.md",
   "tasksDocumentPath": "tasks/tasks.json",
   "currentWorkflowPhase": "initialization",
   "lastCompletedStep": null,

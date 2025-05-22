@@ -20,13 +20,13 @@ flowchart TD
     K[Phase 10: Iteration]
 
     A0 -- Reads & Continuously Updates --> PSJ([project_session_state.json])
-    A -- Creates --> idea_document.md
+    A -- Creates --> idea.md
     A -- User Validation --> B
-    B -- Creates --> market_research.md
+    B -- Creates --> 02_Market_Research.md
     B -- User Validation (Optional Review) --> C
-    C -- Creates --> core_concept.md
+    C -- Creates --> 03_Core_Concept.md
     C -- User Validation --> D
-    D -- Creates --> project_prd.md
+    D -- Creates --> 04_PRD_Generation.md
     D -- User Validation (Optional Review) --> E
     E -- Creates/Populates --> TechDocs[Files in 02_AI-DOCS/ & 03_SPECS/]
     E -- Creates/Updates --> SpecsIndex([03_SPECS/documentation_index.md])
@@ -43,12 +43,12 @@ flowchart TD
 
 ## Key Operational Principles:
 
-*   **Orchestration:** The entire workflow is primarily orchestrated by the script and logic defined in [`01_AI-RUN/01_AutoPilot.md`](01_AI-RUN/01_AutoPilot.md:1).
-*   **State Management:** The [`project_session_state.json`](project_session_state.json:1) file is critical. It's read at startup and **continuously updated** by the AI agent after every significant step within each phase to track progress, store key information, and manage state.
-*   **Sequential Prompts:** Each phase (1-9) is driven by a corresponding `.md` file in the `01_AI-RUN/` directory, which defines the AI's role and tasks for that phase.
-*   **Document Generation:** Specific documents are generated at each phase (e.g., `idea_document.md`, `project_prd.md`, `tasks/tasks.json`), serving as inputs for subsequent phases. Technical documentation and specifications in `02_AI-DOCS/` and `03_SPECS/` are created from templates.
-*   **User Validation:** The workflow includes explicit points for user validation and intervention, as indicated in the diagram and detailed in [`01_AI-RUN/01_AutoPilot.md`](01_AI-RUN/01_AutoPilot.md:1).
-*   **MCP Integration:** The AI agents leverage Model Context Protocol (MCP) servers for extended capabilities like research, tool usage, and interaction with external services.
-*   **Spec-Driven Development:** The process emphasizes adherence to specifications detailed in the PRD and technical documents.
+- **Orchestration:** The entire workflow is primarily orchestrated by the script and logic defined in [`01_AI-RUN/01_AutoPilot.md`](01_AI-RUN/01_AutoPilot.md:1).
+- **State Management:** The [`project_session_state.json`](project_session_state.json:1) file is critical. It's read at startup and **continuously updated** by the AI agent after every significant step within each phase to track progress, store key information, and manage state.
+- **Sequential Prompts:** Each phase (1-9) is driven by a corresponding `.md` file in the `01_AI-RUN/` directory, which defines the AI's role and tasks for that phase.
+- **Document Generation:** Specific documents are generated at each phase (e.g., `01_Idea.md`, `04_PRD_Generation.md`, `tasks/tasks.json`), serving as inputs for subsequent phases. Technical documentation and specifications in `02_AI-DOCS/` and `03_SPECS/` are created from templates.
+- **User Validation:** The workflow includes explicit points for user validation and intervention, as indicated in the diagram and detailed in [`01_AI-RUN/01_AutoPilot.md`](01_AI-RUN/01_AutoPilot.md:1).
+- **MCP Integration:** The AI agents leverage Model Context Protocol (MCP) servers for extended capabilities like research, tool usage, and interaction with external services.
+- **Spec-Driven Development:** The process emphasizes adherence to specifications detailed in the PRD and technical documents.
 
 This diagram provides a high-level overview. For detailed step-by-step logic, refer to [`01_AI-RUN/01_AutoPilot.md`](01_AI-RUN/01_AutoPilot.md:1) and [`logic.md`](logic.md:1).

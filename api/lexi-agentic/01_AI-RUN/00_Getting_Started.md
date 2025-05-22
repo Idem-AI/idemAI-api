@@ -27,40 +27,41 @@ flowchart TD
 
 The workflow uses consistent file naming for inputs and outputs. Note that prompt files mentioned here refer to their logical sequence (e.g., `01_Idea.md` is the first conceptual prompt for defining the idea, `05_Specs_Docs.md` handles technical documentation). You will need to ensure your actual prompt filenames in `01_AI-RUN/` are aligned or that [`01_AutoPilot.md`](01_AI-RUN/01_AutoPilot.md:1) correctly references your specific filenames.
 
-| Phase | Logical Prompt File | Primary Output / Location | Nature of Output |
-|-------|-----------------------|---------------------------|------------------|
-| Idea | 01_Idea.md | idea_document.md | Creation |
-| Market Research | 02_Market_Research.md | market_research.md | Creation |
-| Core Concept | 03_Core_Concept.md | core_concept.md | Creation |
-| PRD Generation | 04_PRD_Generation.md | project_prd.md | Creation |
-| Specs & Docs | 05_Specs_Docs.md | `02_AI-DOCS/` & `03_SPECS/` | **Creation** of project-specific files from templates (templates remain untouched) & Reference/Annotation of Best Practices |
-| Task Manager | (See [`../02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md`](../02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md:1)) | [`tasks/tasks.json`](tasks/tasks.json:1) (Structure: [`../02_AI-DOCS/TaskManagement/Tasks_JSON_Structure.md`](../02_AI-DOCS/TaskManagement/Tasks_JSON_Structure.md:1)) | Creation |
-| Start Building | 07_Start_Building.md | Implementation code | N/A (code) |
-| Testing | 08_Testing.md | Tested features, Preview Environment | Validation |
-| Deployment | 09_Deployment.md | Deployed Application | Execution |
- 
+| Phase           | Logical Prompt File                                                                                              | Primary Output / Location                                                                                                                                              | Nature of Output                                                                                                            |
+| --------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Idea            | 01_Idea.md                                                                                                       | idea.md                                                                                                                                                                | Creation                                                                                                                    |
+| Market Research | 02_Market_Research.md                                                                                            | 02_Market_Research.md                                                                                                                                                  | Creation                                                                                                                    |
+| Core Concept    | 03_Core_Concept.md                                                                                               | 03_Core_Concept.md                                                                                                                                                     | Creation                                                                                                                    |
+| PRD Generation  | 04_PRD_Generation.md                                                                                             | 04_PRD_Generation.md                                                                                                                                                   | Creation                                                                                                                    |
+| Specs & Docs    | 05_Specs_Docs.md                                                                                                 | `02_AI-DOCS/` & `03_SPECS/`                                                                                                                                            | **Creation** of project-specific files from templates (templates remain untouched) & Reference/Annotation of Best Practices |
+| Task Manager    | (See [`../02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md`](../02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md:1)) | [`tasks/tasks.json`](tasks/tasks.json:1) (Structure: [`../02_AI-DOCS/TaskManagement/Tasks_JSON_Structure.md`](../02_AI-DOCS/TaskManagement/Tasks_JSON_Structure.md:1)) | Creation                                                                                                                    |
+| Start Building  | 07_Start_Building.md                                                                                             | Implementation code                                                                                                                                                    | N/A (code)                                                                                                                  |
+| Testing         | 08_Testing.md                                                                                                    | Tested features, Preview Environment                                                                                                                                   | Validation                                                                                                                  |
+| Deployment      | 09_Deployment.md                                                                                                 | Deployed Application                                                                                                                                                   | Execution                                                                                                                   |
+
 ## AI Agent Initial Onboarding (Important!)
- 
+
 **AI Agent Directive:** Before starting the workflow (e.g., when processing [`01_AutoPilot.md`](01_AI-RUN/01_AutoPilot.md:1) or the first manual step), you MUST perform the following initial analysis:
+
 1.  **Analyze File Structure:** Carefully examine the list of files provided in the initial `environment_details`. Understand the purpose of the main directories:
-    *   `01_AI-RUN/`: Contains the prompt files guiding the workflow stages.
-    *   `02_AI-DOCS/`: Contains project documentation templates (architecture, conventions, etc.) and core AI guidance (`Documentation/`). **Crucially, during the 'Specs & Docs' phase, project-specific documents (e.g., `architecture.md`, `coding_conventions.md`) will be CREATED in these subdirectories based on the templates.**
-    *   `03_SPECS/`: Contains specification templates (features, bugs). **Similarly, project-specific specification files (e.g., `features/feature_spec_FEAT-XXX.md`) will be CREATED here during the 'Specs & Docs' phase.**
-    *   `tasks/`: Will contain the generated task breakdown (`tasks.json`).
+    - `01_AI-RUN/`: Contains the prompt files guiding the workflow stages.
+    - `02_AI-DOCS/`: Contains project documentation templates (architecture, conventions, etc.) and core AI guidance (`Documentation/`). **Crucially, during the 'Specs & Docs' phase, project-specific documents (e.g., `architecture.md`, `coding_conventions.md`) will be CREATED in these subdirectories based on the templates.**
+    - `03_SPECS/`: Contains specification templates (features, bugs). **Similarly, project-specific specification files (e.g., `features/feature_spec_FEAT-XXX.md`) will be CREATED here during the 'Specs & Docs' phase.**
+    - `tasks/`: Will contain the generated task breakdown (`tasks.json`).
 2.  **In-Depth Codebase Understanding (Pre-computation & Analysis):**
-    *   Beyond just the file structure, you MUST strive to understand the *content and interconnections* of all relevant files within the project workspace.
-    *   This means proactively reading key files (e.g., `logic.md`, `project_session_state.json`, existing `.md` files in `01_AI-RUN/`, templates in `02_AI-DOCS/` and `03_SPECS/`, and any core application code if present) to build a mental model of the project's current state, its logic, and how different components are intended to interact.
-    *   This deep analysis is foundational for accurately executing the subsequent workflow phases.
+    - Beyond just the file structure, you MUST strive to understand the _content and interconnections_ of all relevant files within the project workspace.
+    - This means proactively reading key files (e.g., `logic.md`, `project_session_state.json`, existing `.md` files in `01_AI-RUN/`, templates in `02_AI-DOCS/` and `03_SPECS/`, and any core application code if present) to build a mental model of the project's current state, its logic, and how different components are intended to interact.
+    - This deep analysis is foundational for accurately executing the subsequent workflow phases.
 3.  **Identify Key Reference Documents:** Recognize that the primary sources of truth for the project, once generated or established, will be:
-    *   `project_prd.md` (Generated in Phase 4).
-    *   Project-specific technical documents **created** in `02_AI-DOCS/` (e.g., `02_AI-DOCS/Architecture/architecture.md`, `02_AI-DOCS/Conventions/coding_conventions.md`, `02_AI-DOCS/Conventions/design_conventions.md`).
-    *   Project-specific specification documents **created** in `03_SPECS/` (e.g., `03_SPECS/features/feature_spec_FEAT-XXX.md`).
-    *   Task management guidelines: [`../02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md`](../02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md:1) and [`../02_AI-DOCS/TaskManagement/Tasks_JSON_Structure.md`](../02_AI-DOCS/TaskManagement/Tasks_JSON_Structure.md:1).
-    *   AI Agent Optimization Guides: [`../02_AI-DOCS/Documentation/AI_Coding_Agent_Optimization.md`](../02_AI-DOCS/Documentation/AI_Coding_Agent_Optimization.md:1), [`../02_AI-DOCS/Documentation/AI_Design_Agent_Optimization.md`](../02_AI-DOCS/Documentation/AI_Design_Agent_Optimization.md:1).
-    *   Overall AI Task Management Vision: [`../02_AI-DOCS/Documentation/AI_Task_Management_Optimization.md`](../02_AI-DOCS/Documentation/AI_Task_Management_Optimization.md:1).
+    - `04_PRD_Generation.md` (Generated in Phase 4).
+    - Project-specific technical documents **created** in `02_AI-DOCS/` (e.g., `02_AI-DOCS/Architecture/architecture.md`, `02_AI-DOCS/Conventions/coding_conventions.md`, `02_AI-DOCS/Conventions/design_conventions.md`).
+    - Project-specific specification documents **created** in `03_SPECS/` (e.g., `03_SPECS/features/feature_spec_FEAT-XXX.md`).
+    - Task management guidelines: [`../02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md`](../02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md:1) and [`../02_AI-DOCS/TaskManagement/Tasks_JSON_Structure.md`](../02_AI-DOCS/TaskManagement/Tasks_JSON_Structure.md:1).
+    - AI Agent Optimization Guides: [`../02_AI-DOCS/Documentation/AI_Coding_Agent_Optimization.md`](../02_AI-DOCS/Documentation/AI_Coding_Agent_Optimization.md:1), [`../02_AI-DOCS/Documentation/AI_Design_Agent_Optimization.md`](../02_AI-DOCS/Documentation/AI_Design_Agent_Optimization.md:1).
+    - Overall AI Task Management Vision: [`../02_AI-DOCS/Documentation/AI_Task_Management_Optimization.md`](../02_AI-DOCS/Documentation/AI_Task_Management_Optimization.md:1).
 4.  **Prioritize Generated Documents & Adhere to Specs:** When performing subsequent tasks (especially Task Management and Building), you MUST prioritize referencing these **generated, project-specific documents** over the original templates. The templates serve only as a starting structure.
 5.  **Spec-Driven Execution:** For any development task (frontend, backend, database, design, etc.), you MUST actively locate, read, and strictly adhere to the relevant detailed specification documents (feature specs, design mockups/guidelines, API contracts, coding conventions, etc.) found within `02_AI-DOCS/` and `03_SPECS/`, or linked within the task `details` in [`tasks/tasks.json`](tasks/tasks.json:1).
- 
+
 ## How to Use This Workflow
 
 ### Step 1: Initialize Your Project
@@ -82,6 +83,7 @@ For each phase of the workflow:
 ### Step 3: Transition Between Phases
 
 Each prompt file includes a "Next Steps" section at the end that explains:
+
 - How to save the current phase's output
 - Which prompt file to use next
 - What inputs the next phase requires
@@ -99,7 +101,7 @@ Each prompt file includes a "Next Steps" section at the end that explains:
 
 1. **Start with the Idea phase**: Open the prompt file corresponding to `01_Idea.md` and share it with your AI agent
 2. **Fill in the template**: Provide your initial project concept
-3. **Save the output**: Store as `idea_document.md` in your project directory
+3. **Save the output**: Store as `01_Idea.md` in your project directory
 4. **Continue to Market Research**: Open the prompt file corresponding to `02_Market_Research.md` and proceed
 5. **Follow through each phase**: Complete all ten phases in sequence
 
@@ -115,51 +117,61 @@ If at any point the AI agent seems confused or lacks context:
 ## Workflow Stages and Responsibilities (Logical Sequence)
 
 ### 1. Idea (using `01_Idea.md` logic)
+
 - **Human Role**: Pre-writing, initial concept formulation
 - **AI Role**: Optional brainstorming assistance
-- **Output**: Initial project concept (`idea_document.md`)
+- **Output**: Initial project concept (`01_Idea.md`)
 
 ### 2. Market Research (using `02_Market_Research.md` logic)
+
 - **Human Role**: Analysis and evaluation of research findings
 - **AI Role**: Assistance with rapid research via direct interaction/chat
-- **Output**: Market validation, competitor analysis, opportunity assessment (`market_research.md`)
+- **Output**: Market validation, competitor analysis, opportunity assessment (`02_Market_Research.md`)
 
 ### 3. Concept Definition (using `03_Core_Concept.md` logic)
+
 - **Human Role**: Finalizing the core concept
 - **AI Role**: Proposing Unique Value Propositions, refining personas
-- **Output**: Clearly defined project concept with target users (`core_concept.md`)
+- **Output**: Clearly defined project concept with target users (`03_Core_Concept.md`)
 
 ### 4. PRD Generation (using `04_PRD_Generation.md` logic)
+
 - **Human Role**: Iterative validation of PRD sections
 - **AI Role**: Generating and decomposing PRD according to template
-- **Output**: Comprehensive Product Requirements Document (`project_prd.md`)
+- **Output**: Comprehensive Product Requirements Document (`04_PRD_Generation.md`)
 
 ### 5. Specs & Docs (using `05_Specs_Docs.md` logic)
+
 - **Human Role**: Review of generated documentation
 - **AI Role**: **Creating** project-specific files in `02_AI-DOCS/` and `03_SPECS/` by copying and populating templates based on the PRD and gathered technical information.
 - **Output**: **Created** project-specific technical documentation and specifications within `02_AI-DOCS/` and `03_SPECS/`.
- 
+
 ### 6. Task Manager Initialization (Workflow: [`../02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md`](../02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md:1))
+
 - **Human Role**: Review of task structure (as defined in [`../02_AI-DOCS/TaskManagement/Tasks_JSON_Structure.md`](../02_AI-DOCS/TaskManagement/Tasks_JSON_Structure.md:1))
 - **AI Role**: Instructing Roo Orchestrator with PRD features, as per [`../02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md`](../02_AI-DOCS/TaskManagement/Roo_Task_Workflow.md:1)
 - **Output**: Initial task hierarchy ([`tasks/tasks.json`](tasks/tasks.json:1) adhering to [`../02_AI-DOCS/TaskManagement/Tasks_JSON_Structure.md`](../02_AI-DOCS/TaskManagement/Tasks_JSON_Structure.md:1))
 
 ### 7. Builder (using `07_Start_Building.md` logic)
+
 - **Human Role**: Reviewing and validating code and features
 - **AI Role**: Executing tasks, coding, utilizing MCPs
 - **Output**: Functional code implementation
 
 ### 8. Testing (using `08_Testing.md` logic)
+
 - **Human Role**: Final validation of features and preview environment.
 - **AI Role**: Executing tests, setting up preview, addressing issues.
 - **Output**: Fully tested application, accessible preview, (optional) test reports.
 
 ### 9. Deployment (using `09_Deployment.md` logic)
+
 - **Human Role**: Final review of deployed application, go/no-go for public release if applicable.
 - **AI Role**: Executing deployment plan, performing post-deployment checks.
 - **Output**: Successfully deployed application to the target environment.
 
 ### 10. Iteration
+
 - **Human Role**: Making decisions about the next development cycle based on feedback and strategic goals.
 - **AI Role**: Assisting with feedback collection analysis, planning for the next iteration.
 - **Output**: Plan for the next development cycle or new feature set.

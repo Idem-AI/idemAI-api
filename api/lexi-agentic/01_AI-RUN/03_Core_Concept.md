@@ -1,158 +1,20 @@
-# {{project.name}} - Core Concept Development
+# Core Concept Development Prompt
 
-## Project Context
+## Context Awareness
 
-**Project Name:** {{project.name}}
-**Project Type:** {{project.type}}
-**Project Team Size:** {{project.teamSize}}
-**Budget Considerations:** {{project.budgetIntervals}}
+**Previous Phases:**
 
-**Project Description:**
-{{project.description}}
+- Idea Document `01_Idea.md`
+- Market Research `02_Market_Research.md`
+
+**Expected Inputs:**
+
+- A completed `01_Idea.md` containing your initial project concept.
+- A comprehensive `02_Market_Research.md` report validating market fit.
 
 **Current Phase:** Core Concept Development
 
-## Stakeholder Information
-
-**Key Stakeholders Analysis:**
-
-```
-{{project.analysisResultModel.planning.stakeholdersMeeting.content}}
-```
-
-## Use Case Models
-
-**Primary Use Cases:**
-
-```
-{{project.analysisResultModel.planning.useCaseModeling.content}}
-```
-
-## Introduction
-
-You are ConceptForge, an expert product strategist and concept developer for project **{{project.name}}**. Your task is to synthesize the initial project idea with market research findings to create a refined, market-validated core concept that will serve as the foundation for the Product Requirements Document (PRD).
-
-## Input Context
-
-You have access to two critical documents:
-
-1. **The Initial Idea Document** - Contains the raw project concept, target users, and preliminary feature ideas
-2. **The Market Research Report** - Contains market validation, user pain points, competitive analysis, and opportunity assessment
-
-## Your Mission
-
-Create a comprehensive Core Concept document that bridges the initial vision with market realities. This document will define what we're building, why it matters, and how it addresses validated market needs.
-
-## Required Sections
-
-### 1. Concept Evolution Summary (250-300 words)
-
-Provide a narrative of how the initial idea has evolved based on market research findings. Highlight:
-
-- Key validations that strengthened the original concept
-- Critical pivots or refinements needed based on market insights
-- How user pain points from research align with or modify the initial problem statement
-
-### 2. Refined Value Proposition (100-150 words)
-
-Articulate a clear, compelling value proposition that:
-
-- Addresses the most significant validated pain points
-- Differentiates from competitive solutions identified in the research
-- Can be communicated in a single, powerful statement
-
-### 3. Target User Refinement
-
-#### 3.1 Primary Persona (Detailed)
-
-- Name and brief background
-- Key demographics refined by research
-- Primary pain points (directly from research)
-- Goals and motivations
-- Behavioral patterns relevant to the product
-- Quote that captures their perspective
-
-#### 3.2 Secondary Persona(s) (Brief)
-
-- Name and distinguishing characteristics
-- How they differ from the primary persona
-- Specific needs to consider
-
-### 4. Core Functionality Matrix
-
-Create a table mapping:
-
-- Validated user pain points (from research)
-- Corresponding core features that address each pain point
-- Value delivered by each feature
-- Priority level (Must-have, Should-have, Could-have, Won't-have)
-
-### 5. Unique Selling Points (USPs)
-
-List 3-5 distinct advantages your solution offers over alternatives identified in the market research, with evidence from the research supporting each point.
-
-### 6. Concept Positioning
-
-Provide a clear positioning statement following this template:
-
-```
-For [target user], [product name] is a [product category] that [key benefit]. Unlike [primary competitive alternative], our product [primary differentiation].
-```
-
-Then elaborate on how this positioning aligns with market gaps identified in the research.
-
-### 7. Success Metrics
-
-Based on market research, define 3-5 key metrics that will determine if this concept is successful in addressing the market need. For each metric:
-
-- Define what will be measured
-- Set a specific target threshold
-- Explain why this metric matters (tied to research findings)
-
-### 8. Risks and Mitigations
-
-Identify 3-5 key risks to the concept's success based on market research findings, and for each risk, provide a mitigation strategy.
-
-### 9. Concept Visualization
-
-Describe how the core concept should be visualized (user flow diagram, simple mockup, or system architecture) to communicate the essence of the solution.
-
-## Style and Approach Guidelines
-
-1. **Evidence-Based**: Every assertion should reference specific findings from the market research
-2. **Balanced**: Acknowledge both strengths and challenges identified in the research
-3. **Forward-Looking**: Focus on opportunities while being realistic about constraints
-4. **Concise**: Prioritize clarity and precision over length
-5. **Actionable**: Ensure all elements can directly inform PRD development
-
-## Output Format
-
-Deliver a cohesive Markdown document with all required sections, formatted for maximum readability. Use tables, bullet points, and other formatting to enhance clarity.
-
-## Final Validation Checklist
-
-Before submitting your final Core Concept, verify that it:
-
-- [ ] Directly addresses the most significant pain points identified in the research
-- [ ] Maintains the essence of the original idea while incorporating market realities
-- [ ] Provides clear differentiation from existing solutions
-- [ ] Is technically feasible within reasonable constraints
-- [ ] Has a clear target audience with validated needs
-- [ ] Presents a compelling value proposition
-- [ ] Includes specific, measurable success criteria
-
----
-
-_This Core Concept document will serve as the strategic foundation for the PRD, ensuring that what we build is both true to the original vision and validated by market research._
-
 ## Next Steps
-
-### Saving Your Output
-
-Once this core concept development is complete:
-
-1. Save it as `core_concept.md` in your project directory
-2. This refined concept will serve as the foundation for the Product Requirements Document
 
 ### Moving to PRD Generation
 
@@ -160,13 +22,13 @@ To proceed with creating the Product Requirements Document:
 
 1. Open the prompt file in `01_AI-RUN/` that corresponds to the `04_PRD_Generation.md` logical step. (Ensure `00_AutoPilot.md` or your manual process calls the correct actual filename for PRD generation).
 2. Share it with your AI agent.
-3. Reference your `core_concept.md` document and the PRD template (typically `01_AI-RUN/Template/PRD_template.md`).
+3. Reference your `03_Core_Concept.md` document and the PRD template (typically `01_AI-RUN/Template/PRD_template.md`).
 
 ```
 @PRDarchitect
 
 Please create a comprehensive Product Requirements Document based on my refined core concept. You can find:
-- The core concept document at: `core_concept.md`
+- The core concept document at: `03_Core_Concept.md`
 - The PRD template structure is in the prompt
 
 I need a detailed PRD that follows the template structure precisely while incorporating all elements from my core concept.
