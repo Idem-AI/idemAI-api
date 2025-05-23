@@ -1,3 +1,4 @@
+[datas]
 # In-Depth Market Research & Analysis Prompt for {{project.name}}
 
 ## Context Awareness

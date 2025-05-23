@@ -1,3 +1,4 @@
+[prompts]
 # Deployment Phase Prompt
 
 ## Context Awareness

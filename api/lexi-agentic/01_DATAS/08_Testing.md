@@ -1,3 +1,4 @@
+[prompts]
 # Testing & Preview Phase Prompt
 
 ## Context Awareness

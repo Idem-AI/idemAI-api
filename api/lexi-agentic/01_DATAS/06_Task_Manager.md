@@ -1,3 +1,4 @@
+[prompts]
 # Task Management Process for {{project.name}}
 
 The primary documentation for this {{project.type}} project's task management process, including workflow with Roo Orchestrator/Code and the structure of `tasks/tasks.json`, has been moved.
