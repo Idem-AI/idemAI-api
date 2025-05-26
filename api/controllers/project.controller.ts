@@ -25,11 +25,9 @@ class ProjectController {
         "id" | "createdAt" | "updatedAt" | "userId"
       > = req.body;
       if (!projectData.name || !projectData.description) {
-        res
-          .status(400)
-          .json({
-            message: "Missing required project fields: name, description",
-          });
+        res.status(400).json({
+          message: "Missing required project fields: name, description",
+        });
         return;
       }
       const projectId = await projectService.createUserProject(
@@ -150,41 +148,8 @@ class ProjectController {
     }
   }
 
-  async generateProjectAgenticZip(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
-    try {
-      // const userId = req.user?.uid;
-      // if (!userId) {
-      //   res.status(401).json({ message: "User not authenticated" });
-      //   return;
-      // }
-      // const { projectId } = req.params;
-      // if (!projectId) {
-      //   res.status(400).json({ message: "Project ID is required" });
-      //   return;
-      // }
 
-      const zipBuffer = await projectService.generateAgenticZip("sA6ZeSlrP9Ri8tCNAncPNKi83Nz2", "5ULCb6EwpVWYGIUivAc0");
-
-      // Set headers for file download
-      res.setHeader('Content-Type', 'application/zip');
-      res.setHeader('Content-Disposition', `attachment; filename="lexi-agentic-5ULCb6EwpVWYGIUivAc0.zip"`);
-      res.send(zipBuffer);
-      return;
-
-    } catch (error) {
-      console.error("Error in generateProjectAgenticZip controller:", error);
-      // If error is 'Project not found', send 404
-      if (error instanceof Error && error.message.includes('not found')) {
-        res.status(404).json({ message: error.message });
-        return;
-      }
-      next(error);
-    }
-  }
+  
 }
 
 export const projectController = new ProjectController();

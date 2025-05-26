@@ -1,22 +1,9 @@
 export interface DiagramModel {
-  useCaseDiagram: {
-    content: string;
-    summary: string;
-  };
-  classDiagram: {
-    content: string;
-    summary: string;
-  };
-  erDiagram: {
-    content: string;
-    summary: string;
-  };
-  sequenceDiagram: {
-    content: string;
-    summary: string;
-  };
-  architectureDiagram: {
-    content: string;
-    summary: string;
-  };
+  id: string;
+  projectId: string;
+  name: string;
+  type?: string; // e.g., 'flowchart', 'architecture', 'mindmap'
+  data: any; // Could be JSON, SVG content, or a link to an image
+  createdAt: Date;
+  updatedAt: Date;
 }
