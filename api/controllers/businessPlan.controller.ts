@@ -1,10 +1,10 @@
-import { Request, Response } from "express";
-import { BrandingService } from "../services/BandIdentity/branding.service";
+import { Response } from "express";
+import { BusinessPlanService } from "../services/BusinessPlan/businessPlan.service";
 import { CustomRequest } from "../interfaces/express.interface";
 
-const brandingService = new BrandingService();
+const businessPlanService = new BusinessPlanService();
 
-export const generateBrandingController = async (
+export const generateBusinessPlanController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
@@ -19,20 +19,23 @@ export const generateBrandingController = async (
       res.status(400).json({ message: "Project ID is required" });
       return;
     }
-    const branding = await brandingService.generateBranding(
+    const item = await businessPlanService.generateBusinessPlan(
       userId,
       projectId,
       req.body
     );
-    res.status(201).json(branding);
+    res.status(201).json(item);
   } catch (error: any) {
     res
       .status(500)
-      .json({ message: "Error generating branding", error: error.message });
+      .json({
+        message: "Error generating business plan",
+        error: error.message,
+      });
   }
 };
 
-export const getBrandingsByProjectController = async (
+export const getBusinessPlansByProjectController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
@@ -47,86 +50,86 @@ export const getBrandingsByProjectController = async (
       res.status(400).json({ message: "Project ID is required" });
       return;
     }
-    const brandings = await brandingService.getBrandingsByProjectId(
+    const items = await businessPlanService.getBusinessPlansByProjectId(
       userId,
       projectId
     );
-    res.status(200).json(brandings);
+    res.status(200).json(items);
   } catch (error: any) {
     res
       .status(500)
-      .json({ message: "Error fetching brandings", error: error.message });
+      .json({ message: "Error fetching business plans", error: error.message });
   }
 };
 
-export const getBrandingByIdController = async (
+export const getBusinessPlanByIdController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
   try {
     const userId = req.user?.uid;
-    const { brandingId } = req.params;
+    const { itemId } = req.params;
     if (!userId) {
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
-    const branding = await brandingService.getBrandingById(userId, brandingId);
-    if (branding) {
-      res.status(200).json(branding);
+    const item = await businessPlanService.getBusinessPlanById(userId, itemId);
+    if (item) {
+      res.status(200).json(item);
     } else {
-      res.status(404).json({ message: "Branding not found" });
+      res.status(404).json({ message: "Business plan not found" });
     }
   } catch (error: any) {
     res
       .status(500)
-      .json({ message: "Error fetching branding", error: error.message });
+      .json({ message: "Error fetching business plan", error: error.message });
   }
 };
 
-export const updateBrandingController = async (
+export const updateBusinessPlanController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
   try {
     const userId = req.user?.uid;
-    const { brandingId } = req.params;
+    const { itemId } = req.params;
     if (!userId) {
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
-    const branding = await brandingService.updateBranding(
+    const item = await businessPlanService.updateBusinessPlan(
       userId,
-      brandingId,
+      itemId,
       req.body
     );
-    if (branding) {
-      res.status(200).json(branding);
+    if (item) {
+      res.status(200).json(item);
     } else {
-      res.status(404).json({ message: "Branding not found for update" });
+      res.status(404).json({ message: "Business plan not found for update" });
     }
   } catch (error: any) {
     res
       .status(500)
-      .json({ message: "Error updating branding", error: error.message });
+      .json({ message: "Error updating business plan", error: error.message });
   }
 };
 
-export const deleteBrandingController = async (
+export const deleteBusinessPlanController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
   try {
     const userId = req.user?.uid;
-    const { brandingId } = req.params;
+    const { itemId } = req.params;
     if (!userId) {
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
-    await brandingService.deleteBranding(userId, brandingId);
+    await businessPlanService.deleteBusinessPlan(userId, itemId);
     res.status(204).send();
   } catch (error: any) {
     res
       .status(500)
-      .json({ message: "Error deleting branding", error: error.message });
+      .json({ message: "Error deleting business plan", error: error.message });
   }
 };

@@ -7,6 +7,6 @@ export enum TargetModelType {
   DEVELOPMENT = 'developments',
   DIAGRAMS = 'diagrams',
   LANDING = 'landings',
-  PLANNING = 'plannings', // Assuming 'show-planing' meant 'planning'
-  DEPLOYMENT = 'deployments', // Added DEPLOYMENT
+  BUSINESS_PLAN = 'businessPlans', 
+  DEPLOYMENT = 'deployments', 
 }

@@ -3,7 +3,6 @@ import admin from "firebase-admin";
 import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
-import { authenticate } from './services/auth.service';
 import { authRoutes } from './routes/auth.routes';
 import { promptRoutes } from './routes/prompt.routes'; 
 
@@ -38,10 +37,8 @@ if (serviceAccountFromEnv.project_id && serviceAccountFromEnv.private_key) {
 
 import { projectRoutes } from "./routes/project.routes";
 import { brandingRoutes } from "./routes/branding.routes";
-import { developmentRoutes } from './routes/development.routes';
 import { diagramRoutes } from './routes/diagram.routes';
-import { landingRoutes } from './routes/landing.routes';
-import { projectPlanningItemRoutes } from './routes/projectPlanningItem.routes';
+import { businessPlanRoutes } from './routes/businessPlan.routes';
 import { deploymentRoutes } from './routes/deployment.routes';
 
 const app = express();
@@ -72,12 +69,10 @@ app.use(
 );
 
 app.use("/api/projects", projectRoutes);
-app.use('/api', brandingRoutes);
-app.use('/api', developmentRoutes);
-app.use('/api', diagramRoutes);
-app.use('/api', landingRoutes);
-app.use('/api', projectPlanningItemRoutes);
-app.use('/api', deploymentRoutes);
+app.use('/api/project', brandingRoutes);
+app.use('/api/project', diagramRoutes);
+app.use('/api/project', businessPlanRoutes);
+app.use('/api/project', deploymentRoutes);
 app.use('/api', authRoutes);
 app.use('/api/prompt', promptRoutes); 
 

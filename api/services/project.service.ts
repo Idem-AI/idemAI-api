@@ -170,9 +170,6 @@ class ProjectService {
     `;
     return projectDescription.trim();
   }
-
-  
-
 }
 
 export const projectService = new ProjectService();

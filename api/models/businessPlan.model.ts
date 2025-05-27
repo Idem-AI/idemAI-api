@@ -1,4 +1,4 @@
-export interface ProjectPlanningItemModel {
+export interface BusinessPlanModel {
   id: string;
   projectId: string;
   name: string; // e.g., 'Initial Feasibility Study', 'Q3 Risk Register'

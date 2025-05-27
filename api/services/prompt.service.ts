@@ -1,4 +1,7 @@
-import { GoogleGenerativeAI, GenerateContentResult } from "@google/generative-ai";
+import {
+  GoogleGenerativeAI,
+  GenerateContentResult,
+} from "@google/generative-ai";
 import OpenAI from "openai";
 import dotenv from "dotenv";
 
@@ -67,10 +70,10 @@ async function runDeepseekPrompt(
   modelName: string,
   prompt: string,
   options: LLMOptions = {
-    maxOutputTokens: 158000, 
-    temperature: 1, 
-    topP: 1.0, 
-    topK: 100, 
+    maxOutputTokens: 158000,
+    temperature: 1,
+    topP: 1.0,
+    topK: 100,
   },
   deepseekOptions: DeepseekOptions = {}
 ): Promise<string> {
@@ -151,7 +154,8 @@ export async function tryGenerateFullJSON(
   requestBody: PromptRequest, // Changed from any to PromptRequest
   // runPromptFn: (req: PromptRequest) => Promise<GenerateContentResult | string> // Explicitly typed for clarity
   runPromptFn: typeof runPrompt // Use typeof to refer to the runPrompt function in this module
-): Promise<AIResponse> { // Return type changed to AIResponse
+): Promise<AIResponse> {
+  // Return type changed to AIResponse
   const maxAttempts = 8;
   let partialResult = "";
 
@@ -171,7 +175,7 @@ export async function tryGenerateFullJSON(
         // This logic assumes the LLM tries to complete the JSON structure.
         // A more robust approach might involve specific instructions to the LLM
         // on how to append to a partial JSON, or more sophisticated JSON repair.
-        const combinedJsonString = partialResult + rawResponse; 
+        const combinedJsonString = partialResult + rawResponse;
         // console.log(`Attempting to parse combined (attempt ${attempt + 1}): ${combinedJsonString}`);
         const json = JSON.parse(combinedJsonString);
         // console.log("Parsed JSON from combined:", json);
@@ -196,10 +200,13 @@ export async function tryGenerateFullJSON(
   try {
     // console.log("Final merged partial result for parsing:", partialResult);
     const finalMerged = JSON.parse(partialResult);
-    if (finalMerged.content && finalMerged.summary) return finalMerged as AIResponse;
+    if (finalMerged.content && finalMerged.summary)
+      return finalMerged as AIResponse;
     throw new Error("Final parsed JSON does not contain content and summary.");
   } catch (err) {
     console.error("Final parsing failed after all attempts:", err);
-    throw new Error("Could not generate a valid JSON with content and summary after multiple attempts.");
+    throw new Error(
+      "Could not generate a valid JSON with content and summary after multiple attempts."
+    );
   }
 }

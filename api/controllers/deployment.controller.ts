@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { DeploymentService } from '../services/deployment.service';
+import { DeploymentService } from '../services/Deployment/deployment.service';
 import { CustomRequest } from '../interfaces/express.interface';
 
 const deploymentService = new DeploymentService();
