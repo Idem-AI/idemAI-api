@@ -4,7 +4,6 @@ import { TargetModelType } from "../../enums/targetModelType.enum";
 import { LLMProvider, PromptService } from "../prompt.service";
 import { FAISABILITY_PROMPT } from "./prompts/01_faisability.prompt";
 import { ProjectModel } from "../../models/project.model";
-import { BusinessPlanModel } from "../../models/businessPlan.model";
 import { RISK_ANALYSIS_PROMPT } from "./prompts/02_risk-analylsis.prompt";
 import { REQUIREMENTS_PROMPT } from "./prompts/04_requirements.prompt";
 import { SMART_OBJECTIVES_PROMPT } from "./prompts/03_smart-objectives.prompt";
@@ -13,6 +12,7 @@ import { USE_CASE_MODELING_PROMPT } from "./prompts/06_use-case-modeling.prompt"
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as os from "os";
+import { BusinessPlanModel } from "../../models/businessPlan.model";
 
 export class BusinessPlanService {
   private projectRepository: IRepository<ProjectModel>;
@@ -98,18 +98,67 @@ ${promptConstant}
 
       const finalBusinessPlanText = await fs.readFile(tempFilePath, "utf-8");
 
-      const updatePayload: Partial<ProjectModel> = {
-        ...(data as Partial<ProjectModel>),
-        feasibilityStudy: faisbilityResponseContent,
-        riskAnalysis: riskanalysisResponseContent,
-        smartObjectives: smartObjectivesResponseContent,
-        detailedRequirements: detailedRequirementsResponseContent,
-        stakeholderMeetingPlan: stakeholdersMeetingResponseContent,
-        useCaseModeling: useCaseModelingResponseContent,
-        businessPlanFullText: finalBusinessPlanText,
+      const oldProject = await this.projectRepository.findById(
+        projectId,
+        userId
+      );
+      if (!oldProject) {
+        return null;
+      }
+      const newProject = {
+        ...oldProject,
+        analysisResultModel: {
+          ...oldProject.analysisResultModel,
+          businessPlan: {
+            sections: [
+              {
+                name: "Feasibility Study",
+                type: "text/markdown",
+                data: faisbilityResponseContent,
+                summary: "Feasibility Study for Business Plan",
+              },
+              {
+                name: "Risk Analysis",
+                type: "text/markdown",
+                data: riskanalysisResponseContent,
+                summary: "Risk Analysis for Business Plan",
+              },
+              {
+                name: "SMART Objectives",
+                type: "text/markdown",
+                data: smartObjectivesResponseContent,
+                summary: "SMART Objectives for Business Plan",
+              },
+              {
+                name: "Detailed Requirements",
+                type: "text/markdown",
+                data: detailedRequirementsResponseContent,
+                summary: "Detailed Requirements for Business Plan",
+              },
+              {
+                name: "Stakeholder Meeting Plan",
+                type: "text/markdown",
+                data: stakeholdersMeetingResponseContent,
+                summary: "Stakeholder Meeting Plan for Business Plan",
+              },
+              {
+                name: "Use Case Modeling",
+                type: "text/markdown",
+                data: useCaseModelingResponseContent,
+                summary: "Use Case Modeling for Business Plan",
+              },
+              {
+                name: "Full Business Plan",
+                type: "text/markdown",
+                data: finalBusinessPlanText,
+                summary: "Full Business Plan",
+              },
+            ],
+          },
+        },
       };
 
-      return this.projectRepository.update(projectId, updatePayload, userId);
+      return this.projectRepository.update(projectId, newProject, userId);
     } catch (error) {
       console.error(
         `Error generating business plan for projectId ${projectId}:`,

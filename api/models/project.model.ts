@@ -4,7 +4,7 @@ export interface ProjectModel {
   id?: string;
   name: string;
   description: string;
-  type: string;
+  type: 'web' | 'mobile' | 'iot' | 'desktop';
   constraints: string[];
   teamSize: string;
   scope: string;
@@ -15,13 +15,4 @@ export interface ProjectModel {
   userId: string;
   selectedPhases: string[];
   analysisResultModel: AnalysisResultModel;
-
-  // Fields for Business Plan sections
-  feasibilityStudy?: string;
-  riskAnalysis?: string;
-  smartObjectives?: string;
-  detailedRequirements?: string;
-  stakeholderMeetingPlan?: string;
-  useCaseModeling?: string;
-  businessPlanFullText?: string;
 }
