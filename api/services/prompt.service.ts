@@ -1,8 +1,11 @@
 import {
-  GoogleGenerativeAI,
-  GenerateContentResult,
+  GoogleGenAI,
+  createPartFromUri,
   Content,
-} from "@google/generative-ai";
+  Part,
+  GenerateContentResponse,
+  File,
+} from "@google/genai";
 import dotenv from "dotenv";
 import * as fs from "fs-extra";
 import * as path from "path";
@@ -32,6 +35,10 @@ export interface PromptRequest {
   messages: ChatMessage[];
   llmOptions?: LLMOptions;
   contextFilePaths?: string[];
+  file?: {
+    localPath: string;
+    mimeType?: string;
+  };
 }
 
 export interface AIResponse {
@@ -40,13 +47,19 @@ export interface AIResponse {
 }
 
 export class PromptService {
+  private genAIClient: GoogleGenAI;
+
   constructor() {
-    // Constructor can be used for future configurations if needed
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not set in environment variables.");
+    }
+    this.genAIClient = new GoogleGenAI({ apiKey });
   }
 
   private toGeminiMessages(messages: ChatMessage[]): Content[] {
     return messages.map((msg) => ({
-      role: msg.role === "assistant" ? "model" : msg.role,
+      role: msg.role === "assistant" ? "model" : "user",
       parts: [{ text: msg.content }],
     }));
   }
@@ -54,45 +67,79 @@ export class PromptService {
   private async _runGeminiPrompt(
     modelName: string,
     messages: ChatMessage[],
-    options: LLMOptions = {
-      maxOutputTokens: 990000,
-      temperature: 0.9,
-      topP: 1,
-      topK: 100,
-    }
-  ): Promise<GenerateContentResult> {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY is not defined");
+    llmOptions: LLMOptions,
+    fileInput?: { localPath: string; mimeType?: string }
+  ): Promise<GenerateContentResponse> {
+    const geminiContent: Content[] = this.toGeminiMessages(messages);
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
+    if (fileInput && fileInput.localPath) {
+      if (geminiContent.length === 0) {
+        geminiContent.push({ role: "user", parts: [] });
+      }
+
+      try {
+        console.log(
+          `Uploading file: ${fileInput.localPath}, MimeType (intended, if SDK infers): ${fileInput.mimeType}`
+        );
+        // Simplifying files.upload call to match user's example: only 'file' path.
+        // The SDK should infer mimeType, or it might be available on the response.
+        const uploadedFile: File = await this.genAIClient.files.upload({
+          file: fileInput.localPath,
+        });
+
+        // We need mimeType for createPartFromUri. Check if it's on the response.
+        // If fileInput.mimeType was provided by the user, and SDK doesn't allow setting it during upload,
+        // we might prefer the user-provided one if available and SDK's is generic.
+        // For now, let's prioritize SDK's detected mimeType if present on uploadedFile.
+        const effectiveMimeType = uploadedFile.mimeType || fileInput.mimeType;
+
+        if (!uploadedFile || !uploadedFile.uri || !effectiveMimeType) {
+          throw new Error(
+            "File upload response did not contain expected file details (uri or an effective mimeType)."
+          );
+        }
+        console.log(
+          `File uploaded successfully: URI ${uploadedFile.uri}, MimeType (from SDK): ${uploadedFile.mimeType}`
+        );
+
+        const filePart = createPartFromUri(uploadedFile.uri, effectiveMimeType);
+
+        const lastMessageTurn = geminiContent[geminiContent.length - 1];
+        if (!lastMessageTurn.parts) {
+          lastMessageTurn.parts = [];
+        }
+        lastMessageTurn.parts.push(filePart);
+      } catch (uploadError) {
+        console.error("Error uploading file to Gemini:", uploadError);
+        throw new Error(
+          `Failed to upload file: ${fileInput.localPath}. Error: ${
+            (uploadError as Error).message || uploadError
+          }`
+        );
+      }
+    }
+
+    const generationParams = {
+      ...(llmOptions.maxOutputTokens && {
+        maxOutputTokens: llmOptions.maxOutputTokens,
+      }),
+      ...(llmOptions.temperature && { temperature: llmOptions.temperature }),
+      ...(llmOptions.topP && { topP: llmOptions.topP }),
+      ...(llmOptions.topK && { topK: llmOptions.topK }),
+    };
+
+    const result = await this.genAIClient.models.generateContent({
       model: modelName,
-      generationConfig: {
-        maxOutputTokens: options.maxOutputTokens ?? 99000,
-        temperature: options.temperature ?? 0.9,
-        topP: options.topP ?? 0.9,
-        topK: options.topK ?? 100,
-      },
+      contents: geminiContent,
+      ...generationParams,
     });
-
-    const geminiMessages = this.toGeminiMessages(messages);
-    const history = geminiMessages.slice(0, -1);
-    const latestMessage = geminiMessages.slice(-1)[0];
-
-    if (!latestMessage || latestMessage.role !== "user") {
-      throw new Error("Last message to Gemini must be from user role.");
-    }
-
-    const chat = model.startChat({ history });
-    return await chat.sendMessage(
-      latestMessage.parts.map((p) => p.text).join("\n")
-    );
+    return result;
   }
 
   public async runPrompt(
     request: PromptRequest
-  ): Promise<GenerateContentResult | string> {
-    const { provider, modelName, messages, llmOptions = {} } = request;
+  ): Promise<GenerateContentResponse | string> {
+    const { provider, modelName, messages, llmOptions = {}, file } = request;
 
     if (!messages || messages.length === 0) {
       throw new Error("Messages array cannot be empty.");
@@ -100,17 +147,37 @@ export class PromptService {
 
     switch (provider) {
       case LLMProvider.GEMINI:
-        return this._runGeminiPrompt(modelName, messages, llmOptions);
+        return this._runGeminiPrompt(modelName, messages, llmOptions, file);
       default:
         throw new Error(`Unsupported LLM provider: ${provider}`);
     }
   }
 
   public getCleanAIText(response: any): string {
+    if (typeof response === "string") {
+      return response
+        .replace(/^```(json)?\s*/i, "")
+        .replace(/```$/g, "")
+        .trim();
+    }
+
+    if (response && typeof response.text === "function") {
+      try {
+        const text = response.text();
+        return text
+          .replace(/^```(json)?\s*/i, "")
+          .replace(/```$/g, "")
+          .trim();
+      } catch (e) {
+        console.warn(
+          "Failed to extract text using response.text(). Trying older structure.",
+          e
+        );
+      }
+    }
+
     const raw =
-      typeof response === "string"
-        ? response
-        : response?.response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      response?.response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     return raw
       .replace(/^```(json)?\s*/i, "")

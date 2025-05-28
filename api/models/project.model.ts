@@ -15,4 +15,13 @@ export interface ProjectModel {
   userId: string;
   selectedPhases: string[];
   analysisResultModel: AnalysisResultModel;
+
+  // Fields for Business Plan sections
+  feasibilityStudy?: string;
+  riskAnalysis?: string;
+  smartObjectives?: string;
+  detailedRequirements?: string;
+  stakeholderMeetingPlan?: string;
+  useCaseModeling?: string;
+  businessPlanFullText?: string;
 }
