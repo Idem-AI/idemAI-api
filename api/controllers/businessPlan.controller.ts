@@ -12,14 +12,15 @@ export const generateBusinessPlanController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId, userId: paramUserId } = req.params; // paramUserId to distinguish from req.user.uid if needed elsewhere
+  const userId = req.user?.uid;
+  const { projectId } = req.params;
   logger.info(
-    `generateBusinessPlanController called - UserId (from params): ${paramUserId}, ProjectId: ${projectId}`
+    `generateBusinessPlanController called - UserId (from token): ${userId}, ProjectId: ${projectId}`
   );
   try {
-    if (!paramUserId) {
-      logger.warn("User ID from params is required for generateBusinessPlanController");
-      res.status(401).json({ message: "User ID from params is required" });
+    if (!userId) {
+      logger.warn("User not authenticated for generateBusinessPlanController");
+      res.status(401).json({ message: "User not authenticated" });
       return;
     }
     if (!projectId) {
@@ -28,23 +29,27 @@ export const generateBusinessPlanController = async (
       return;
     }
     const item = await businessPlanService.generateBusinessPlan(
-      paramUserId,
+      userId, // Use userId from token
       projectId
     );
     if (item) {
       logger.info(
-        `Business plan generated successfully (Project updated) - UserId: ${paramUserId}, ProjectId: ${projectId}, UpdatedProjectId: ${item.id}`
+        `Business plan generated successfully (Project updated) - UserId: ${userId}, ProjectId: ${projectId}, UpdatedProjectId: ${item.id}`
       );
       res.status(201).json(item);
     } else {
       logger.warn(
-        `Business plan generation returned null (Project not updated) - UserId: ${paramUserId}, ProjectId: ${projectId}`
+        `Business plan generation returned null (Project not updated) - UserId: ${userId}, ProjectId: ${projectId}`
       );
-      res.status(500).json({ message: "Failed to generate business plan and update project" });
+      res
+        .status(500)
+        .json({
+          message: "Failed to generate business plan and update project",
+        });
     }
   } catch (error: any) {
     logger.error(
-      `Error in generateBusinessPlanController - UserId: ${paramUserId}, ProjectId: ${projectId}: ${error.message}`,
+      `Error in generateBusinessPlanController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
       { stack: error.stack, params: req.params }
     );
     res.status(500).json({
@@ -64,12 +69,16 @@ export const getBusinessPlansByProjectController = async (
   );
   try {
     if (!userId) {
-      logger.warn("User not authenticated for getBusinessPlansByProjectController");
+      logger.warn(
+        "User not authenticated for getBusinessPlansByProjectController"
+      );
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
     if (!projectId) {
-      logger.warn("Project ID is required for getBusinessPlansByProjectController");
+      logger.warn(
+        "Project ID is required for getBusinessPlansByProjectController"
+      );
       res.status(400).json({ message: "Project ID is required" });
       return;
     }
@@ -86,7 +95,9 @@ export const getBusinessPlansByProjectController = async (
       logger.warn(
         `Business plan not found for project - UserId: ${userId}, ProjectId: ${projectId}`
       );
-      res.status(404).json({ message: "Business plan not found for the project" });
+      res
+        .status(404)
+        .json({ message: "Business plan not found for the project" });
     }
   } catch (error: any) {
     logger.error(
@@ -114,7 +125,10 @@ export const getBusinessPlanByIdController = async (
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
-    const businessPlan = await businessPlanService.getBusinessPlansByProjectId(userId, projectId);
+    const businessPlan = await businessPlanService.getBusinessPlansByProjectId(
+      userId,
+      projectId
+    );
     if (businessPlan) {
       logger.info(
         `Business plan fetched successfully - UserId: ${userId}, ProjectId: ${projectId}`
