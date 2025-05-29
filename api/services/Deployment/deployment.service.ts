@@ -1,7 +1,7 @@
 import { IRepository } from "../../repository/IRepository";
 import { RepositoryFactory } from "../../repository/RepositoryFactory";
-import { DeploymentModel } from "../../models/deployment.model";
 import { TargetModelType } from "../../enums/targetModelType.enum";
+import { DeploymentModel } from "../../models/deployment.model";
 
 export class DeploymentService {
   private repository: IRepository<DeploymentModel>;

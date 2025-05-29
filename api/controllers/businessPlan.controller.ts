@@ -1,8 +1,11 @@
 import { Response } from "express";
-import { BusinessPlanService } from "../services/BusinessPlan/businessPlan.service";
 import { CustomRequest } from "../interfaces/express.interface";
+import { BusinessPlanService } from "../services/BusinessPlan/businessPlan.service";
+import { PromptService } from "../services/prompt.service";
 
-const businessPlanService = new BusinessPlanService();
+// Create instances of the services
+const promptService = new PromptService();
+const businessPlanService = new BusinessPlanService(promptService);
 
 export const generateBusinessPlanController = async (
   req: CustomRequest,
@@ -26,12 +29,9 @@ export const generateBusinessPlanController = async (
     );
     res.status(201).json(item);
   } catch (error: any) {
-    res
-      .status(500)
-      .json({
-        message: "Error generating business plan",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: error.message || "Failed to generate business plan item",
+    });
   }
 };
 
@@ -58,7 +58,9 @@ export const getBusinessPlansByProjectController = async (
   } catch (error: any) {
     res
       .status(500)
-      .json({ message: "Error fetching business plans", error: error.message });
+      .json({
+        message: error.message || "Failed to retrieve business plan items",
+      });
   }
 };
 
@@ -73,16 +75,21 @@ export const getBusinessPlanByIdController = async (
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
-    const item = await businessPlanService.getBusinessPlanById(userId, itemId);
+    const item = await businessPlanService.getBusinessPlansByProjectId(
+      userId,
+      itemId
+    );
     if (item) {
       res.status(200).json(item);
     } else {
-      res.status(404).json({ message: "Business plan not found" });
+      res.status(404).json({ message: "Business plan item not found" });
     }
   } catch (error: any) {
     res
       .status(500)
-      .json({ message: "Error fetching business plan", error: error.message });
+      .json({
+        message: error.message || "Failed to retrieve business plan item",
+      });
   }
 };
 
@@ -105,12 +112,14 @@ export const updateBusinessPlanController = async (
     if (item) {
       res.status(200).json(item);
     } else {
-      res.status(404).json({ message: "Business plan not found for update" });
+      res.status(404).json({ message: "Business plan item not found" });
     }
   } catch (error: any) {
     res
       .status(500)
-      .json({ message: "Error updating business plan", error: error.message });
+      .json({
+        message: error.message || "Failed to update business plan item",
+      });
   }
 };
 
@@ -130,6 +139,8 @@ export const deleteBusinessPlanController = async (
   } catch (error: any) {
     res
       .status(500)
-      .json({ message: "Error deleting business plan", error: error.message });
+      .json({
+        message: error.message || "Failed to delete business plan item",
+      });
   }
 };

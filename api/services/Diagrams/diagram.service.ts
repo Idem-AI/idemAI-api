@@ -19,7 +19,6 @@ export class DiagramService {
   ): Promise<DiagramModel> {
     const newDiagramData: Omit<DiagramModel, "id" | "createdAt" | "updatedAt"> =
       {
-        projectId,
         ...data,
       };
     return this.repository.create(newDiagramData, userId);
@@ -31,7 +30,7 @@ export class DiagramService {
   ): Promise<DiagramModel[]> {
     const allDiagrams = await this.repository.findAll(userId);
     return allDiagrams.filter(
-      (diagram: DiagramModel) => diagram.projectId === projectId
+      (diagram: DiagramModel) => diagram.id === projectId
     );
   }
 
