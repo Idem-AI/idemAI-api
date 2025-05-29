@@ -73,7 +73,7 @@ app.use('/api/project', brandingRoutes);
 app.use('/api/project', diagramRoutes);
 app.use('/api/project', businessPlanRoutes);
 app.use('/api/project', deploymentRoutes);
-app.use('/api', authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/prompt', promptRoutes); 
 
 app.get("/", (req: Request, res: Response) => {

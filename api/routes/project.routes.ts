@@ -18,7 +18,7 @@ projectRoutes.get(
 );
 
 // Update a specific project by ID
-projectRoutes.put("/:projectId", authenticate, projectController.updateProject);
+projectRoutes.put("/update/:projectId", authenticate, projectController.updateProject);
 
 // Delete a specific project by ID
 projectRoutes.delete(
