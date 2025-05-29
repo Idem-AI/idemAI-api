@@ -1,15 +1,6 @@
-import {
-  GoogleGenAI,
-  createPartFromUri,
-  Content,
-  Part,
-  GenerateContentResponse,
-  File,
-} from "@google/genai";
+import { GoogleGenAI, createPartFromUri, Content, File } from "@google/genai";
 import dotenv from "dotenv";
 import * as fs from "fs-extra";
-import * as path from "path";
-import * as os from "os";
 
 dotenv.config();
 
@@ -69,7 +60,7 @@ export class PromptService {
     messages: ChatMessage[],
     llmOptions: LLMOptions,
     fileInput?: { localPath: string; mimeType?: string }
-  ): Promise<GenerateContentResponse> {
+  ): Promise<string> {
     const geminiContent: Content[] = this.toGeminiMessages(messages);
 
     if (fileInput && fileInput.localPath) {
@@ -78,6 +69,19 @@ export class PromptService {
       }
 
       try {
+        // Ensure file is not empty before uploading as a potential workaround/diagnostic
+        const fileStats = await fs.stat(fileInput.localPath);
+        if (fileStats.size === 0) {
+          console.warn(
+            `File ${fileInput.localPath} is empty. Writing a placeholder to avoid potential upload issues.`
+          );
+          await fs.writeFile(
+            fileInput.localPath,
+            "[Initial empty context]",
+            "utf-8"
+          );
+        }
+
         console.log(
           `Uploading file: ${fileInput.localPath}, MimeType (intended, if SDK infers): ${fileInput.mimeType}`
         );
@@ -109,6 +113,55 @@ export class PromptService {
           lastMessageTurn.parts = [];
         }
         lastMessageTurn.parts.push(filePart);
+
+        // run prompt
+        const result = await this.genAIClient.models.generateContent({
+          model: modelName,
+          contents: geminiContent,
+        });
+        // Safely access the text content
+        const firstCandidate = result.candidates?.[0];
+        const firstPart = firstCandidate?.content?.parts?.[0];
+        const textContent = firstPart?.text;
+
+        if (typeof textContent === "string") {
+          return textContent;
+        } else {
+          let detailedError = "Invalid response structure from Gemini API: ";
+          if (!result.candidates || result.candidates.length === 0) {
+            detailedError += "No candidates array or empty candidates array.";
+          } else if (!firstCandidate) {
+            detailedError +=
+              "First candidate is undefined (candidates array might be sparse or malformed, or was empty).";
+          } else if (!firstCandidate.content) {
+            detailedError += "First candidate is missing 'content' property.";
+          } else if (
+            !firstCandidate.content.parts ||
+            firstCandidate.content.parts.length === 0
+          ) {
+            detailedError +=
+              "First candidate's content is missing 'parts' array or 'parts' array is empty.";
+          } else if (!firstPart) {
+            detailedError +=
+              "First part of first candidate's content is undefined (parts array might be sparse or malformed, or was empty).";
+          } else if (typeof firstPart.text !== "string") {
+            detailedError +=
+              "First part's 'text' property is missing or not a string.";
+          } else {
+            detailedError +=
+              "textContent was not a string for an unknown reason after checks.";
+          }
+          console.error(
+            "Gemini API Error:",
+            detailedError,
+            "Full response for debugging:",
+            JSON.stringify(result, null, 2)
+          );
+          throw new Error(
+            "Invalid or empty response structure from Gemini API. " +
+              detailedError
+          );
+        }
       } catch (uploadError) {
         console.error("Error uploading file to Gemini:", uploadError);
         throw new Error(
@@ -133,12 +186,14 @@ export class PromptService {
       contents: geminiContent,
       ...generationParams,
     });
-    return result;
+    const response = result.text;
+    if (!response) {
+      throw new Error("Failed to generate response from Gemini API.");
+    }
+    return response;
   }
 
-  public async runPrompt(
-    request: PromptRequest
-  ): Promise<GenerateContentResponse | string> {
+  public async runPrompt(request: PromptRequest): Promise<string> {
     const { provider, modelName, messages, llmOptions = {}, file } = request;
 
     if (!messages || messages.length === 0) {
@@ -183,145 +238,5 @@ export class PromptService {
       .replace(/^```(json)?\s*/i, "")
       .replace(/```$/g, "")
       .trim();
-  }
-
-  private getContinuationPromptForFile(previousFragment: string): string {
-    return `
-this content is not complete and is not a valid JSON, please continue the JSON from the last line:
-finally i want json formated like this:
-{
-  "content": "string",
-  "summary": "string"
-}
-of course it is sum of all the previous content and the new content not repeating the previous content and not need to create for exemple the content and summary again, just continue the JSON from the last line:
-this is the last line: 
-just continue not repeating the previous content:
-${previousFragment.trim()}
-`.trim();
-  }
-
-  public async tryGenerateFullJSON(
-    requestBody: PromptRequest
-  ): Promise<AIResponse> {
-    const maxAttempts = 8;
-    let lastAIResponseContent = "";
-    let currentMessages: ChatMessage[] = [...requestBody.messages];
-
-    if (
-      !currentMessages.length ||
-      currentMessages[currentMessages.length - 1].role !== "user"
-    ) {
-      throw new Error(
-        "Initial PromptRequest for tryGenerateFullJSON must contain at least one user message."
-      );
-    }
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      let tempFilePath: string | undefined;
-      const currentRequestBody: PromptRequest = {
-        ...requestBody,
-        messages: [...currentMessages],
-      };
-
-      if (attempt > 0) {
-        currentRequestBody.messages.push({
-          role: "assistant",
-          content: lastAIResponseContent,
-        });
-
-        try {
-          const tempDir = os.tmpdir();
-          tempFilePath = path.join(
-            tempDir,
-            `llm_context_${Date.now()}_${attempt}.txt`
-          );
-          await fs.writeFile(tempFilePath, lastAIResponseContent);
-          currentRequestBody.contextFilePaths = [tempFilePath];
-
-          currentRequestBody.messages.push({
-            role: "user",
-            content: `Your previous attempt to generate the JSON (also provided in the attached file at ${tempFilePath}) was incomplete or invalid. Please review our conversation history and the content of the attached file. Your task is to generate a *complete and valid* JSON object with 'content' (string) and 'summary' (string) fields. Ensure your output is only the final, corrected, and complete JSON structure. Do not repeat instructions.`,
-          });
-        } catch (fileError) {
-          console.error(
-            `Error creating temp file for AI context (attempt ${attempt + 1}):`,
-            fileError
-          );
-          currentRequestBody.messages.push({
-            role: "user",
-            content: this.getContinuationPromptForFile(lastAIResponseContent),
-          });
-          currentRequestBody.contextFilePaths = undefined;
-        }
-      }
-
-      let rawResponseFromAI = "";
-      try {
-        rawResponseFromAI = this.getCleanAIText(
-          await this.runPrompt(currentRequestBody)
-        );
-      } catch (runError) {
-        console.error(
-          `Error running prompt function (attempt ${attempt + 1}):`,
-          runError
-        );
-        if (tempFilePath) {
-          await fs
-            .unlink(tempFilePath)
-            .catch((err) =>
-              console.warn(
-                `Failed to delete temp file ${tempFilePath} after runError:`,
-                err
-              )
-            );
-        }
-        if (attempt === maxAttempts - 1) {
-          const errorMessage =
-            runError instanceof Error ? runError.message : String(runError);
-          throw new Error(
-            `AI call failed on the last attempt: ${errorMessage}`
-          );
-        }
-        currentMessages = [...currentRequestBody.messages];
-        continue;
-      }
-
-      if (tempFilePath) {
-        await fs
-          .unlink(tempFilePath)
-          .catch((err) =>
-            console.warn(`Failed to delete temp file ${tempFilePath}:`, err)
-          );
-      }
-
-      lastAIResponseContent = rawResponseFromAI;
-
-      try {
-        const json = JSON.parse(rawResponseFromAI);
-        if (json.content && json.summary) {
-          return json as AIResponse;
-        }
-      } catch (_) {
-        // Parsing failed. lastAIResponseContent is already set for next iteration.
-      }
-
-      if (attempt < maxAttempts - 1) {
-        currentMessages = [...currentRequestBody.messages];
-      }
-    }
-
-    try {
-      const finalMerged = JSON.parse(lastAIResponseContent);
-      if (finalMerged.content && finalMerged.summary)
-        return finalMerged as AIResponse;
-      throw new Error(
-        "Final parsed JSON does not contain content and summary."
-      );
-    } catch (err) {
-      console.error("Final parsing failed after all attempts:", err);
-      throw new Error(
-        "Could not generate a valid JSON with content and summary after multiple attempts."
-      );
-    }
   }
 }

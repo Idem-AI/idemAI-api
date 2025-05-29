@@ -68,6 +68,7 @@ ${promptConstant}
           ],
           file: { localPath: tempFilePath, mimeType: "text/plain" },
         });
+        console.log("gresponse",response);
         const stepSpecificContent = this.promptService.getCleanAIText(response);
 
         const sectionOutputToFile = `\n\n## ${stepName}\n\n${stepSpecificContent}\n\n---\n`;
