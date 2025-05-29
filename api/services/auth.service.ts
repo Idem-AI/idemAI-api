@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import admin from 'firebase-admin';
 import { CustomRequest } from '../interfaces/express.interface';
+import logger from '../config/logger';
 
 /**
  * Middleware to authenticate requests using Firebase Admin SDK.
@@ -19,6 +20,7 @@ export async function authenticate(
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
+    logger.warn('Authentication attempt failed: No token provided or incorrect format.');
     res.status(401).json({ message: 'Unauthorized: No token provided or incorrect format' });
     return;
   }
@@ -30,15 +32,16 @@ export async function authenticate(
     // This is typically done once at application startup.
     if (!admin.apps.length) {
       // This is a fallback, ideally initialization is confirmed elsewhere.
-      console.error('Firebase Admin SDK not initialized when authenticate was called.');
+      logger.error('Firebase Admin SDK not initialized when authenticate was called. This should be initialized at startup.');
       res.status(500).json({ message: 'Internal Server Error: Auth service not ready' });
       return;
     }
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     req.user = decodedToken; // Attach user info to the request object
+    logger.info(`User authenticated successfully: ${decodedToken.uid}`);
     next(); // Proceed to the next middleware or route handler
-  } catch (error) {
-    console.error('Error verifying Firebase ID token:', error);
+  } catch (error: any) {
+    logger.error(`Error verifying Firebase ID token: ${error.message}`, { stack: error.stack, tokenUsed: idToken ? idToken.substring(0, 10)+'...' : 'N/A', details: error });
     // Provide a more generic error message to the client for security
     res.status(403).json({ message: 'Forbidden: Invalid or expired token' });
   }

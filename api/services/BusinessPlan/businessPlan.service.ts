@@ -206,6 +206,7 @@ ${promptConstant}
     >
   ): Promise<BusinessPlanModel | null> {
     logger.info(`Attempting to update business plan for itemId: ${itemId}, userId: ${userId}`);
+    try {
     const project = await this.projectRepository.findById(itemId, userId);
     if (!project) {
       logger.warn(`Project not found with ID: ${itemId} for user: ${userId} when attempting to update business plan.`);
@@ -218,17 +219,31 @@ ${promptConstant}
       userId
     );
     if (!updatedProject) {
+      logger.warn(`Failed to update project or extract business plan for itemId: ${itemId}`);
       return null;
     }
+    logger.info(`Successfully updated business plan for itemId: ${itemId}`);
     return updatedProject.analysisResultModel.businessPlan!;
+    } catch (error: any) {
+      logger.error(`Error updating business plan for itemId ${itemId}: ${error.message}`, { stack: error.stack, userId });
+      throw error; // Or return null depending on desired error handling
+    }
   }
 
   async deleteBusinessPlan(userId: string, itemId: string): Promise<void> {
+    logger.info(`Attempting to delete business plan for itemId: ${itemId}, userId: ${userId}`);
+    try {
     const project = await this.projectRepository.findById(itemId, userId);
     if (!project) {
+      logger.warn(`Project not found with ID: ${itemId} for user: ${userId} when attempting to delete business plan.`);
       return;
     }
     project.analysisResultModel.businessPlan = undefined;
     await this.projectRepository.update(itemId, project, userId);
+    logger.info(`Successfully deleted business plan for itemId: ${itemId}`);
+    } catch (error: any) {
+      logger.error(`Error deleting business plan for itemId ${itemId}: ${error.message}`, { stack: error.stack, userId });
+      throw error; // Or return depending on desired error handling
+    }
   }
 }

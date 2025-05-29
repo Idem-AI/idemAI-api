@@ -213,16 +213,18 @@ export class PromptService {
         case LLMProvider.GEMINI:
           return this._runGeminiPrompt(modelName, messages, llmOptions, file);
         default:
-          logger.error(`Error in runPrompt for provider ${provider}:`, new Error(`Unsupported LLM provider: ${provider}`));
-          throw new Error(`Unsupported LLM provider: ${provider}`);
+          const unsupportedProviderError = new Error(`Unsupported LLM provider: ${provider}`);
+          logger.error(`Unsupported LLM provider encountered in runPrompt: ${unsupportedProviderError.message}`, { provider, stack: unsupportedProviderError.stack });
+          throw unsupportedProviderError;
       }
-    } catch (error) {
-      logger.error(`Error in runPrompt for provider ${provider}:`, error);
+    } catch (error: any) {
+      logger.error(`Error in runPrompt for provider ${provider}, model ${modelName}: ${error.message}`, { stack: error.stack, details: error });
       throw error;
     }
   }
 
   public getCleanAIText(response: any): string {
+    logger.debug('Attempting to clean AI text response.');
     if (typeof response === "string") {
       return response
         .replace(/^```(json)?\s*/i, "")
@@ -237,10 +239,10 @@ export class PromptService {
           .replace(/^```(json)?\s*/i, "")
           .replace(/```$/g, "")
           .trim();
-      } catch (e) {
-        console.warn(
-          "Failed to extract text using response.text(). Trying older structure.",
-          e
+      } catch (e: any) {
+        logger.warn(
+          `Failed to extract text using response.text(). Trying older structure. Error: ${e.message}`,
+          { stack: e.stack, responseDetails: typeof response }
         );
       }
     }

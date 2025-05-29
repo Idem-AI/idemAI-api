@@ -1,6 +1,7 @@
 import admin from 'firebase-admin';
 import { CollectionReference, DocumentReference, Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { IRepository } from './IRepository';
+import logger from '../config/logger';
 
 const db = admin.firestore();
 
@@ -16,6 +17,7 @@ export class FirestoreRepository<T extends { id?: string; createdAt?: Date; upda
    */
   constructor(collectionName: string) {
     this.collectionName = collectionName;
+    logger.info(`FirestoreRepository initialized for collection: ${collectionName}`);
   }
 
   private getCollection(userId?: string): CollectionReference {
@@ -55,6 +57,7 @@ export class FirestoreRepository<T extends { id?: string; createdAt?: Date; upda
   }
 
   async create(item: Omit<T, 'id' | 'createdAt' | 'updatedAt'>, userId?: string): Promise<T> {
+    logger.info(`FirestoreRepository.create called for collection: ${this.collectionName}, userId: ${userId || 'N/A'}`);
     try {
       const collectionRef = this.getCollection(userId);
       const dataToSave = this.toFirestore({
@@ -65,40 +68,50 @@ export class FirestoreRepository<T extends { id?: string; createdAt?: Date; upda
 
       const docRef = await collectionRef.add(dataToSave);
       // Return the entity with its new ID and converted dates
-      return { id: docRef.id, ...this.fromFirestore(dataToSave)!, ...item } as T; // Merge to ensure all original fields are present
-    } catch (error) {
-      console.error(`Error creating document in ${this.collectionName}:`, error);
+      const createdItem = { id: docRef.id, ...this.fromFirestore(dataToSave)!, ...item } as T;
+      logger.info(`Document created successfully in ${this.collectionName}, userId: ${userId || 'N/A'}, documentId: ${docRef.id}`);
+      return createdItem;
+    } catch (error: any) {
+      logger.error(`Error creating document in ${this.collectionName}, userId: ${userId || 'N/A'}: ${error.message}`, { stack: error.stack, item });
       throw error;
     }
   }
 
   async findById(id: string, userId?: string): Promise<T | null> {
+    logger.info(`FirestoreRepository.findById called for collection: ${this.collectionName}, documentId: ${id}, userId: ${userId || 'N/A'}`);
     try {
       const docRef = this.getDocument(id, userId);
       const docSnap = await docRef.get();
       if (!docSnap.exists) {
+        logger.warn(`Document not found in ${this.collectionName}, documentId: ${id}, userId: ${userId || 'N/A'}`);
         return null;
       }
       // Convert Firestore data (with Timestamps) to application data (with Dates)
-      return this.fromFirestore({ id: docSnap.id, ...docSnap.data() });
-    } catch (error) {
-      console.error(`Error finding document ${id} in ${this.collectionName}:`, error);
+      const foundItem = this.fromFirestore({ id: docSnap.id, ...docSnap.data() });
+      logger.info(`Document found successfully in ${this.collectionName}, documentId: ${id}, userId: ${userId || 'N/A'}`);
+      return foundItem;
+    } catch (error: any) {
+      logger.error(`Error finding document ${id} in ${this.collectionName}, userId: ${userId || 'N/A'}: ${error.message}`, { stack: error.stack });
       throw error;
     }
   }
 
   async findAll(userId?: string): Promise<T[]> {
+    logger.info(`FirestoreRepository.findAll called for collection: ${this.collectionName}, userId: ${userId || 'N/A'}`);
     try {
       const collectionRef = this.getCollection(userId);
       const snapshot = await collectionRef.orderBy('createdAt', 'desc').get(); // Assuming createdAt exists for ordering
-      return snapshot.docs.map(doc => this.fromFirestore({ id: doc.id, ...doc.data() }) as T);
-    } catch (error) {
-      console.error(`Error finding all documents in ${this.collectionName}:`, error);
+      const items = snapshot.docs.map(doc => this.fromFirestore({ id: doc.id, ...doc.data() }) as T);
+      logger.info(`Found ${items.length} documents in ${this.collectionName}, userId: ${userId || 'N/A'}`);
+      return items;
+    } catch (error: any) {
+      logger.error(`Error finding all documents in ${this.collectionName}, userId: ${userId || 'N/A'}: ${error.message}`, { stack: error.stack });
       throw error;
     }
   }
 
   async update(id: string, item: Partial<Omit<T, 'id' | 'createdAt' | 'updatedAt'>>, userId?: string): Promise<T | null> {
+    logger.info(`FirestoreRepository.update called for collection: ${this.collectionName}, documentId: ${id}, userId: ${userId || 'N/A'}`);
     try {
       const docRef = this.getDocument(id, userId);
       const dataToUpdate = this.toFirestore({
@@ -109,27 +122,33 @@ export class FirestoreRepository<T extends { id?: string; createdAt?: Date; upda
       await docRef.update(dataToUpdate);
       const updatedDocSnap = await docRef.get();
       if (!updatedDocSnap.exists) {
+        // This case should ideally not be reached if update is on an existing doc, but good for robustness
+        logger.warn(`Document ${id} not found after update attempt in ${this.collectionName}, userId: ${userId || 'N/A'}`);
         return null;
       }
-      return this.fromFirestore({ id: updatedDocSnap.id, ...updatedDocSnap.data() });
-    } catch (error) {
-      console.error(`Error updating document ${id} in ${this.collectionName}:`, error);
+      const updatedItem = this.fromFirestore({ id: updatedDocSnap.id, ...updatedDocSnap.data() });
+      logger.info(`Document updated successfully in ${this.collectionName}, documentId: ${id}, userId: ${userId || 'N/A'}`);
+      return updatedItem;
+    } catch (error: any) {
+      logger.error(`Error updating document ${id} in ${this.collectionName}, userId: ${userId || 'N/A'}: ${error.message}`, { stack: error.stack, item });
       throw error;
     }
   }
 
   async delete(id: string, userId?: string): Promise<boolean> {
+    logger.info(`FirestoreRepository.delete called for collection: ${this.collectionName}, documentId: ${id}, userId: ${userId || 'N/A'}`);
     try {
       const docRef = this.getDocument(id, userId);
       const docSnap = await docRef.get();
       if (!docSnap.exists) {
-        console.log(`Document ${id} not found in ${this.collectionName} for deletion.`);
+        logger.warn(`Document ${id} not found in ${this.collectionName} for deletion, userId: ${userId || 'N/A'}`);
         return false;
       }
       await docRef.delete();
+      logger.info(`Document deleted successfully from ${this.collectionName}, documentId: ${id}, userId: ${userId || 'N/A'}`);
       return true;
-    } catch (error) {
-      console.error(`Error deleting document ${id} in ${this.collectionName}:`, error);
+    } catch (error: any) {
+      logger.error(`Error deleting document ${id} in ${this.collectionName}, userId: ${userId || 'N/A'}: ${error.message}`, { stack: error.stack });
       throw error;
     }
   }

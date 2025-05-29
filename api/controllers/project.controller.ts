@@ -1,26 +1,30 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
+import { CustomRequest } from "../interfaces/express.interface";
 import { projectService } from "../services/project.service";
 import { ProjectModel } from "../models/project.model"; // Assuming ProjectModel is an interface/type
 import logger from "../config/logger";
 
 class ProjectController {
   async createProject(
-    req: Request,
+    req: CustomRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> {
-    logger.info(`Attempting to create project. UserID from body: ${req.body.userId}`);
+    const userId = req.user?.uid;
+    logger.info(`Attempting to create project. UserID from token: ${userId}`);
     try {
-      const { userId } = req.body;
       if (!userId) {
+        // This case should ideally be caught by the authenticate middleware
+        logger.warn("Create project attempt failed: User ID not found in token.");
         res.status(401).json({ message: "User not authenticated" });
         return;
       }
+      const { name, description, ...otherProjectData } = req.body;
       const projectData: Omit<
         ProjectModel,
         "id" | "createdAt" | "updatedAt" | "userId"
-      > = req.body;
-      if (!projectData.name || !projectData.description) { // userId check is already done above
+      > = { name, description, ...otherProjectData };
+      if (!projectData.name || !projectData.description) {
         logger.warn(`Create project attempt failed for userId ${userId}: Missing required fields (name or description).`);
         res.status(400).json({
           message: "Missing required project fields: name, description",
@@ -36,21 +40,21 @@ class ProjectController {
         .status(201)
         .json({ message: "Project created successfully", projectId });
     } catch (error: any) {
-      logger.error(`Error in createProject controller for userId ${req.body.userId}: ${error.message}`, { stack: error.stack, details: error });
+      logger.error(`Error in createProject controller for userId ${userId}: ${error.message}`, { stack: error.stack, details: error });
       next(error);
     }
   }
 
   async getAllProjects(
-    req: Request,
+    req: CustomRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> {
-    logger.info(`Attempting to get all projects for userId from params: ${req.params.userId}`);
+    const userId = req.user?.uid;
+    logger.info(`Attempting to get all projects for userId from token: ${userId}`);
     try {
-      
-      const { userId } = req.params;
       if (!userId) {
+        logger.warn("Get all projects attempt failed: User ID not found in token.");
         res.status(401).json({ message: "User not authenticated" });
         return;
       }
@@ -58,24 +62,28 @@ class ProjectController {
       logger.info(`Successfully fetched ${projects.length} projects for userId ${userId}.`);
       res.status(200).json(projects);
     } catch (error: any) {
-      logger.error(`Error in getAllProjects controller for userId ${req.params.userId}: ${error.message}`, { stack: error.stack, details: error });
+      logger.error(`Error in getAllProjects controller for userId ${userId}: ${error.message}`, { stack: error.stack, details: error });
       next(error);
     }
   }
 
   async getProjectById(
-    req: Request,
+    req: CustomRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> {
-    logger.info(`Attempting to get project by ID. ProjectId: ${req.params.projectId}, UserId: ${req.params.userId}`);
+    const userId = req.user?.uid;
+    const { projectId } = req.params;
+    logger.info(`Attempting to get project by ID. ProjectId: ${projectId}, UserId from token: ${userId}`);
     try {
-      const { projectId, userId } = req.params;
-      if (!projectId || !userId) {
-        logger.warn('Get project by ID failed: Project ID or User ID missing in params.');
-        res
-          .status(400)
-          .json({ message: "Project ID and User ID are required" });
+      if (!userId) {
+        logger.warn(`Get project by ID failed for projectId ${projectId}: User ID not found in token.`);
+        res.status(401).json({ message: "User not authenticated" });
+        return;
+      }
+      if (!projectId) {
+        logger.warn('Get project by ID failed: Project ID missing in params.');
+        res.status(400).json({ message: "Project ID is required" });
         return;
       }
       const project = await projectService.getUserProjectById(
@@ -90,32 +98,34 @@ class ProjectController {
       logger.info(`Successfully fetched project ${projectId} for user ${userId}.`);
       res.status(200).json(project);
     } catch (error: any) {
-      logger.error(`Error in getProjectById controller for projectId ${req.params.projectId}, userId ${req.params.userId}: ${error.message}`, { stack: error.stack, details: error });
+      logger.error(`Error in getProjectById controller for projectId ${projectId}, userId ${userId}: ${error.message}`, { stack: error.stack, details: error });
       next(error);
     }
   }
 
   async updateProject(
-    req: Request,
+    req: CustomRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> {
-    logger.info(`Attempting to update project. ProjectId: ${req.params.projectId}, UserId from body: ${req.body.userId}`);
+    const userId = req.user?.uid;
+    const { projectId } = req.params;
+    logger.info(`Attempting to update project. ProjectId: ${projectId}, UserId from token: ${userId}`);
     try {
-      const { userId } = req.body;
       if (!userId) {
+        logger.warn(`Update project attempt failed for projectId ${projectId}: User ID not found in token.`);
         res.status(401).json({ message: "User not authenticated" });
         return;
       }
-      const { projectId } = req.params;
+      const { name, description, ...otherUpdatedData } = req.body;
       const updatedData: Partial<
         Omit<ProjectModel, "id" | "createdAt" | "updatedAt" | "userId">
-      > = req.body;
+      > = { name, description, ...otherUpdatedData };
       if (!projectId) {
         res.status(400).json({ message: "Project ID is required" });
         return;
       }
-      if (Object.keys(updatedData).length === 0 || (Object.keys(updatedData).length === 1 && Object.keys(updatedData).includes('userId'))) {
+      if (Object.keys(updatedData).length === 0) {
         logger.warn(`Update project attempt failed for projectId ${projectId}, userId ${userId}: No update data provided.`);
         res.status(400).json({ message: "No update data provided" });
         return;
@@ -124,24 +134,25 @@ class ProjectController {
       logger.info(`Project ${projectId} updated successfully for userId ${userId}.`);
       res.status(200).json({ message: "Project updated successfully" });
     } catch (error: any) {
-      logger.error(`Error in updateProject controller for projectId ${req.params.projectId}, userId ${req.body.userId}: ${error.message}`, { stack: error.stack, details: error });
+      logger.error(`Error in updateProject controller for projectId ${projectId}, userId ${userId}: ${error.message}`, { stack: error.stack, details: error });
       next(error);
     }
   }
 
   async deleteProject(
-    req: Request,
+    req: CustomRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> {
-    logger.info(`Attempting to delete project. ProjectId: ${req.params.projectId}, UserId from body: ${req.body.userId}`);
+    const userId = req.user?.uid;
+    const { projectId } = req.params;
+    logger.info(`Attempting to delete project. ProjectId: ${projectId}, UserId from token: ${userId}`);
     try {
-      const { userId } = req.body;
       if (!userId) {
+        logger.warn(`Delete project attempt failed for projectId ${projectId}: User ID not found in token.`);
         res.status(401).json({ message: "User not authenticated" });
         return;
       }
-      const { projectId } = req.params;
       if (!projectId) {
         res.status(400).json({ message: "Project ID is required" });
         return;
@@ -150,20 +161,19 @@ class ProjectController {
       logger.info(`Project ${projectId} deleted successfully for userId ${userId}.`);
       res.status(200).json({ message: "Project deleted successfully" });
     } catch (error: any) {
-      logger.error(`Error in deleteProject controller for projectId ${req.params.projectId}, userId ${req.body.userId}: ${error.message}`, { stack: error.stack, details: error });
+      logger.error(`Error in deleteProject controller for projectId ${projectId}, userId ${userId}: ${error.message}`, { stack: error.stack, details: error });
       next(error);
     }
   }
 
   // Method to generate agentic zip (restored and with logging)
   async generateProjectAgenticZip(
-    req: Request,
+    req: CustomRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> {
     const { projectId } = req.params;
-    // @ts-ignore check for user property from auth middleware
-    const userId = req.user?.uid || req.body.userId; 
+    const userId = req.user?.uid; 
 
     logger.info(
       `Attempting to generate agentic zip for projectId: ${projectId}, userId: ${userId}`
