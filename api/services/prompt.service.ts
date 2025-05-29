@@ -1,6 +1,7 @@
 import { GoogleGenAI, createPartFromUri, Content, File } from "@google/genai";
 import dotenv from "dotenv";
 import * as fs from "fs-extra";
+import logger from "../config/logger";
 
 dotenv.config();
 
@@ -41,11 +42,14 @@ export class PromptService {
   private genAIClient: GoogleGenAI;
 
   constructor() {
+    logger.info('Initializing PromptService...');
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
+      logger.error("GEMINI_API_KEY is not set in environment variables.");
       throw new Error("GEMINI_API_KEY is not set in environment variables.");
     }
     this.genAIClient = new GoogleGenAI({ apiKey });
+    logger.info('GoogleGenAI client initialized successfully.');
   }
 
   private toGeminiMessages(messages: ChatMessage[]): Content[] {
@@ -72,7 +76,7 @@ export class PromptService {
         // Ensure file is not empty before uploading as a potential workaround/diagnostic
         const fileStats = await fs.stat(fileInput.localPath);
         if (fileStats.size === 0) {
-          console.warn(
+          logger.warn(
             `File ${fileInput.localPath} is empty. Writing a placeholder to avoid potential upload issues.`
           );
           await fs.writeFile(
@@ -82,7 +86,7 @@ export class PromptService {
           );
         }
 
-        console.log(
+        logger.info(
           `Uploading file: ${fileInput.localPath}, MimeType (intended, if SDK infers): ${fileInput.mimeType}`
         );
         // Simplifying files.upload call to match user's example: only 'file' path.
@@ -98,11 +102,14 @@ export class PromptService {
         const effectiveMimeType = uploadedFile.mimeType || fileInput.mimeType;
 
         if (!uploadedFile || !uploadedFile.uri || !effectiveMimeType) {
+          logger.error(
+            "File upload response did not contain expected file details (uri or an effective mimeType)."
+          );
           throw new Error(
             "File upload response did not contain expected file details (uri or an effective mimeType)."
           );
         }
-        console.log(
+        logger.info(
           `File uploaded successfully: URI ${uploadedFile.uri}, MimeType (from SDK): ${uploadedFile.mimeType}`
         );
 
@@ -151,24 +158,20 @@ export class PromptService {
             detailedError +=
               "textContent was not a string for an unknown reason after checks.";
           }
-          console.error(
-            "Gemini API Error:",
-            detailedError,
-            "Full response for debugging:",
-            JSON.stringify(result, null, 2)
+          logger.error(
+            "Gemini API Error: " + detailedError + " Full response for debugging: " + JSON.stringify(result, null, 2)
           );
+          logger.error("Invalid or empty response structure from Gemini API. " + detailedError);
           throw new Error(
             "Invalid or empty response structure from Gemini API. " +
               detailedError
           );
         }
       } catch (uploadError) {
-        console.error("Error uploading file to Gemini:", uploadError);
-        throw new Error(
-          `Failed to upload file: ${fileInput.localPath}. Error: ${
-            (uploadError as Error).message || uploadError
-          }`
-        );
+        logger.error('Error uploading file to Gemini:', uploadError);
+        const errorMessage = `Failed to upload file: ${fileInput.localPath}. Error: ${(uploadError as Error).message || uploadError}`;
+        logger.error(errorMessage);
+        throw new Error(errorMessage);
       }
     }
 
@@ -188,23 +191,34 @@ export class PromptService {
     });
     const response = result.text;
     if (!response) {
-      throw new Error("Failed to generate response from Gemini API.");
+      logger.error("Failed to generate response from Gemini API.");
+      const runPromptErrorMessage = `Failed to run prompt: ${JSON.stringify(result, null, 2)}`;
+      logger.error(runPromptErrorMessage);
+      throw new Error(runPromptErrorMessage);
     }
     return response;
   }
 
   public async runPrompt(request: PromptRequest): Promise<string> {
+    logger.info(`Running prompt for provider: ${request.provider}, model: ${request.modelName}, file attached: ${!!request.file}`);
     const { provider, modelName, messages, llmOptions = {}, file } = request;
 
     if (!messages || messages.length === 0) {
+      logger.error("Messages array cannot be empty.");
       throw new Error("Messages array cannot be empty.");
     }
 
-    switch (provider) {
-      case LLMProvider.GEMINI:
-        return this._runGeminiPrompt(modelName, messages, llmOptions, file);
-      default:
-        throw new Error(`Unsupported LLM provider: ${provider}`);
+    try {
+      switch (provider) {
+        case LLMProvider.GEMINI:
+          return this._runGeminiPrompt(modelName, messages, llmOptions, file);
+        default:
+          logger.error(`Error in runPrompt for provider ${provider}:`, new Error(`Unsupported LLM provider: ${provider}`));
+          throw new Error(`Unsupported LLM provider: ${provider}`);
+      }
+    } catch (error) {
+      logger.error(`Error in runPrompt for provider ${provider}:`, error);
+      throw error;
     }
   }
 

@@ -1,6 +1,10 @@
 import { ProjectModel } from "../models/project.model";
 import { IRepository } from "../repository/IRepository";
 import { RepositoryFactory } from "../repository/RepositoryFactory";
+import logger from "../config/logger";
+import JSZip from 'jszip';
+import fsExtra from 'fs-extra';
+import path from 'path';
 
 class ProjectService {
   private projectRepository: IRepository<ProjectModel>;
@@ -15,7 +19,7 @@ class ProjectService {
     projectData: Omit<ProjectModel, "id" | "createdAt" | "updatedAt" | "userId">
   ): Promise<string> {
     if (!userId) {
-      console.error("User ID is required to create a project.");
+      logger.error("User ID is required to create a project.");
       throw new Error("User ID is required.");
     }
 
@@ -35,26 +39,26 @@ class ProjectService {
       if (!newProject || !newProject.id) {
         throw new Error("Project creation failed or project ID is missing.");
       }
-      console.log("Project added successfully, ID:", newProject.id);
+      logger.info(`Project added successfully, ID: ${newProject.id}`);
       return newProject.id;
-    } catch (error) {
-      console.error("Error creating project in service:", error);
+    } catch (error: any) {
+      logger.error(`Error creating project in service: ${error.message}`, { stack: error.stack, details: error });
       throw error;
     }
   }
 
   async getAllUserProjects(userId: string): Promise<ProjectModel[]> {
     if (!userId) {
-      console.log("User ID is required to get projects.");
+      logger.warn("User ID is required to get projects. Returning empty array.");
       return [];
     }
 
     try {
       const projects = await this.projectRepository.findAll(userId);
-      console.log("Projects fetched via repository:", projects.length);
+      logger.info(`Projects fetched for user ${userId}: ${projects.length}`);
       return projects;
-    } catch (error) {
-      console.error("Error fetching projects in service:", error);
+    } catch (error: any) {
+      logger.error(`Error fetching projects for user ${userId} in service: ${error.message}`, { stack: error.stack, details: error });
       throw error;
     }
   }
@@ -64,43 +68,39 @@ class ProjectService {
     projectId: string
   ): Promise<ProjectModel | null> {
     if (!userId || !projectId) {
-      console.error("User ID and Project ID are required.");
+      logger.error("User ID and Project ID are required to fetch project.");
       return null;
     }
 
     try {
       const project = await this.projectRepository.findById(projectId, userId);
       if (!project) {
-        console.log(
-          `Project ${projectId} not found for user ${userId} via repository`
-        );
+        logger.info(`Project ${projectId} not found for user ${userId} via repository`);
         return null;
       }
-      console.log("Project data fetched via repository:", project);
+      logger.info(`Project data fetched for ${projectId}:`, project);
       return project;
-    } catch (error) {
-      console.error(`Error fetching project ${projectId} in service:`, error);
+    } catch (error: any) {
+      logger.error(`Error fetching project ${projectId} for user ${userId} in service: ${error.message}`, { stack: error.stack, details: error });
       throw error;
     }
   }
 
   async deleteUserProject(userId: string, projectId: string): Promise<void> {
     if (!userId || !projectId) {
-      console.error("User ID and Project ID are required for deletion.");
+      logger.error("User ID and Project ID are required for deletion.");
       throw new Error("User ID and Project ID are required.");
     }
 
     try {
       const success = await this.projectRepository.delete(projectId, userId);
       if (success) {
-        console.log(`Project ${projectId} deleted successfully via repository`);
+        logger.info(`Project ${projectId} deleted successfully for user ${userId} via repository`);
       } else {
-        console.log(
-          `Project ${projectId} not found for deletion or delete failed via repository`
-        );
+        logger.warn(`Project ${projectId} not found for deletion or delete failed for user ${userId} via repository`);
       }
-    } catch (error) {
-      console.error(`Error deleting project ${projectId} in service:`, error);
+    } catch (error: any) {
+      logger.error(`Error deleting project ${projectId} for user ${userId} in service: ${error.message}`, { stack: error.stack, details: error });
       throw error;
     }
   }
@@ -113,7 +113,7 @@ class ProjectService {
     >
   ): Promise<void> {
     if (!userId || !projectId) {
-      console.error("User ID and Project ID are required for update.");
+      logger.error("User ID and Project ID are required for update.");
       throw new Error("User ID and Project ID are required.");
     }
 
@@ -124,17 +124,15 @@ class ProjectService {
         userId
       );
       if (updatedProject) {
-        console.log(`Project ${projectId} updated successfully via repository`);
+        logger.info(`Project ${projectId} updated successfully for user ${userId} via repository`);
       } else {
-        console.log(
-          `Project ${projectId} not found for update or update failed via repository`
-        );
+        logger.warn(`Project ${projectId} not found for update or update failed for user ${userId} via repository`);
         throw new Error(
           `Project ${projectId} not found for update or update failed.`
         );
       }
-    } catch (error) {
-      console.error(`Error updating project ${projectId} in service:`, error);
+    } catch (error: any) {
+      logger.error(`Error updating project ${projectId} for user ${userId} in service: ${error.message}`, { stack: error.stack, details: error });
       throw error;
     }
   }
@@ -165,7 +163,138 @@ class ProjectService {
         - Fourchette budgétaire prévue : ${budgetIntervals}
         - Publics cibles concernés : ${targets}
     `;
+    logger.debug(`Generated project description for prompt for project: ${project.id || 'N/A'}`);
     return projectDescription.trim();
+  }
+
+  // Private helper to build analysisResultModel
+  private async _buildAnalysisResultModelRecursive(dirPath: string): Promise<any> {
+    logger.debug(`Recursively building analysis model from directory: ${dirPath}`);
+    const entries = await fsExtra.readdir(dirPath, { withFileTypes: true });
+    const model: any = {};
+
+    for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry.name);
+        const entryNameWithoutExt = path.parse(entry.name).name;
+
+        if (entry.isDirectory()) {
+            logger.debug(`Entering subdirectory: ${fullPath}`);
+            model[entryNameWithoutExt] = await this._buildAnalysisResultModelRecursive(fullPath);
+        } else {
+            try {
+                const content = await fsExtra.readFile(fullPath, 'utf-8');
+                model[entryNameWithoutExt] = { content: content };
+                logger.debug(`Read file content for: ${fullPath}`);
+            } catch (error: any) {
+                logger.error(`Failed to read file ${fullPath}: ${error.message}`, { stack: error.stack });
+                model[entryNameWithoutExt] = { content: `Error reading file: ${error.message}` };
+            }
+        }
+    }
+    return model;
+  }
+
+  // Method to generate agentic zip
+  async generateAgenticZip(userId: string, projectId: string): Promise<Buffer | null> {
+    logger.info(`Attempting to generate agentic zip for projectId: ${projectId}, userId: ${userId}`);
+    const project = await this.getUserProjectById(userId, projectId);
+
+    if (!project) {
+        logger.warn(`Project ${projectId} not found for userId ${userId}. Cannot generate agentic zip.`);
+        return null;
+    }
+
+    if (!project.analysisResultModel || Object.keys(project.analysisResultModel).length === 0) {
+        logger.info(`analysisResultModel not found or empty for project ${projectId}. Building it now.`);
+        try {
+            // This path should ideally be configurable or relative to the project root
+            const analysisSourceDir = path.resolve(__dirname, '../../lexi-agentic/01_AI-RUN'); 
+            logger.info(`Using analysis source directory: ${analysisSourceDir}`);
+            if (!await fsExtra.pathExists(analysisSourceDir)){
+                logger.warn(`Analysis source directory does not exist: ${analysisSourceDir}. Cannot build analysisResultModel.`);
+            } else {
+                project.analysisResultModel = await this._buildAnalysisResultModelRecursive(analysisSourceDir);
+                // Optionally, persist the newly built analysisResultModel to the database
+                // await this.editUserProject(userId, projectId, { analysisResultModel: project.analysisResultModel });
+                logger.info(`Successfully built analysisResultModel for project ${projectId}.`);
+            }
+        } catch (error: any) {
+            logger.error(`Error building analysisResultModel for project ${projectId}: ${error.message}`, { stack: error.stack });
+            // Depending on requirements, may proceed without it or return null
+        }
+    } else {
+        logger.info(`Using existing analysisResultModel for project ${projectId}.`);
+    }
+
+    const zip = new JSZip();
+    // This path should also ideally be configurable or relative
+    const templateDir = path.resolve(__dirname, '../../lexi-agentic'); 
+    logger.info(`Using template directory: ${templateDir}`);
+
+    if (!await fsExtra.pathExists(templateDir)){
+        logger.error(`Template directory does not exist: ${templateDir}. Cannot generate ZIP.`);
+        return null;
+    }
+
+    const addFilesToZip = async (currentPath: string, zipFolder: JSZip | null) => {
+        const entries = await fsExtra.readdir(currentPath, { withFileTypes: true });
+        for (const entry of entries) {
+            const fullPath = path.join(currentPath, entry.name);
+            const relativePath = path.relative(templateDir, fullPath);
+
+            if (entry.isDirectory()) {
+                const folder = zipFolder ? zipFolder.folder(entry.name) : zip.folder(entry.name);
+                if (folder) { // Ensure folder is not null
+                  await addFilesToZip(fullPath, folder);
+                }
+            } else {
+                let content = await fsExtra.readFile(fullPath, 'utf-8');
+                // Basic placeholder replacements
+                content = content.replace(/\{\{project\.name\}\}/g, project.name || '');
+                content = content.replace(/\{\{project\.description\}\}/g, project.description || '');
+                content = content.replace(/\{\{project\.type\}\}/g, project.type || '');
+                // Add other simple fields from ProjectModel as needed
+
+                // Stringify the entire analysisResultModel for a general placeholder
+                content = content.replace(/\{\{project\.analysisResultModel\}\}/g, project.analysisResultModel ? JSON.stringify(project.analysisResultModel, null, 2) : '{}');
+                
+                // Advanced placeholder replacement for nested properties in analysisResultModel
+                if (project.analysisResultModel) {
+                    const regex = /\{\{project\.analysisResultModel\.([^{}]+?)\}\}/g;
+                    content = content.replace(regex, (match, keyPath) => {
+                        const keys = keyPath.split('.');
+                        let value: any = project.analysisResultModel;
+                        for (const key of keys) {
+                            if (value && typeof value === 'object' && key in value) {
+                                value = value[key];
+                            } else {
+                                logger.warn(`Placeholder key not found in analysisResultModel: project.analysisResultModel.${keyPath}`);
+                                return match; // Placeholder not found, keep it as is
+                            }
+                        }
+                        return typeof value === 'string' ? value : JSON.stringify(value);
+                    });
+                }
+
+                if (zipFolder) {
+                    zipFolder.file(entry.name, content);
+                } else {
+                    zip.file(entry.name, content);
+                }
+                logger.debug(`Added file to zip: ${relativePath}`);
+            }
+        }
+    };
+
+    try {
+        await addFilesToZip(templateDir, null);
+        const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+        logger.info(`Successfully generated agentic zip buffer for projectId: ${projectId}`);
+        return zipBuffer;
+    } catch (error: any) {
+        logger.error(`Error generating agentic zip for projectId ${projectId}: ${error.message}`, { stack: error.stack });
+        return null;
+    }
   }
 }
 

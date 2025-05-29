@@ -1,4 +1,6 @@
-import express, { Request, Response } from "express";
+import express, { Express, Request, Response, NextFunction } from 'express';
+import morgan from 'morgan';
+import logger, { stream as loggerStream } from './config/logger';
 import admin from "firebase-admin";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -41,7 +43,10 @@ import { diagramRoutes } from './routes/diagram.routes';
 import { businessPlanRoutes } from './routes/businessPlan.routes';
 import { deploymentRoutes } from './routes/deployment.routes';
 
-const app = express();
+const app: Express = express();
+
+// HTTP request logging middleware
+app.use(morgan('combined', { stream: loggerStream }));
 const port = process.env.PORT || 3000;
 app.use(cookieParser());
 

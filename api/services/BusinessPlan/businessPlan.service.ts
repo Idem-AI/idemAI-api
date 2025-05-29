@@ -12,12 +12,14 @@ import { USE_CASE_MODELING_PROMPT } from "./prompts/06_use-case-modeling.prompt"
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as os from "os";
+import logger from "../../config/logger";
 import { BusinessPlanModel } from "../../models/businessPlan.model";
 
 export class BusinessPlanService {
   private projectRepository: IRepository<ProjectModel>;
 
   constructor(private promptService: PromptService) {
+    logger.info('BusinessPlanService initialized.');
     this.projectRepository = RepositoryFactory.getRepository<ProjectModel>(
       TargetModelType.PROJECT
     );
@@ -27,21 +29,26 @@ export class BusinessPlanService {
     userId: string,
     projectId: string
   ): Promise<ProjectModel | null> {
+    logger.info(`Generating business plan for userId: ${userId}, projectId: ${projectId}`);
     const tempFileName = `business_plan_context_${projectId}_${Date.now()}.txt`;
     const tempFilePath = path.join(os.tmpdir(), tempFileName);
 
     const project = await this.projectRepository.findById(projectId, userId);
+    logger.debug(`Project data fetched for business plan generation: ${project ? JSON.stringify(project.id) : 'null'}`);
     if (!project) {
+      logger.warn(`Project not found with ID: ${projectId} for user: ${userId} during business plan generation.`);
       return null;
     }
 
     try {
       await fs.writeFile(tempFilePath, "", "utf-8");
+      logger.info(`Temporary file created for business plan generation: ${tempFilePath}`);
 
       const runStepAndAppend = async (
         promptConstant: string,
         stepName: string
       ) => {
+        logger.info(`Generating section: '${stepName}' for projectId: ${projectId}`);
         let currentStepPrompt = `You are generating a business plan section by section.
           The previously generated sections of the business plan are available in the attached text file.
           Please review the attached file for context.
@@ -68,11 +75,13 @@ ${promptConstant}
           ],
           file: { localPath: tempFilePath, mimeType: "text/plain" },
         });
-        console.log("gresponse", response);
+        logger.debug(`LLM response for section '${stepName}': ${response}`);
         const stepSpecificContent = this.promptService.getCleanAIText(response);
+        logger.info(`Successfully generated and processed section: '${stepName}' for projectId: ${projectId}`);
 
         const sectionOutputToFile = `\n\n## ${stepName}\n\n${stepSpecificContent}\n\n---\n`;
         await fs.appendFile(tempFilePath, sectionOutputToFile, "utf-8");
+        logger.info(`Appended section '${stepName}' to temporary file: ${tempFilePath}`);
         return stepSpecificContent;
       };
 
@@ -106,6 +115,7 @@ ${promptConstant}
         userId
       );
       if (!oldProject) {
+        logger.warn(`Original project not found with ID: ${projectId} for user: ${userId} before updating with business plan.`);
         return null;
       }
       const newProject = {
@@ -155,23 +165,21 @@ ${promptConstant}
         },
       };
 
-      return this.projectRepository.update(projectId, newProject, userId);
+      const updatedProject = await this.projectRepository.update(projectId, newProject, userId);
+      logger.info(`Successfully generated and updated business plan for projectId: ${projectId}`);
+      return updatedProject;
     } catch (error) {
-      console.error(
-        `Error generating business plan for projectId ${projectId}:`,
-        error
-      );
+      logger.error(`Error generating business plan for projectId ${projectId}:`, error);
       throw error;
     } finally {
       try {
+        logger.info(`Attempting to remove temporary file: ${tempFilePath}`);
         if (await fs.pathExists(tempFilePath)) {
           await fs.remove(tempFilePath);
+          logger.info(`Successfully removed temporary file: ${tempFilePath}`);
         }
       } catch (cleanupError) {
-        console.error(
-          `Error removing temporary file ${tempFilePath}:`,
-          cleanupError
-        );
+        logger.error(`Error removing temporary file ${tempFilePath}:`, cleanupError);
       }
     }
   }
@@ -180,10 +188,13 @@ ${promptConstant}
     userId: string,
     projectId: string
   ): Promise<BusinessPlanModel | null> {
+    logger.info(`Fetching business plan for projectId: ${projectId}, userId: ${userId}`);
     const project = await this.projectRepository.findById(projectId, userId);
     if (!project) {
+      logger.warn(`Project not found with ID: ${projectId} for user: ${userId} when fetching business plan.`);
       return null;
     }
+    logger.info(`Successfully fetched business plan for projectId: ${projectId}`);
     return project.analysisResultModel.businessPlan!;
   }
 
@@ -194,8 +205,10 @@ ${promptConstant}
       Omit<ProjectModel, "id" | "projectId" | "createdAt" | "updatedAt">
     >
   ): Promise<BusinessPlanModel | null> {
+    logger.info(`Attempting to update business plan for itemId: ${itemId}, userId: ${userId}`);
     const project = await this.projectRepository.findById(itemId, userId);
     if (!project) {
+      logger.warn(`Project not found with ID: ${itemId} for user: ${userId} when attempting to update business plan.`);
       return null;
     }
 
