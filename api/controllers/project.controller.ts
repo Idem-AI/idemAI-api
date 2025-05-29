@@ -15,7 +15,8 @@ class ProjectController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const userId = req.user?.uid;
+      const userId = "apBhjkp2AqQmxxOyMzdtf65hrjm2";
+      // const userId = req.user?.uid;
       if (!userId) {
         res.status(401).json({ message: "User not authenticated" });
         return;
@@ -24,7 +25,7 @@ class ProjectController {
         ProjectModel,
         "id" | "createdAt" | "updatedAt" | "userId"
       > = req.body;
-      if (!projectData.name || !projectData.description) {
+      if (!projectData.name || !projectData.description || !userId) {
         res.status(400).json({
           message: "Missing required project fields: name, description",
         });

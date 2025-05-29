@@ -5,10 +5,10 @@ import { authenticate } from "../services/auth.service";
 export const projectRoutes = Router();
 
 // Create a new project
-projectRoutes.post("/", authenticate, projectController.createProject);
+projectRoutes.post("/", projectController.createProject);
 
 // Get all projects for the authenticated user
-projectRoutes.get("/", authenticate, projectController.getAllProjects);
+projectRoutes.get("/", projectController.getAllProjects);
 
 // Get a specific project by ID
 projectRoutes.get("/:projectId", projectController.getProjectById);

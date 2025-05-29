@@ -26,10 +26,14 @@ export class BusinessPlanService {
   async generateBusinessPlan(
     userId: string,
     projectId: string,
-    data: Omit<ProjectModel, "id" | "createdAt" | "updatedAt" | "projectId">
   ): Promise<ProjectModel | null> {
     const tempFileName = `business_plan_context_${projectId}_${Date.now()}.txt`;
     const tempFilePath = path.join(os.tmpdir(), tempFileName);
+
+    const project = await this.projectRepository.findById(projectId, userId);
+    if (!project) {
+      return null;
+    }
 
     try {
       await fs.writeFile(tempFilePath, "", "utf-8");
@@ -45,7 +49,7 @@ export class BusinessPlanService {
           CURRENT TASK: Generate the '${stepName}' section.
 
           PROJECT DETAILS (from input 'data' object):
-${JSON.stringify(data, null, 2)}
+${JSON.stringify(project, null, 2)}
 
           SPECIFIC INSTRUCTIONS FOR '${stepName}':
 ${promptConstant}

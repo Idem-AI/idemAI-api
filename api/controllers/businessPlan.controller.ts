@@ -12,7 +12,8 @@ export const generateBusinessPlanController = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.user?.uid;
+    const userId = "apBhjkp2AqQmxxOyMzdtf65hrjm2";
+    // const userId = req.user?.uid;
     const { projectId } = req.params;
     if (!userId) {
       res.status(401).json({ message: "User not authenticated" });
@@ -24,8 +25,7 @@ export const generateBusinessPlanController = async (
     }
     const item = await businessPlanService.generateBusinessPlan(
       userId,
-      projectId,
-      req.body
+      projectId
     );
     res.status(201).json(item);
   } catch (error: any) {
@@ -56,11 +56,9 @@ export const getBusinessPlansByProjectController = async (
     );
     res.status(200).json(items);
   } catch (error: any) {
-    res
-      .status(500)
-      .json({
-        message: error.message || "Failed to retrieve business plan items",
-      });
+    res.status(500).json({
+      message: error.message || "Failed to retrieve business plan items",
+    });
   }
 };
 
@@ -85,11 +83,9 @@ export const getBusinessPlanByIdController = async (
       res.status(404).json({ message: "Business plan item not found" });
     }
   } catch (error: any) {
-    res
-      .status(500)
-      .json({
-        message: error.message || "Failed to retrieve business plan item",
-      });
+    res.status(500).json({
+      message: error.message || "Failed to retrieve business plan item",
+    });
   }
 };
 
@@ -115,11 +111,9 @@ export const updateBusinessPlanController = async (
       res.status(404).json({ message: "Business plan item not found" });
     }
   } catch (error: any) {
-    res
-      .status(500)
-      .json({
-        message: error.message || "Failed to update business plan item",
-      });
+    res.status(500).json({
+      message: error.message || "Failed to update business plan item",
+    });
   }
 };
 
@@ -137,10 +131,8 @@ export const deleteBusinessPlanController = async (
     await businessPlanService.deleteBusinessPlan(userId, itemId);
     res.status(204).send();
   } catch (error: any) {
-    res
-      .status(500)
-      .json({
-        message: error.message || "Failed to delete business plan item",
-      });
+    res.status(500).json({
+      message: error.message || "Failed to delete business plan item",
+    });
   }
 };

@@ -14,14 +14,14 @@ const resourceName = "businessPlans";
 
 // Generate a new business plan for a project
 businessPlanRoutes.post(
-  `/projects/:projectId/${resourceName}`,
-  authenticate,
+  `/:projectId/${resourceName}`,
+
   generateBusinessPlanController
 );
 
 // Get all business plans for a specific project
 businessPlanRoutes.get(
-  `/projects/:projectId/${resourceName}`,
+  `/:projectId/${resourceName}`,
   authenticate,
   getBusinessPlansByProjectController
 );
