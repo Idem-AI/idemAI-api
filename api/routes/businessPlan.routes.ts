@@ -14,8 +14,8 @@ const resourceName = "businessPlans";
 
 // Generate a new business plan for a project
 businessPlanRoutes.post(
-  `/${resourceName}/:userId/:projectId`,
-
+  `/${resourceName}/:projectId`,
+  authenticate,
   generateBusinessPlanController
 );
 

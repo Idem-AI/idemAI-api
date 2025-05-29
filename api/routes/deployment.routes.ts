@@ -14,35 +14,35 @@ const resourceName = "deployments"; // Corresponds to TargetModelType.DEPLOYMENT
 
 // Generate a new deployment for a project
 deploymentRoutes.post(
-  `/projects/:projectId/${resourceName}`,
+  `${resourceName}/generate/:projectId`,
   authenticate,
   generateDeploymentController
 );
 
 // Get all deployments for a specific project
 deploymentRoutes.get(
-  `/projects/:projectId/${resourceName}`,
+  `${resourceName}/getAll/:projectId`,
   authenticate,
   getDeploymentsByProjectController
 );
 
 // Get a specific deployment by its ID
 deploymentRoutes.get(
-  `/${resourceName}/:deploymentId`,
+  `${resourceName}/get/:deploymentId`,
   authenticate,
   getDeploymentByIdController
 );
 
 // Update a specific deployment by its ID
 deploymentRoutes.put(
-  `/${resourceName}/:deploymentId`,
+  `${resourceName}/update/:deploymentId`,
   authenticate,
   updateDeploymentController
 );
 
 // Delete a specific deployment by its ID
 deploymentRoutes.delete(
-  `/${resourceName}/:deploymentId`,
+  `${resourceName}/delete/:deploymentId`,
   authenticate,
   deleteDeploymentController
 );

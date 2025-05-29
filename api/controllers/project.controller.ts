@@ -43,7 +43,8 @@ class ProjectController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const { userId } = req.body;
+      console.log("getAllProjects controller called");
+      const { userId } = req.params;
       if (!userId) {
         res.status(401).json({ message: "User not authenticated" });
         return;

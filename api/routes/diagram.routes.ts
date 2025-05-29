@@ -10,37 +10,39 @@ import { authenticate } from "../services/auth.service";
 
 export const diagramRoutes = Router();
 
+const resourceName = "diagrams";
+
 // Generate a new diagram for a project
 diagramRoutes.post(
-  "/projects/:projectId/diagrams",
+  `${resourceName}/generate/:projectId`,
   authenticate,
   generateDiagramController
 );
 
 // Get all diagrams for a specific project
 diagramRoutes.get(
-  "/projects/:projectId/diagrams",
+  `${resourceName}/getAll/:projectId`,
   authenticate,
   getDiagramsByProjectController
 );
 
 // Get a specific diagram by its ID
 diagramRoutes.get(
-  "/diagrams/:diagramId",
+  `${resourceName}/get/:diagramId`,
   authenticate,
   getDiagramByIdController
 );
 
 // Update a specific diagram by its ID
 diagramRoutes.put(
-  "/diagrams/:diagramId",
+  `${resourceName}/update/:diagramId`,
   authenticate,
   updateDiagramController
 );
 
 // Delete a specific diagram by its ID
 diagramRoutes.delete(
-  "/diagrams/:diagramId",
+  `${resourceName}/delete/:diagramId`,
   authenticate,
   deleteDiagramController
 );
