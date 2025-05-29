@@ -1,9 +1,6 @@
 import { ProjectModel } from "../models/project.model";
 import { IRepository } from "../repository/IRepository";
 import { RepositoryFactory } from "../repository/RepositoryFactory";
-import * as fs from "fs-extra";
-import * as path from "path";
-import JSZip from "jszip";
 
 class ProjectService {
   private projectRepository: IRepository<ProjectModel>;

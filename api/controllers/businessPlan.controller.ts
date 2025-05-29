@@ -12,9 +12,7 @@ export const generateBusinessPlanController = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = "apBhjkp2AqQmxxOyMzdtf65hrjm2";
-    // const userId = req.user?.uid;
-    const { projectId } = req.params;
+    const { projectId, userId } = req.params;
     if (!userId) {
       res.status(401).json({ message: "User not authenticated" });
       return;

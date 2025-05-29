@@ -2,21 +2,14 @@ import { Request, Response, NextFunction } from "express";
 import { projectService } from "../services/project.service";
 import { ProjectModel } from "../models/project.model"; // Assuming ProjectModel is an interface/type
 
-interface AuthenticatedRequest extends Request {
-  user?: {
-    uid: string;
-  };
-}
-
 class ProjectController {
   async createProject(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> {
     try {
-      const userId = "apBhjkp2AqQmxxOyMzdtf65hrjm2";
-      // const userId = req.user?.uid;
+      const { userId } = req.body;
       if (!userId) {
         res.status(401).json({ message: "User not authenticated" });
         return;
@@ -45,12 +38,12 @@ class ProjectController {
   }
 
   async getAllProjects(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> {
     try {
-      const userId = req.user?.uid;
+      const { userId } = req.body;
       if (!userId) {
         res.status(401).json({ message: "User not authenticated" });
         return;
@@ -64,24 +57,21 @@ class ProjectController {
   }
 
   async getProjectById(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> {
     try {
-      // const userId = req.user?.uid;
-      // if (!userId) {
-      //   res.status(401).json({ message: 'User not authenticated' });
-      //   return;
-      // }
-      const { projectId } = req.params;
-      if (!projectId) {
-        res.status(400).json({ message: "Project ID is required" });
+      const { projectId, userId } = req.params;
+      if (!projectId || !userId) {
+        res
+          .status(400)
+          .json({ message: "Project ID and User ID are required" });
         return;
       }
       const project = await projectService.getUserProjectById(
-        "sA6ZeSlrP9Ri8tCNAncPNKi83Nz2",
-        "5ULCb6EwpVWYGIUivAc0"
+        userId,
+        projectId
       );
       if (!project) {
         res.status(404).json({ message: "Project not found" });
@@ -95,12 +85,12 @@ class ProjectController {
   }
 
   async updateProject(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> {
     try {
-      const userId = req.user?.uid;
+      const { userId } = req.body;
       if (!userId) {
         res.status(401).json({ message: "User not authenticated" });
         return;
@@ -126,12 +116,12 @@ class ProjectController {
   }
 
   async deleteProject(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> {
     try {
-      const userId = req.user?.uid;
+      const { userId } = req.body;
       if (!userId) {
         res.status(401).json({ message: "User not authenticated" });
         return;
@@ -148,9 +138,6 @@ class ProjectController {
       next(error);
     }
   }
-
-
-  
 }
 
 export const projectController = new ProjectController();

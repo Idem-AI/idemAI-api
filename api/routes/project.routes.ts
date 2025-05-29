@@ -11,7 +11,7 @@ projectRoutes.post("/", projectController.createProject);
 projectRoutes.get("/", projectController.getAllProjects);
 
 // Get a specific project by ID
-projectRoutes.get("/:projectId", projectController.getProjectById);
+projectRoutes.get("/:userId/:projectId", projectController.getProjectById);
 
 // Update a specific project by ID
 projectRoutes.put("/:projectId", authenticate, projectController.updateProject);

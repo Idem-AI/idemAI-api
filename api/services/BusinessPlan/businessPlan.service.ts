@@ -25,7 +25,7 @@ export class BusinessPlanService {
 
   async generateBusinessPlan(
     userId: string,
-    projectId: string,
+    projectId: string
   ): Promise<ProjectModel | null> {
     const tempFileName = `business_plan_context_${projectId}_${Date.now()}.txt`;
     const tempFilePath = path.join(os.tmpdir(), tempFileName);
@@ -68,7 +68,7 @@ ${promptConstant}
           ],
           file: { localPath: tempFilePath, mimeType: "text/plain" },
         });
-        console.log("gresponse",response);
+        console.log("gresponse", response);
         const stepSpecificContent = this.promptService.getCleanAIText(response);
 
         const sectionOutputToFile = `\n\n## ${stepName}\n\n${stepSpecificContent}\n\n---\n`;
@@ -100,8 +100,6 @@ ${promptConstant}
         USE_CASE_MODELING_PROMPT,
         "Use Case Modeling"
       );
-
-      const finalBusinessPlanText = await fs.readFile(tempFilePath, "utf-8");
 
       const oldProject = await this.projectRepository.findById(
         projectId,
@@ -151,12 +149,6 @@ ${promptConstant}
                 type: "text/markdown",
                 data: useCaseModelingResponseContent,
                 summary: "Use Case Modeling for Business Plan",
-              },
-              {
-                name: "Full Business Plan",
-                type: "text/markdown",
-                data: finalBusinessPlanText,
-                summary: "Full Business Plan",
               },
             ],
           },
