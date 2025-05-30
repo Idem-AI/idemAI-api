@@ -24,7 +24,7 @@ TECHNICAL REQUIREMENTS:
 1. SVG SPECS:
 - ViewBox must be exactly: 0 0 120 40
 - Clean and minimal SVG markup (no extra groups, metadata, or hidden elements)
-- Optimized path complexity: under 50 nodes if possible
+- Optimized path compidemty: under 50 nodes if possible
 - Semantic IDs must be used: 'logo-icon' for the symbol, 'logo-text' for the brand name text
 - Ensure pixel-perfect rendering from 24px up to 192px
 - No external resources or references
@@ -76,4 +76,4 @@ EXAMPLE OUTPUT:
   },",
   "summary": "A minimalist geometric mark paired with a modern sans-serif font. Strong negative space ensures clarity at small sizes. The vibrant color reinforces a sense of trust and dynamism."
 }
-`
+`;

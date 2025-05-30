@@ -1,7 +1,7 @@
 {
-  "name": "lexi-api",
+  "name": "idem-api",
   "version": "1.0.0",
-  "description": "API for Lexi Architecture and Diagram Generator",
+  "description": "API for idem Architecture and Diagram Generator",
   "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

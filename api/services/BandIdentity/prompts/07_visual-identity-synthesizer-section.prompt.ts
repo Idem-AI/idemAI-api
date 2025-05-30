@@ -77,7 +77,7 @@ SYNTHESIS GUIDELINES:
 2. System Harmony:
    - Explain logo/color/type relationships
    - Show visual hierarchy
-   - Demonstrate flexibility
+   - Demonstrate fidembility
 
 3. Design Principles:
    - 3-5 actionable principles
