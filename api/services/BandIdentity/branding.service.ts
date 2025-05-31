@@ -7,7 +7,12 @@ import { PromptService, LLMProvider } from "../prompt.service";
 import { LogoModel } from "../../models/logo.model";
 import { LandingModel } from "../../models/landing.model";
 import { LOGO_GENERATION_PROMPT } from "./prompts/00_logo-generation-section.prompt";
-import { BRAND_IDENTITY_SECTION_PROMPT } from "./prompts/01_brand-identity-section.prompt";
+import { COLOR_PALETTE_SECTION_PROMPT } from "./prompts/02_color-palette-section.prompt";
+import { TYPOGRAPHY_SECTION_PROMPT } from "./prompts/03_typography-section.prompt";
+import { USAGE_GUIDELINES_SECTION_PROMPT } from "./prompts/04_usage-guidelines-section.prompt";
+import { VISUAL_EXAMPLES_SECTION_PROMPT } from "./prompts/05_visual-examples-section.prompt";
+import { GLOBAL_CSS_PROMPT } from "./prompts/06_global-css-section.prompt";
+import { VISUAL_IDENTITY_SYNTHESIZER_PROMPT } from "./prompts/07_visual-identity-synthesizer-section.prompt";
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as os from "os";
@@ -134,21 +139,52 @@ ${promptConstant}
         return stepSpecificContent;
       };
 
-      // Generate logo first
+      // Generate each branding section sequentially
+      // 1. Logo Design
       const logoResponseContent = await runStepAndAppend(
         LOGO_GENERATION_PROMPT,
         "Logo Design"
       );
 
-      // Then generate brand identity sections
-      const brandIdentityResponseContent = await runStepAndAppend(
-        BRAND_IDENTITY_SECTION_PROMPT,
-        "Brand Identity"
+      // 3. Color Palette
+      const colorPaletteResponseContent = await runStepAndAppend(
+        COLOR_PALETTE_SECTION_PROMPT,
+        "Color Palette"
       );
 
-      // Parse the JSON responses
-      let parsedLogoContent: any = {};
+      // 4. Typography System
+      const typographyResponseContent = await runStepAndAppend(
+        TYPOGRAPHY_SECTION_PROMPT,
+        "Typography System"
+      );
 
+      // 5. Usage Guidelines
+      const usageGuidelinesResponseContent = await runStepAndAppend(
+        USAGE_GUIDELINES_SECTION_PROMPT,
+        "Usage Guidelines"
+      );
+
+      // 6. Visual Examples
+      const visualExamplesResponseContent = await runStepAndAppend(
+        VISUAL_EXAMPLES_SECTION_PROMPT,
+        "Visual Examples"
+      );
+
+      // 7. Global CSS
+      const globalCssResponseContent = await runStepAndAppend(
+        GLOBAL_CSS_PROMPT,
+        "Global CSS"
+      );
+
+      // 8. Visual Identity Synthesis
+      const visualIdentitySynthesisResponseContent = await runStepAndAppend(
+        VISUAL_IDENTITY_SYNTHESIZER_PROMPT,
+        "Visual Identity Synthesis"
+      );
+
+      // Parse the JSON responses for each section
+      // 1. Logo
+      let parsedLogoContent: any = {};
       try {
         parsedLogoContent = JSON.parse(logoResponseContent);
         // Ensure the parsed content has all required fields
@@ -160,6 +196,9 @@ ${promptConstant}
           parsedLogoContent.colors = ["#000000", "#ffffff"];
         if (!Array.isArray(parsedLogoContent.fonts))
           parsedLogoContent.fonts = ["Arial", "Helvetica"];
+        logger.info(
+          `Successfully parsed logo JSON data for projectId: ${projectId}`
+        );
       } catch (error) {
         logger.error(
           `Error parsing logo content for project ${projectId}:`,
@@ -173,48 +212,105 @@ ${promptConstant}
         };
       }
 
-      let brandIdentityData: any = {};
+      // Helper function to parse section content
+      const parseSection = (content: string, sectionName: string): any => {
+        try {
+          const parsed = JSON.parse(content);
+          logger.info(
+            `Successfully parsed ${sectionName} for projectId: ${projectId}`
+          );
+          return parsed;
+        } catch (error) {
+          logger.error(
+            `Error parsing ${sectionName} for project ${projectId}:`,
+            error
+          );
+          // Return a fallback structure with the raw content
+          return {
+            content: content,
+            summary: `Error parsing ${sectionName}`,
+          };
+        }
+      };
 
-      try {
-        brandIdentityData = JSON.parse(brandIdentityResponseContent);
-        logger.info(
-          `Successfully parsed brand identity JSON data for projectId: ${projectId}`
-        );
-      } catch (parseError) {
-        logger.error(`Error parsing brand identity JSON data: ${parseError}`);
-        brandIdentityData = [];
-      }
-
-      // Prepare brand identity sections
-      const brandIdentitySections: SectionModel[] = Array.isArray(
-        brandIdentityData
-      )
-        ? brandIdentityData
-        : [
-            {
-              name: "Brand Identity",
-              type: "text/markdown",
-              data: brandIdentityResponseContent,
-              summary: "Brand identity guidelines",
-            },
-          ];
-
-      const oldProject = await this.projectRepository.findById(
-        projectId,
-        userId
+      // 3. Color Palette
+      const colorPaletteData = parseSection(
+        colorPaletteResponseContent,
+        "Color Palette"
       );
-      if (!oldProject) {
-        logger.warn(
-          `Original project not found with ID: ${projectId} for user: ${userId} before updating with branding.`
-        );
-        return null;
-      }
 
-      // Update project with new branding
-      const newProject = {
-        ...oldProject,
+      // 4. Typography
+      const typographyData = parseSection(
+        typographyResponseContent,
+        "Typography"
+      );
+
+      // 5. Usage Guidelines
+      const usageGuidelinesData = parseSection(
+        usageGuidelinesResponseContent,
+        "Usage Guidelines"
+      );
+
+      // 6. Visual Examples
+      const visualExamplesData = parseSection(
+        visualExamplesResponseContent,
+        "Visual Examples"
+      );
+
+      // 7. Global CSS
+      const globalCssData = parseSection(
+        globalCssResponseContent,
+        "Global CSS"
+      );
+
+      // 8. Visual Identity Synthesis
+      const visualIdentitySynthesisData = parseSection(
+        visualIdentitySynthesisResponseContent,
+        "Visual Identity Synthesis"
+      );
+
+      // Create sections from all branding components
+      // Helper function to create a section if data content isn't already in array format
+      const createSection = (
+        name: string,
+        data: any,
+        type = "text/html"
+      ): SectionModel => {
+        return {
+          name,
+          type,
+          data:
+            typeof data.content === "string"
+              ? data.content
+              : JSON.stringify(data.content),
+          summary: data.summary || `${name} section`,
+        };
+      };
+
+      // Prepare all sections for the brand identity
+      const brandIdentitySections: SectionModel[] = [];
+
+      // Add other sections
+      brandIdentitySections.push(
+        createSection("Color Palette", colorPaletteData)
+      );
+      brandIdentitySections.push(createSection("Typography", typographyData));
+      brandIdentitySections.push(
+        createSection("Usage Guidelines", usageGuidelinesData)
+      );
+      brandIdentitySections.push(
+        createSection("Visual Examples", visualExamplesData)
+      );
+      brandIdentitySections.push(createSection("Global CSS", globalCssData));
+      brandIdentitySections.push(
+        createSection("Visual Identity", visualIdentitySynthesisData)
+      );
+
+      // Update the project with the new branding data
+      const newProject: Partial<ProjectModel> = {
+        ...project,
         analysisResultModel: {
-          ...oldProject.analysisResultModel,
+          ...project.analysisResultModel,
           branding: {
             logo: {
               content: parsedLogoContent,

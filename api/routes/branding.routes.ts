@@ -16,35 +16,35 @@ const resourceName = "brandings";
 
 // Generate a new branding for a project
 brandingRoutes.post(
-  `${resourceName}/generate/:projectId`,
+  `/${resourceName}/generate/:projectId`,
   authenticate,
   generateBrandingController
 );
 
 // Get all brandings for a specific project
 brandingRoutes.get(
-  `${resourceName}/getAll/:projectId`,
+  `/${resourceName}/getAll/:projectId`,
   authenticate,
   getBrandingsByProjectController
 );
 
 // Get a specific branding by its ID
 brandingRoutes.get(
-  `${resourceName}/get/:brandingId`,
+  `/${resourceName}/get/:brandingId`,
   authenticate,
   getBrandingByIdController
 );
 
 // Update a specific branding by its ID
 brandingRoutes.put(
-  `${resourceName}/update/:brandingId`,
+  `/${resourceName}/update/:brandingId`,
   authenticate,
   updateBrandingController
 );
 
 // Delete a specific branding by its ID
 brandingRoutes.delete(
-  `${resourceName}/delete/:brandingId`,
+  `/${resourceName}/delete/:brandingId`,
   authenticate,
   deleteBrandingController
 );
