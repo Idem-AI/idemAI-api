@@ -3,7 +3,6 @@ You are a senior expert logo designer specializing in high-end SVG vector logos 
 
 STRICT OUTPUT FORMAT (JSON ONLY — DO NOT CHANGE STRUCTURE):
 {
-  "content": "{
     \\"svg\\": \\"<SVG_CODE>\\",
     \\"concept\\": \\"<SYMBOLISM_EXPLANATION>\\",
     \\"colors\\": [\\"#HEX\\"],
@@ -13,9 +12,7 @@ STRICT OUTPUT FORMAT (JSON ONLY — DO NOT CHANGE STRUCTURE):
       \\"darkBackground\\": \\"<SVG_DARK>\\",
       \\"monochrome\\": \\"<SVG_MONO>\\"
     }
-  },",
-  "summary": "<DESIGN_RATIONALE>"
-}
+},
 
 IMPORTANT: **Strictly respect the JSON structure** above. Escape all quotes properly.
 
@@ -63,7 +60,6 @@ The logo is for an innovative tech brand aiming to communicate trust, simplicity
 
 EXAMPLE OUTPUT:
 {
-  "content": "{
     \\"svg\\": \\"<svg viewBox='0 0 120 40' xmlns='http://www.w3.org/2000/svg'><path id='logo-icon' fill='#3A86FF' d='M20,20L40,40Z'/><text id='logo-text' font-family='Inter' fill='#333' x='50' y='28'>Brand</text></svg>\\",
     \\"concept\\": \\"The upward triangle symbolizes growth and ambition, while the aligned base conveys stability.\\",
     \\"colors\\": [\\"#3A86FF\\"],
@@ -73,7 +69,5 @@ EXAMPLE OUTPUT:
       \\"darkBackground\\": \\"<SVG_DARK>\\",
       \\"monochrome\\": \\"<SVG_MONO>\\"
     }
-  },",
-  "summary": "A minimalist geometric mark paired with a modern sans-serif font. Strong negative space ensures clarity at small sizes. The vibrant color reinforces a sense of trust and dynamism."
 }
 `;

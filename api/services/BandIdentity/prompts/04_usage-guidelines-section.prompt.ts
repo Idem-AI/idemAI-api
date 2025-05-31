@@ -59,17 +59,11 @@ STRICT OUTPUT REQUIREMENTS:
   </div>
 </section>
 
-2. JSON FORMAT:
-{
-  "content": "[MINIFIED_HTML_SECTION]",
-  "summary": "Logo: [MIN_SIZE] | Colors: [CONTRAST_RATIO] | Type: [SCALE_RATIO]"
-}
 
 CONTENT RULES:
 - Practical examples only
 - Developer-friendly specs (px/rem values)
 - Remove all line breaks in HTML
-- Escape " with \\"
 - Include visual examples in code format
 
 TECHNICAL SPECS:
@@ -87,11 +81,5 @@ TECHNICAL SPECS:
    - Complete type scale
    - Line height ratios
    - Responsive breakpoints
-
-EXAMPLE OUTPUT:
-{
-  "content": "<section id=\"usage-guidelines\" class=\"brand-section guidelines-section\"><h2>Usage Guidelines</h2><div class=\"content\"><div class=\"guideline-block logo-usage\"><h3>Logo Implementation</h3><div class=\"do-dont-grid\"><div class=\"do\"><h4>✓ Correct Usage</h4><ul><li>Minimum clear space: <strong>24px</strong></li></ul></div></div></div></div></section>",
-  "summary": "Logo: 24px | Colors: AA Contrast | Type: 1.5 Ratio"
-}
 
 PROJECT CONTEXT:`;

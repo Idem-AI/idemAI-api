@@ -56,17 +56,11 @@ STRICT OUTPUT REQUIREMENTS:
   </div>
 </section>
 
-2. JSON FORMAT:
-{
-  "content": "[MINIFIED_HTML_SECTION]",
-  "summary": "Essence: [BRAND_ESSENCE] | System: [KEY_COMPONENTS]"
-}
 
 CONTENT RULES:
 - Replace all [TOKENS] with actual values
 - Minify HTML (remove line breaks)
-- Escape " with \\"
-- Keep rationale statements under 140 chars
+
 
 SYNTHESIS GUIDELINES:
 1. Brand Essence:
@@ -83,11 +77,5 @@ SYNTHESIS GUIDELINES:
    - 3-5 actionable principles
    - Cross-component consistency
    - Usage boundaries
-
-EXAMPLE OUTPUT:
-{
-  "content": "<section id=\"identity-overview\" class=\"brand-section overview-section\"><h2>Visual Identity System</h2><div class=\"identity-summary\"><h3>Core Brand Essence</h3><p class=\"brand-essence\">Innovative technology with human-centered design</p></div></section>",
-  "summary": "Essence: Tech innovation | System: Geometric logo, Blue palette, Clean typography"
-}
 
 PROJECT CONTEXT:`;

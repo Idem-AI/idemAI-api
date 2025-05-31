@@ -22,11 +22,7 @@ STRICT OUTPUT REQUIREMENTS:
   </div>
 </section>
 
-2. JSON FORMAT:
-{
-  "content": "[MINIFIED_HTML_SECTION]",
-  "summary": "Primary: [FONT_NAME] (Usage: [HEADINGS/BODY]) | Secondary: [FONT_NAME] (Usage: [ACCENTS])"
-}
+
 
 DESIGN RULES:
 - Max 2 font families (1 primary, 1 secondary)
@@ -51,11 +47,5 @@ TECHNICAL SPECS:
    - Heading hierarchy (h1-h6 specs)
    - Button/UI text sizing
    - Responsive scaling rules
-
-EXAMPLE OUTPUT:
-{
-  "content": "<section id=\"typography\" class=\"brand-section type-section\"><h2>Typography System</h2><div class=\"content\"><div class=\"font-group\"><h3>Primary Font</h3><div class=\"font-example\"><p class=\"font-name\">Inter</p><p class=\"font-license\">Google Fonts (SIL Open Font License)</p><div class=\"font-samples\"><p class=\"headline-example\">Headline</p><p class=\"body-example\">Sample body text for readability</p></div><p class=\"font-rationale\">Neo-grotesque sans-serif for optimal UI legibility</p></div></div></div></section>",
-  "summary": "Primary: Inter (Headings/Body) | Secondary: Roboto Mono (Code/Accents)"
-}
 
 CONTEXT:`;

@@ -21,11 +21,6 @@ STRICT OUTPUT REQUIREMENTS:
   </div>
 </section>
 
-2. JSON FORMAT:
-{
-  "content": "[MINIFIED_HTML_SECTION]",
-  "summary": "Main: #HEX | Secondaries: #HEX, #HEX | Accents: #HEX"
-}
 
 CONTENT RULES:
 - Max 6 colors total (1 primary, 3-4 secondary, 1-2 accents)
@@ -49,11 +44,6 @@ DESIGN PRINCIPLES:
    - Include hover/focus states if relevant
    - Specify opacity rules if needed
 
-EXAMPLE OUTPUT:
-{
-  "content": "<section id=\"color-palette\" class=\"brand-section palette-section\"><h2>Color Palette</h2><div class=\"content\"><div class=\"color-group\"><h3>Main Color</h3><div class=\"color-item\"><span class=\"color-swatch\"></span><div class=\"color-details\"><p class=\"hex\">#3A86FF</p><p class=\"rationale\">Blue conveys trust and professionalism.</p><p class=\"usage\">Use for primary buttons and key highlights.</p></div></div></div></div></section>",
-  "summary": "Main: #3A86FF | Secondaries: #8B98FF, #FFD166 | Accents: #06D6A0"
-}
 
 CONTEXT:
 `;

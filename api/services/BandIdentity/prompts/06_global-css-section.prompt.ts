@@ -10,12 +10,6 @@ STRICT REQUIREMENTS:
    - Usage guidelines
    - Identity synthesis
 
-2. Output MUST be in this exact JSON format:
-{
-  "content": "<style>[GLOBAL_STYLES][SECTION_STYLES]</style>",
-  "summary": "Unified styles for [N] sections | [VAR_COUNT] variables"
-}
-
 CSS GENERATION RULES:
 
 1. Base System:
@@ -144,12 +138,6 @@ TECHNICAL CONSTRAINTS:
 - REM/EM units only
 - Alphabetical properties
 - Minified output
-
-EXAMPLE OUTPUT:
-{
-  "content": "<style>:root{--primary:#3a86ff;--font-primary:'Inter';--border-radius:4px;}body{font-family:var(--font-primary),sans-serif;}.brand-section{padding:var(--section-gap)}.color-swatch{width:3rem;height:3rem;border-radius:var(--border-radius);}</style>", 
-  "summary": "Unified styles for 6 sections | 15 variables"
-}
 
 PROVIDED SECTIONS SUMMARY:
 [INSERT_ALL_SECTIONS_SUMMARY_HERE]`;
