@@ -1,9 +1,12 @@
 import { Request, Response } from "express";
 import { BrandingService } from "../services/BandIdentity/branding.service";
+import { PromptService } from "../services/prompt.service";
 import { CustomRequest } from "../interfaces/express.interface";
 import logger from "../config/logger";
 
-const brandingService = new BrandingService();
+// Create instances of the services
+const promptService = new PromptService();
+const brandingService = new BrandingService(promptService);
 
 export const generateBrandingController = async (
   req: CustomRequest,
@@ -26,15 +29,22 @@ export const generateBrandingController = async (
       res.status(400).json({ message: "Project ID is required" });
       return;
     }
-    const branding = await brandingService.generateBranding(
+    const updatedProject = await brandingService.generateBranding(
       userId,
-      projectId,
-      req.body
+      projectId
     );
+    
+    if (!updatedProject) {
+      logger.warn(`Failed to generate branding - UserId: ${userId}, ProjectId: ${projectId}`);
+      res.status(500).json({ message: "Failed to generate branding" });
+      return;
+    }
+    
     logger.info(
-      `Branding generated successfully - UserId: ${userId}, ProjectId: ${projectId}, BrandingId: ${branding.id}`
+      `Branding generated successfully - UserId: ${userId}, ProjectId: ${projectId}, ProjectUpdated: ${updatedProject.id}`
     );
-    res.status(201).json(branding);
+    // Return the branding from the updated project
+    res.status(201).json(updatedProject.analysisResultModel.branding);
   } catch (error: any) {
     logger.error(
       `Error in generateBrandingController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
@@ -66,22 +76,30 @@ export const getBrandingsByProjectController = async (
       res.status(400).json({ message: "Project ID is required" });
       return;
     }
-    const brandings = await brandingService.getBrandingsByProjectId(
+    const branding = await brandingService.getBrandingsByProjectId(
       userId,
       projectId
     );
+    
+    if (!branding) {
+      logger.info(`No branding found - UserId: ${userId}, ProjectId: ${projectId}`);
+      res.status(404).json({ message: "No branding found for this project" });
+      return;
+    }
+    
     logger.info(
-      `Brandings fetched successfully for project - UserId: ${userId}, ProjectId: ${projectId}, Count: ${brandings.length}`
+      `Retrieved branding successfully - UserId: ${userId}, ProjectId: ${projectId}`
     );
-    res.status(200).json(brandings);
+    res.status(200).json(branding);
   } catch (error: any) {
     logger.error(
       `Error in getBrandingsByProjectController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
-      { stack: error.stack, params: req.params }
+      { stack: error.stack }
     );
-    res
-      .status(500)
-      .json({ message: "Error fetching brandings", error: error.message });
+    res.status(500).json({
+      message: "Error retrieving branding",
+      error: error.message,
+    });
   }
 };
 
@@ -127,10 +145,10 @@ export const updateBrandingController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { brandingId } = req.params;
+  const { projectId } = req.params;
   const userId = req.user?.uid;
   logger.info(
-    `updateBrandingController called - UserId: ${userId}, BrandingId: ${brandingId}`,
+    `updateBrandingController called - UserId: ${userId}, ProjectId: ${projectId}`,
     { body: req.body }
   );
   try {
@@ -139,30 +157,36 @@ export const updateBrandingController = async (
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
-    const branding = await brandingService.updateBranding(
+    if (!projectId) {
+      logger.warn("Project ID is required for updateBrandingController");
+      res.status(400).json({ message: "Project ID is required" });
+      return;
+    }
+    const updatedProject = await brandingService.updateBranding(
       userId,
-      brandingId,
+      projectId,
       req.body
     );
-    if (branding) {
-      logger.info(
-        `Branding updated successfully - UserId: ${userId}, BrandingId: ${brandingId}`
-      );
-      res.status(200).json(branding);
-    } else {
+    if (!updatedProject) {
       logger.warn(
-        `Branding not found for update - UserId: ${userId}, BrandingId: ${brandingId}`
+        `Project not found for branding update - UserId: ${userId}, ProjectId: ${projectId}`
       );
-      res.status(404).json({ message: "Branding not found for update" });
+      res.status(404).json({ message: "Project not found" });
+      return;
     }
+    logger.info(
+      `Branding updated successfully - UserId: ${userId}, ProjectId: ${projectId}`
+    );
+    res.status(200).json(updatedProject.analysisResultModel.branding);
   } catch (error: any) {
     logger.error(
-      `Error in updateBrandingController - UserId: ${userId}, BrandingId: ${brandingId}: ${error.message}`,
-      { stack: error.stack, body: req.body, params: req.params }
+      `Error in updateBrandingController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack, body: req.body }
     );
-    res
-      .status(500)
-      .json({ message: "Error updating branding", error: error.message });
+    res.status(500).json({
+      message: "Error updating branding",
+      error: error.message,
+    });
   }
 };
 
@@ -170,10 +194,10 @@ export const deleteBrandingController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { brandingId } = req.params;
+  const { projectId } = req.params;
   const userId = req.user?.uid;
   logger.info(
-    `deleteBrandingController called - UserId: ${userId}, BrandingId: ${brandingId}`
+    `deleteBrandingController called - UserId: ${userId}, ProjectId: ${projectId}`
   );
   try {
     if (!userId) {
@@ -181,18 +205,33 @@ export const deleteBrandingController = async (
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
-    await brandingService.deleteBranding(userId, brandingId);
+    if (!projectId) {
+      logger.warn("Project ID is required for deleteBrandingController");
+      res.status(400).json({ message: "Project ID is required" });
+      return;
+    }
+    const success = await brandingService.deleteBranding(userId, projectId);
+    
+    if (!success) {
+      logger.warn(
+        `Project not found for branding deletion - UserId: ${userId}, ProjectId: ${projectId}`
+      );
+      res.status(404).json({ message: "Project not found" });
+      return;
+    }
+    
     logger.info(
-      `Branding deleted successfully - UserId: ${userId}, BrandingId: ${brandingId}`
+      `Branding deleted successfully - UserId: ${userId}, ProjectId: ${projectId}`
     );
     res.status(204).send();
   } catch (error: any) {
     logger.error(
-      `Error in deleteBrandingController - UserId: ${userId}, BrandingId: ${brandingId}: ${error.message}`,
-      { stack: error.stack, params: req.params }
+      `Error in deleteBrandingController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack }
     );
-    res
-      .status(500)
-      .json({ message: "Error deleting branding", error: error.message });
+    res.status(500).json({
+      message: "Error deleting branding",
+      error: error.message,
+    });
   }
 };
