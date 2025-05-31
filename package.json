@@ -14,7 +14,6 @@
   "license": "MIT",
   "dependencies": {
     "@google/genai": "^1.1.0",
-    "@types/jszip": "^3.4.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",

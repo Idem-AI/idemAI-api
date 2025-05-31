@@ -14,12 +14,13 @@ import * as path from "path";
 import * as os from "os";
 import logger from "../../config/logger";
 import { BusinessPlanModel } from "../../models/businessPlan.model";
+import { PROJECT_DESCRIPTION_PROMPT } from "./prompts/00_projectDescription.prompt";
 
 export class BusinessPlanService {
   private projectRepository: IRepository<ProjectModel>;
 
   constructor(private promptService: PromptService) {
-    logger.info('BusinessPlanService initialized.');
+    logger.info("BusinessPlanService initialized.");
     this.projectRepository = RepositoryFactory.getRepository<ProjectModel>(
       TargetModelType.PROJECT
     );
@@ -29,26 +30,38 @@ export class BusinessPlanService {
     userId: string,
     projectId: string
   ): Promise<ProjectModel | null> {
-    logger.info(`Generating business plan for userId: ${userId}, projectId: ${projectId}`);
+    logger.info(
+      `Generating business plan for userId: ${userId}, projectId: ${projectId}`
+    );
     const tempFileName = `business_plan_context_${projectId}_${Date.now()}.txt`;
     const tempFilePath = path.join(os.tmpdir(), tempFileName);
 
     const project = await this.projectRepository.findById(projectId, userId);
-    logger.debug(`Project data fetched for business plan generation: ${project ? JSON.stringify(project.id) : 'null'}`);
+    logger.debug(
+      `Project data fetched for business plan generation: ${
+        project ? JSON.stringify(project.id) : "null"
+      }`
+    );
     if (!project) {
-      logger.warn(`Project not found with ID: ${projectId} for user: ${userId} during business plan generation.`);
+      logger.warn(
+        `Project not found with ID: ${projectId} for user: ${userId} during business plan generation.`
+      );
       return null;
     }
 
     try {
       await fs.writeFile(tempFilePath, "", "utf-8");
-      logger.info(`Temporary file created for business plan generation: ${tempFilePath}`);
+      logger.info(
+        `Temporary file created for business plan generation: ${tempFilePath}`
+      );
 
       const runStepAndAppend = async (
         promptConstant: string,
         stepName: string
       ) => {
-        logger.info(`Generating section: '${stepName}' for projectId: ${projectId}`);
+        logger.info(
+          `Generating section: '${stepName}' for projectId: ${projectId}`
+        );
         let currentStepPrompt = `You are generating a business plan section by section.
           The previously generated sections of the business plan are available in the attached text file.
           Please review the attached file for context.
@@ -77,13 +90,22 @@ ${promptConstant}
         });
         logger.debug(`LLM response for section '${stepName}': ${response}`);
         const stepSpecificContent = this.promptService.getCleanAIText(response);
-        logger.info(`Successfully generated and processed section: '${stepName}' for projectId: ${projectId}`);
+        logger.info(
+          `Successfully generated and processed section: '${stepName}' for projectId: ${projectId}`
+        );
 
         const sectionOutputToFile = `\n\n## ${stepName}\n\n${stepSpecificContent}\n\n---\n`;
         await fs.appendFile(tempFilePath, sectionOutputToFile, "utf-8");
-        logger.info(`Appended section '${stepName}' to temporary file: ${tempFilePath}`);
+        logger.info(
+          `Appended section '${stepName}' to temporary file: ${tempFilePath}`
+        );
         return stepSpecificContent;
       };
+
+      const completeDescription = await runStepAndAppend(
+        PROJECT_DESCRIPTION_PROMPT,
+        "Project Description"
+      );
 
       const faisbilityResponseContent = await runStepAndAppend(
         FAISABILITY_PROMPT,
@@ -115,7 +137,9 @@ ${promptConstant}
         userId
       );
       if (!oldProject) {
-        logger.warn(`Original project not found with ID: ${projectId} for user: ${userId} before updating with business plan.`);
+        logger.warn(
+          `Original project not found with ID: ${projectId} for user: ${userId} before updating with business plan.`
+        );
         return null;
       }
       const newProject = {
@@ -160,16 +184,31 @@ ${promptConstant}
                 data: useCaseModelingResponseContent,
                 summary: "Use Case Modeling for Business Plan",
               },
+              {
+                name: "Project Description",
+                type: "text/markdown",
+                data: completeDescription,
+                summary: "Project Description for Business Plan",
+              },
             ],
           },
         },
       };
 
-      const updatedProject = await this.projectRepository.update(projectId, newProject, userId);
-      logger.info(`Successfully generated and updated business plan for projectId: ${projectId}`);
+      const updatedProject = await this.projectRepository.update(
+        projectId,
+        newProject,
+        userId
+      );
+      logger.info(
+        `Successfully generated and updated business plan for projectId: ${projectId}`
+      );
       return updatedProject;
     } catch (error) {
-      logger.error(`Error generating business plan for projectId ${projectId}:`, error);
+      logger.error(
+        `Error generating business plan for projectId ${projectId}:`,
+        error
+      );
       throw error;
     } finally {
       try {
@@ -179,7 +218,10 @@ ${promptConstant}
           logger.info(`Successfully removed temporary file: ${tempFilePath}`);
         }
       } catch (cleanupError) {
-        logger.error(`Error removing temporary file ${tempFilePath}:`, cleanupError);
+        logger.error(
+          `Error removing temporary file ${tempFilePath}:`,
+          cleanupError
+        );
       }
     }
   }
@@ -188,13 +230,19 @@ ${promptConstant}
     userId: string,
     projectId: string
   ): Promise<BusinessPlanModel | null> {
-    logger.info(`Fetching business plan for projectId: ${projectId}, userId: ${userId}`);
+    logger.info(
+      `Fetching business plan for projectId: ${projectId}, userId: ${userId}`
+    );
     const project = await this.projectRepository.findById(projectId, userId);
     if (!project) {
-      logger.warn(`Project not found with ID: ${projectId} for user: ${userId} when fetching business plan.`);
+      logger.warn(
+        `Project not found with ID: ${projectId} for user: ${userId} when fetching business plan.`
+      );
       return null;
     }
-    logger.info(`Successfully fetched business plan for projectId: ${projectId}`);
+    logger.info(
+      `Successfully fetched business plan for projectId: ${projectId}`
+    );
     return project.analysisResultModel.businessPlan!;
   }
 
@@ -205,44 +253,60 @@ ${promptConstant}
       Omit<ProjectModel, "id" | "projectId" | "createdAt" | "updatedAt">
     >
   ): Promise<BusinessPlanModel | null> {
-    logger.info(`Attempting to update business plan for itemId: ${itemId}, userId: ${userId}`);
-    try {
-    const project = await this.projectRepository.findById(itemId, userId);
-    if (!project) {
-      logger.warn(`Project not found with ID: ${itemId} for user: ${userId} when attempting to update business plan.`);
-      return null;
-    }
-
-    const updatedProject = await this.projectRepository.update(
-      itemId,
-      data,
-      userId
+    logger.info(
+      `Attempting to update business plan for itemId: ${itemId}, userId: ${userId}`
     );
-    if (!updatedProject) {
-      logger.warn(`Failed to update project or extract business plan for itemId: ${itemId}`);
-      return null;
-    }
-    logger.info(`Successfully updated business plan for itemId: ${itemId}`);
-    return updatedProject.analysisResultModel.businessPlan!;
+    try {
+      const project = await this.projectRepository.findById(itemId, userId);
+      if (!project) {
+        logger.warn(
+          `Project not found with ID: ${itemId} for user: ${userId} when attempting to update business plan.`
+        );
+        return null;
+      }
+
+      const updatedProject = await this.projectRepository.update(
+        itemId,
+        data,
+        userId
+      );
+      if (!updatedProject) {
+        logger.warn(
+          `Failed to update project or extract business plan for itemId: ${itemId}`
+        );
+        return null;
+      }
+      logger.info(`Successfully updated business plan for itemId: ${itemId}`);
+      return updatedProject.analysisResultModel.businessPlan!;
     } catch (error: any) {
-      logger.error(`Error updating business plan for itemId ${itemId}: ${error.message}`, { stack: error.stack, userId });
+      logger.error(
+        `Error updating business plan for itemId ${itemId}: ${error.message}`,
+        { stack: error.stack, userId }
+      );
       throw error; // Or return null depending on desired error handling
     }
   }
 
   async deleteBusinessPlan(userId: string, itemId: string): Promise<void> {
-    logger.info(`Attempting to delete business plan for itemId: ${itemId}, userId: ${userId}`);
+    logger.info(
+      `Attempting to delete business plan for itemId: ${itemId}, userId: ${userId}`
+    );
     try {
-    const project = await this.projectRepository.findById(itemId, userId);
-    if (!project) {
-      logger.warn(`Project not found with ID: ${itemId} for user: ${userId} when attempting to delete business plan.`);
-      return;
-    }
-    project.analysisResultModel.businessPlan = undefined;
-    await this.projectRepository.update(itemId, project, userId);
-    logger.info(`Successfully deleted business plan for itemId: ${itemId}`);
+      const project = await this.projectRepository.findById(itemId, userId);
+      if (!project) {
+        logger.warn(
+          `Project not found with ID: ${itemId} for user: ${userId} when attempting to delete business plan.`
+        );
+        return;
+      }
+      project.analysisResultModel.businessPlan = undefined;
+      await this.projectRepository.update(itemId, project, userId);
+      logger.info(`Successfully deleted business plan for itemId: ${itemId}`);
     } catch (error: any) {
-      logger.error(`Error deleting business plan for itemId ${itemId}: ${error.message}`, { stack: error.stack, userId });
+      logger.error(
+        `Error deleting business plan for itemId ${itemId}: ${error.message}`,
+        { stack: error.stack, userId }
+      );
       throw error; // Or return depending on desired error handling
     }
   }
