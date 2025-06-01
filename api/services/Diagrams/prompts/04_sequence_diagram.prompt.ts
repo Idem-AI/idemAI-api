@@ -34,5 +34,7 @@ sequenceDiagram
 - No code comments
 - Use exact arrow types (->, ->>, -->, -->>)
 - Include activations where appropriate
-- Do not include "\`\`\`mermaid" header
+- Verry Important: ALWAYS wrap your diagram with \`\`\`mermaid and \`\`\` tags
+- Verry Important: Your response MUST begin with \`\`\`mermaid and end with \`\`\`
+- Verry Important: Do NOT add any additional text, explanations or comments - ONLY the diagram code wrapped in \`\`\`mermaid ... \`\`\` tags
 `;

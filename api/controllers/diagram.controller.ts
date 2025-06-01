@@ -25,15 +25,29 @@ export const generateDiagramController = async (
       res.status(400).json({ message: "Project ID is required" });
       return;
     }
-    const diagram = await diagramService.generateDiagram(
+    const updatedProject = await diagramService.generateDiagram(
       userId!,
-      projectId,
-      req.body
+      projectId
     );
+    if (!updatedProject) {
+      logger.warn(
+        `Failed to generate diagram - UserId: ${userId}, ProjectId: ${projectId}`
+      );
+      res.status(500).json({ message: "Failed to generate diagram" });
+      return;
+    }
+
+    // Get the most recently added diagram from the project's design array
+    const newDiagram = updatedProject.analysisResultModel?.design;
+
     logger.info(
-      `Diagram generated successfully - UserId: ${userId}, ProjectId: ${projectId}, DiagramId: ${diagram.id}`
+      `Diagram generated successfully - UserId: ${userId}, ProjectId: ${projectId}, DiagramId: ${
+        newDiagram?.id || "unknown"
+      }`
     );
-    res.status(201).json(diagram);
+    res
+      .status(201)
+      .json(newDiagram || { message: "Diagram generated but not returned" });
   } catch (error: any) {
     logger.error(
       `Error in generateDiagramController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
@@ -67,8 +81,15 @@ export const getDiagramsByProjectController = async (
       userId!,
       projectId
     );
+    if (!diagrams) {
+      logger.warn(
+        `No diagrams found for project - UserId: ${userId}, ProjectId: ${projectId}`
+      );
+      res.status(404).json({ message: "No diagrams found for project" });
+      return;
+    }
     logger.info(
-      `Diagrams fetched successfully for project - UserId: ${userId}, ProjectId: ${projectId}, Count: ${diagrams.length}`
+      `Diagrams fetched successfully for project - UserId: ${userId}, ProjectId: ${projectId}`
     );
     res.status(200).json(diagrams);
   } catch (error: any) {
@@ -99,7 +120,9 @@ export const getDiagramByIdController = async (
     const diagram = await diagramService.getDiagramById(userId!, diagramId);
     if (diagram) {
       logger.info(
-        `Diagram fetched successfully - UserId: ${userId}, DiagramId: ${diagram.id}`
+        `Diagram fetched successfully - UserId: ${userId}, DiagramId: ${
+          diagram.id || diagramId
+        }`
       );
       res.status(200).json(diagram);
     } else {
@@ -133,16 +156,22 @@ export const updateDiagramController = async (
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
-    const diagram = await diagramService.updateDiagram(
+    const updatedProject = await diagramService.updateDiagram(
       userId!,
       diagramId,
       req.body
     );
-    if (diagram) {
+    if (updatedProject) {
       logger.info(
-        `Diagram updated successfully - UserId: ${userId}, DiagramId: ${diagram.id}`
+        `Diagram updated successfully - UserId: ${userId}, DiagramId: ${diagramId}`
       );
-      res.status(200).json(diagram);
+      // Find the updated diagram in the project to return it
+      const updatedDiagram = updatedProject.analysisResultModel?.design;
+      res
+        .status(200)
+        .json(
+          updatedDiagram || { message: "Diagram updated but not returned" }
+        );
     } else {
       logger.warn(
         `Diagram not found for update - UserId: ${userId}, DiagramId: ${diagramId}`
@@ -174,11 +203,18 @@ export const deleteDiagramController = async (
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
-    await diagramService.deleteDiagram(userId!, diagramId);
-    logger.info(
-      `Diagram deleted successfully - UserId: ${userId}, DiagramId: ${diagramId}`
-    );
-    res.status(204).send();
+    const success = await diagramService.deleteDiagram(userId!, diagramId);
+    if (success) {
+      logger.info(
+        `Diagram deleted successfully - UserId: ${userId}, DiagramId: ${diagramId}`
+      );
+      res.status(204).send();
+    } else {
+      logger.warn(
+        `Diagram not found for deletion - UserId: ${userId}, DiagramId: ${diagramId}`
+      );
+      res.status(404).json({ message: "Diagram not found for deletion" });
+    }
   } catch (error: any) {
     logger.error(
       `Error in deleteDiagramController - UserId: ${userId}, DiagramId: ${diagramId}: ${error.message}`,

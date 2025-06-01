@@ -19,6 +19,7 @@ flowchart TD
     [SystemBoundary]
 
 ## Structured Example:
+
 flowchart TD
     U[User] -->|"Initiates"| L(Login)
     A[Admin] -->|"Manages"| UCM(User Management)
@@ -32,6 +33,7 @@ flowchart TD
     D -->|Yes| S[Success]
     D -->|No| F(Failure)
 
+
 ## Rules:
 - No explanations
 - No code comments
@@ -40,6 +42,10 @@ flowchart TD
 - Decisions must use { }
 - Label all arrows with |"text"|
 - Include at least one system boundary
-- Do not include "\`\`\`mermaid" header
-- Use fa:fa-icons where appropriate (e.g., fa:fa-user)
+- Do NOT add any additional text, explanations or comments - ONLY generate the diagram code
+
+
+- Verry Important: ALWAYS wrap your diagram with \`\`\`mermaid and \`\`\` tags
+- Verry Important: Your response MUST begin with \`\`\`mermaid and end with \`\`\`
+- Verry Important: Do NOT add any additional text, explanations or comments - ONLY the diagram code wrapped in \`\`\`mermaid ... \`\`\` tags
 `;

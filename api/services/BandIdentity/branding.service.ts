@@ -441,7 +441,7 @@ ${promptConstant}
         id: undefined,
         architectures: [],
         businessPlan: undefined,
-        design: [], // Changed from diagrams to match the model
+        design: undefined, // Changed from diagrams to match the model
         development: "", // Empty string instead of undefined
         branding: {
           logo: {

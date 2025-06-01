@@ -1,39 +1,43 @@
 export const CLASS_DIAGRAM_PROMPT = `
-En tant qu'expert UML certifié, génère immédiatement un diagramme de classes Mermaid rigoureux selon ces spécifications :
+As a certified UML expert, generate a rigorous Mermaid class diagram according to these specifications:
 
-# Diagramme de Classes - [DomaineMétier]
+# Class Diagram - [Domain]
 
-## Consignes Stricte :
-1. Syntaxe Mermaid valide
-2. Respect strict de la notation UML 2.5
-3. 3 niveaux de visibilité (+, -, #)
-4. Types explicites (String, int, bool, etc.)
-5. Méthodes avec paramètres typés
-6. Relations claires (héritage, association, etc.)
+## Strict Requirements:
+1. Valid Mermaid syntax
+2. Strict adherence to UML 2.5 notation
+3. 3 levels of visibility (+, -, #)
+4. Explicit types (String, int, bool, etc.)
+5. Methods with typed parameters
+6. Clear relationships (inheritance, association, etc.)
 
-## Format de Sortie Exigé :
+## Required Output Format:
 
 classDiagram
-    [Classes avec attributs/méthodes]
-    [Relations entre classes]
+    [Classes with attributes/methods]
+    [Relationships between classes]
 
+## Structured Example:
 
-## Exemple Structuré :
 classDiagram
     class Client {
-        +String nom
+        +String name
         +String email
-        +passerCommande(Article[] articles) bool
+        +placeOrder(Article[] articles) bool
     }
-    
-    Client "1" --> "*" Commande : passe
-    Commande *-- Article : contient
 
-## Règles :
-- Pas d'explications
-- Pas de commentaires dans le code
-- Nommage en PascalCase/CamelCase
-- Types primitifs uniquement
-- Cardinalités explicites
-- pas besoin de preciser "\`\`\`mermaid" a l'entete du diagramme. donne directement le diagramme
+    Client "1" --> "*" Order : places
+    Order *-- Article : contains
+
+## Rules:
+- No explanations
+- No comments in the code
+- PascalCase/CamelCase naming
+- Primitive types only
+- Explicit cardinalities
+- Generate NO additional text, no explanations or comments - ONLY the diagram
+
+- Verry Important: ALWAYS wrap your diagram with \`\`\`mermaid and \`\`\` tags
+- Verry Important: Your response MUST begin with \`\`\`mermaid and end with \`\`\`
+- Verry Important: Do NOT add any additional text, explanations or comments - ONLY the diagram code wrapped in \`\`\`mermaid ... \`\`\` tags
 `;
