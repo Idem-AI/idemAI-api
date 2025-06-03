@@ -1,11 +1,7 @@
-import { IRepository } from "../../repository/IRepository";
-import { RepositoryFactory } from "../../repository/RepositoryFactory";
-import { TargetModelType } from "../../enums/targetModelType.enum";
-import { BrandIdentityModel } from "../../models/brand-identity.model";
 import { ProjectModel } from "../../models/project.model";
-import { PromptService, LLMProvider } from "../prompt.service";
-import { LogoModel } from "../../models/logo.model";
+import { PromptService } from "../prompt.service";
 import { LandingModel } from "../../models/landing.model";
+import { BrandIdentityModel } from "../../models/brand-identity.model";
 import { LOGO_GENERATION_PROMPT } from "./prompts/00_logo-generation-section.prompt";
 import { COLOR_PALETTE_SECTION_PROMPT } from "./prompts/02_color-palette-section.prompt";
 import { TYPOGRAPHY_SECTION_PROMPT } from "./prompts/03_typography-section.prompt";
@@ -13,21 +9,16 @@ import { USAGE_GUIDELINES_SECTION_PROMPT } from "./prompts/04_usage-guidelines-s
 import { VISUAL_EXAMPLES_SECTION_PROMPT } from "./prompts/05_visual-examples-section.prompt";
 import { GLOBAL_CSS_PROMPT } from "./prompts/06_global-css-section.prompt";
 import { VISUAL_IDENTITY_SYNTHESIZER_PROMPT } from "./prompts/07_visual-identity-synthesizer-section.prompt";
-import * as fs from "fs-extra";
-import * as path from "path";
-import * as os from "os";
 import logger from "../../config/logger";
 import { SectionModel } from "../../models/section.model";
+import { GenericService, IPromptStep } from "../common/generic.service";
 
-export class BrandingService {
-  private projectRepository: IRepository<ProjectModel>;
-
-  constructor(private promptService: PromptService) {
+export class BrandingService extends GenericService {
+  constructor(promptService: PromptService) {
+    super(promptService);
     logger.info("BrandingService initialized");
-    this.projectRepository = RepositoryFactory.getRepository<ProjectModel>(
-      TargetModelType.PROJECT
-    );
   }
+  
 
   async generateBranding(
     userId: string,
@@ -36,238 +27,113 @@ export class BrandingService {
     logger.info(
       `Generating branding for userId: ${userId}, projectId: ${projectId}`
     );
-    const tempFileName = `branding_context_${projectId}_${Date.now()}.txt`;
-    const tempFilePath = path.join(os.tmpdir(), tempFileName);
+    
+    // Initialize temp file
+    await this.initTempFile(projectId, "branding");
 
-    const project = await this.projectRepository.findById(projectId, userId);
-    logger.debug(
-      `Project data fetched for branding generation: ${
-        project ? JSON.stringify(project.id) : "null"
-      }`
-    );
+    // Get project
+    const project = await this.getProject(projectId, userId);
     if (!project) {
-      logger.warn(
-        `Project not found with ID: ${projectId} for user: ${userId} during branding generation.`
-      );
       return null;
     }
 
-    // Check if business plan exists to extract project description
-    let projectDescription = "";
-    if (project.analysisResultModel?.businessPlan?.sections) {
-      const descriptionSection =
-        project.analysisResultModel.businessPlan.sections.find(
-          (section) => section.name === "Project Description"
-        );
-      if (descriptionSection) {
-        projectDescription = descriptionSection.data;
-        logger.info(
-          `Found project description in business plan for projectId: ${projectId}`
-        );
-      }
-    }
+    // Extract and add project description to context
+    const projectDescription = this.extractProjectDescription(project);
+    await this.addDescriptionToContext(projectDescription);
 
     try {
-      await fs.writeFile(tempFilePath, "", "utf-8");
-      logger.info(
-        `Temporary file created for branding generation: ${tempFilePath}`
-      );
-
-      // If we have project description, add it to context file
-      if (projectDescription) {
-        const descriptionContext = `## Project Description\n\n${projectDescription}\n\n---\n`;
-        await fs.appendFile(tempFilePath, descriptionContext, "utf-8");
-        logger.info(
-          `Added project description from business plan to branding context file`
-        );
-      }
-
-      const runStepAndAppend = async (
-        promptConstant: string,
-        stepName: string,
-        includeProjectInfo = true
-      ) => {
-        logger.info(
-          `Generating branding section: '${stepName}' for projectId: ${projectId}`
-        );
-
-        let currentStepPrompt = `You are generating brand identity materials section by section.
-        The previously generated content is available in the attached text file.
-        Please review the attached file for context.
-
-        CURRENT TASK: Generate the '${stepName}' section.
-
-        ${
-          includeProjectInfo
-            ? `PROJECT DETAILS (from input 'data' object):
-${JSON.stringify(project, null, 2)}`
-            : ""
+      // Define branding steps
+      const steps: IPromptStep[] = [
+        {
+          promptConstant: LOGO_GENERATION_PROMPT,
+          stepName: "Logo Design",
+          modelParser: (content) => this.parseSection(content, "Logo Design", projectId)
+        },
+        {
+          promptConstant: COLOR_PALETTE_SECTION_PROMPT,
+          stepName: "Color Palette",
+          modelParser: (content) => this.parseSection(content, "Color Palette", projectId)
+        },
+        {
+          promptConstant: TYPOGRAPHY_SECTION_PROMPT,
+          stepName: "Typography System",
+          modelParser: (content) => this.parseSection(content, "Typography System", projectId)
+        },
+        {
+          promptConstant: USAGE_GUIDELINES_SECTION_PROMPT,
+          stepName: "Usage Guidelines",
+          modelParser: (content) => this.parseSection(content, "Usage Guidelines", projectId)
+        },
+        {
+          promptConstant: VISUAL_EXAMPLES_SECTION_PROMPT,
+          stepName: "Visual Examples",
+          modelParser: (content) => this.parseSection(content, "Visual Examples", projectId)
+        },
+        {
+          promptConstant: GLOBAL_CSS_PROMPT,
+          stepName: "Global CSS",
+          modelParser: (content) => this.parseSection(content, "Global CSS", projectId)
+        },
+        {
+          promptConstant: VISUAL_IDENTITY_SYNTHESIZER_PROMPT,
+          stepName: "Visual Identity Synthesis",
+          modelParser: (content) => this.parseSection(content, "Visual Identity Synthesis", projectId)
         }
+      ];
 
-        SPECIFIC INSTRUCTIONS FOR '${stepName}':
-${promptConstant}
+      // Process all steps and get results
+      const sectionResults = await this.processSteps(steps, project);
 
-        Please generate *only* the content for the '${stepName}' section,
-        building upon the context from the attached file.`;
+      // Extract the parsed data from results
+      const logoResult = sectionResults[0];
+      const colorPaletteResult = sectionResults[1];
+      const typographyResult = sectionResults[2];
+      const usageGuidelinesResult = sectionResults[3];
+      const visualExamplesResult = sectionResults[4];
+      const globalCssResult = sectionResults[5];
+      const visualIdentitySynthesisResult = sectionResults[6];
 
-        const response = await this.promptService.runPrompt({
-          provider: LLMProvider.GEMINI,
-          modelName: "gemini-2.0-flash-exp",
-          messages: [
-            {
-              role: "user",
-              content: currentStepPrompt,
-            },
-          ],
-          file: { localPath: tempFilePath, mimeType: "text/plain" },
-        });
-
-        logger.debug(
-          `LLM response for branding section '${stepName}': ${response}`
-        );
-        const stepSpecificContent = this.promptService.getCleanAIText(response);
-        logger.info(
-          `Successfully generated and processed branding section: '${stepName}' for projectId: ${projectId}`
-        );
-
-        const sectionOutputToFile = `\n\n## ${stepName}\n\n${stepSpecificContent}\n\n---\n`;
-        await fs.appendFile(tempFilePath, sectionOutputToFile, "utf-8");
-        logger.info(
-          `Appended branding section '${stepName}' to temporary file: ${tempFilePath}`
-        );
-
-        return stepSpecificContent;
+      // Apply fallback values if needed
+      const parsedLogoContent = logoResult.parsedData || {
+        svg: "<svg>Fallback SVG</svg>",
+        concept: "Minimalist design concept",
+        colors: ["#000000", "#ffffff"],
+        fonts: ["Arial", "Helvetica"]
       };
 
-      // Generate each branding section sequentially
-      // 1. Logo Design
-      const logoResponseContent = await runStepAndAppend(
-        LOGO_GENERATION_PROMPT,
-        "Logo Design"
-      );
+      const parsedColorPaletteContent = colorPaletteResult.parsedData || {
+        colors: ["#000000", "#ffffff"],
+        description: "Minimalist black and white palette"
+      };
 
-      // 3. Color Palette
-      const colorPaletteResponseContent = await runStepAndAppend(
-        COLOR_PALETTE_SECTION_PROMPT,
-        "Color Palette"
-      );
-
-      // 4. Typography System
-      const typographyResponseContent = await runStepAndAppend(
-        TYPOGRAPHY_SECTION_PROMPT,
-        "Typography System"
-      );
-
-      // 5. Usage Guidelines
-      const usageGuidelinesResponseContent = await runStepAndAppend(
-        USAGE_GUIDELINES_SECTION_PROMPT,
-        "Usage Guidelines"
-      );
-
-      // 6. Visual Examples
-      const visualExamplesResponseContent = await runStepAndAppend(
-        VISUAL_EXAMPLES_SECTION_PROMPT,
-        "Visual Examples"
-      );
-
-      // 7. Global CSS
-      const globalCssResponseContent = await runStepAndAppend(
-        GLOBAL_CSS_PROMPT,
-        "Global CSS"
-      );
-
-      // 8. Visual Identity Synthesis
-      const visualIdentitySynthesisResponseContent = await runStepAndAppend(
-        VISUAL_IDENTITY_SYNTHESIZER_PROMPT,
-        "Visual Identity Synthesis"
-      );
-
-      // Parse the JSON responses for each section
-      // 1. Logo
-      let parsedLogoContent: any = {};
-      try {
-        parsedLogoContent = JSON.parse(logoResponseContent);
-        // Ensure the parsed content has all required fields
-        if (!parsedLogoContent.svg)
-          parsedLogoContent.svg = "<svg>Fallback SVG</svg>";
-        if (!parsedLogoContent.concept)
-          parsedLogoContent.concept = "Minimalist design concept";
-        if (!Array.isArray(parsedLogoContent.colors))
-          parsedLogoContent.colors = ["#000000", "#ffffff"];
-        if (!Array.isArray(parsedLogoContent.fonts))
-          parsedLogoContent.fonts = ["Arial", "Helvetica"];
-        logger.info(
-          `Successfully parsed logo JSON data for projectId: ${projectId}`
-        );
-      } catch (error) {
-        logger.error(
-          `Error parsing logo content for project ${projectId}:`,
-          error
-        );
-        parsedLogoContent = {
-          svg: "<svg>Fallback SVG</svg>",
-          concept: "Minimalist design concept",
-          colors: ["#000000", "#ffffff"],
-          fonts: ["Arial", "Helvetica"],
-        };
-      }
-
-      // Helper function to parse section content
-      const parseSection = (content: string, sectionName: string): any => {
-        try {
-          const parsed = JSON.parse(content);
-          logger.info(
-            `Successfully parsed ${sectionName} for projectId: ${projectId}`
-          );
-          return parsed;
-        } catch (error) {
-          logger.error(
-            `Error parsing ${sectionName} for project ${projectId}:`,
-            error
-          );
-          // Return a fallback structure with the raw content
-          return {
-            content: content,
-            summary: `Error parsing ${sectionName}`,
-          };
+      const parsedTypographyContent = typographyResult.parsedData || {
+        fonts: ["Arial", "Helvetica"],
+        description: "Standard font selection",
+        usage: {
+          heading: "Arial",
+          body: "Helvetica"
         }
       };
 
-      // 3. Color Palette
-      const colorPaletteData = parseSection(
-        colorPaletteResponseContent,
-        "Color Palette"
-      );
+      const parsedUsageGuidelinesContent = usageGuidelinesResult.parsedData || {
+        guidelines: ["Use logo consistently", "Maintain color integrity"],
+        explanation: "Standard usage guidelines"
+      };
 
-      // 4. Typography
-      const typographyData = parseSection(
-        typographyResponseContent,
-        "Typography"
-      );
+      const parsedVisualExamplesContent = visualExamplesResult.parsedData || {
+        examples: ["Business card design", "Website mockup"],
+        description: "Standard visual examples"
+      };
 
-      // 5. Usage Guidelines
-      const usageGuidelinesData = parseSection(
-        usageGuidelinesResponseContent,
-        "Usage Guidelines"
-      );
+      const parsedGlobalCssContent = globalCssResult.parsedData || {
+        css: "/* Default CSS */\nbody { font-family: Arial; }",
+        explanation: "Standard CSS variables"
+      };
 
-      // 6. Visual Examples
-      const visualExamplesData = parseSection(
-        visualExamplesResponseContent,
-        "Visual Examples"
-      );
-
-      // 7. Global CSS
-      const globalCssData = parseSection(
-        globalCssResponseContent,
-        "Global CSS"
-      );
-
-      // 8. Visual Identity Synthesis
-      const visualIdentitySynthesisData = parseSection(
-        visualIdentitySynthesisResponseContent,
-        "Visual Identity Synthesis"
-      );
+      const parsedVisualIdentitySynthesisContent = visualIdentitySynthesisResult.parsedData || {
+        summary: "Standard visual identity",
+        recommendations: ["Maintain consistent branding"]
+      };
 
       // Create sections from all branding components
       // Helper function to create a section if data content isn't already in array format
@@ -292,18 +158,18 @@ ${promptConstant}
 
       // Add other sections
       brandIdentitySections.push(
-        createSection("Color Palette", colorPaletteData)
+        createSection("Color Palette", parsedColorPaletteContent)
       );
-      brandIdentitySections.push(createSection("Typography", typographyData));
+      brandIdentitySections.push(createSection("Typography", parsedTypographyContent));
       brandIdentitySections.push(
-        createSection("Usage Guidelines", usageGuidelinesData)
+        createSection("Usage Guidelines", parsedUsageGuidelinesContent)
       );
       brandIdentitySections.push(
-        createSection("Visual Examples", visualExamplesData)
+        createSection("Visual Examples", parsedVisualExamplesContent)
       );
-      brandIdentitySections.push(createSection("Global CSS", globalCssData));
+      brandIdentitySections.push(createSection("Global CSS", parsedGlobalCssContent));
       brandIdentitySections.push(
-        createSection("Visual Identity", visualIdentitySynthesisData)
+        createSection("Visual Identity", parsedVisualIdentitySynthesisContent)
       );
 
       // Update the project with the new branding data
@@ -340,14 +206,12 @@ ${promptConstant}
       throw error;
     } finally {
       try {
-        logger.info(`Attempting to remove temporary file: ${tempFilePath}`);
-        if (await fs.pathExists(tempFilePath)) {
-          await fs.remove(tempFilePath);
-          logger.info(`Successfully removed temporary file: ${tempFilePath}`);
-        }
+        logger.info(`Attempting to remove temporary file: ${this.tempFilePath}`);
+        // Clean up the temporary file
+        await this.cleanup();
       } catch (cleanupError) {
         logger.error(
-          `Error removing temporary file ${tempFilePath}:`,
+          `Error removing temporary file ${this.tempFilePath}:`,
           cleanupError
         );
       }

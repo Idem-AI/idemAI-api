@@ -1,32 +1,21 @@
-import { IRepository } from "../../repository/IRepository";
-import { RepositoryFactory } from "../../repository/RepositoryFactory";
-import { DiagramModel } from "../../models/diagram.model";
+import { PromptService } from "../prompt.service";
 import { ProjectModel } from "../../models/project.model";
-import { TargetModelType } from "../../enums/targetModelType.enum";
-import { PromptService, LLMProvider } from "../prompt.service";
-import { SectionModel } from "../../models/section.model";
-import * as fs from "fs-extra";
-import * as path from "path";
-import * as os from "os";
 import logger from "../../config/logger";
-import { ENTITY_DIAGRAM_PROMPT } from "./prompts/03_entity_diagram.prompt";
-import { USE_CASE_DIAGRAM_PROMPT } from "./prompts/01_use-case-diagram.prompt";
-import { CLASS_DIAGRAM_PROMPT } from "./prompts/02_class-diagram.prompt";
-import { SEQUENCE_DIAGRAM_PROMPT } from "./prompts/04_sequence_diagram.prompt";
+import { DiagramModel } from "../../models/diagram.model";
 import { ARCHITECTURE_DIAGRAM_PROMPT } from "./prompts/01_architecture_diagram.prompt";
+import { CLASS_DIAGRAM_PROMPT } from "./prompts/02_class-diagram.prompt";
+import { ENTITY_DIAGRAM_PROMPT } from "./prompts/03_entity_diagram.prompt";
+import { SEQUENCE_DIAGRAM_PROMPT } from "./prompts/04_sequence_diagram.prompt";
+import { USE_CASE_DIAGRAM_PROMPT } from "./prompts/01_use-case-diagram.prompt";
+import { GenericService, IPromptStep } from "../common/generic.service";
+import { SectionModel } from "../../models/section.model";
 
 // Import diagram prompts
 
-export class DiagramService {
-  private projectRepository: IRepository<ProjectModel>;
-  private promptService: PromptService;
-
-  constructor() {
-    logger.info("DiagramService initialized");
-    this.projectRepository = RepositoryFactory.getRepository<ProjectModel>(
-      TargetModelType.PROJECT
-    );
-    this.promptService = new PromptService();
+export class DiagramService extends GenericService {
+  constructor(promptService: PromptService) {
+    super(promptService);
+    logger.info("DiagramService initialized.");
   }
 
   async generateDiagram(
@@ -36,266 +25,113 @@ export class DiagramService {
     logger.info(
       `Generating diagrams for userId: ${userId}, projectId: ${projectId}`
     );
-    const tempFileName = `diagrams_context_${projectId}_${Date.now()}.txt`;
-    const tempFilePath = path.join(os.tmpdir(), tempFileName);
 
-    const project = await this.projectRepository.findById(projectId, userId);
-    logger.debug(
-      `Project data fetched for diagram generation: ${
-        project ? JSON.stringify(project.id) : "null"
-      }`
-    );
+    // Initialize temp file
+    await this.initTempFile(projectId, "diagram");
+
+    // Get project
+    const project = await this.getProject(projectId, userId);
     if (!project) {
-      logger.warn(
-        `Project not found with ID: ${projectId} for user: ${userId} during diagram generation.`
-      );
       return null;
     }
 
-    // Check if business plan exists to extract project description
-    let projectDescription = "";
-    if (project.analysisResultModel?.businessPlan?.sections) {
-      const descriptionSection =
-        project.analysisResultModel.businessPlan.sections;
-      if (descriptionSection) {
-        projectDescription = descriptionSection
-          .map((section) => section.data)
-          .join("\n\n");
-        logger.info(
-          `Found project business plan sections for projectId: ${projectId}`
-        );
-      }
-    }
-
     try {
-      await fs.writeFile(tempFilePath, "", "utf-8");
-      logger.info(
-        `Temporary file created for diagram generation: ${tempFilePath}`
-      );
-
-      // If we have project description, add it to context file
-      if (projectDescription) {
-        const descriptionContext = `## Project Description\n\n${projectDescription}\n\n---\n`;
-        await fs.appendFile(tempFilePath, descriptionContext, "utf-8");
-        logger.info(
-          `Added project description from business plan to diagram context file`
-        );
-      }
-
-      const runStepAndAppend = async (
-        promptConstant: string,
-        stepName: string,
-        includeProjectInfo = true
-      ) => {
-        logger.info(
-          `Generating diagram section: '${stepName}' for projectId: ${projectId}`
-        );
-
-        let currentStepPrompt = `You are generating project architecture and flow diagrams section by section.
-        The previously generated content is available in the attached text file.
-        Please review the attached file for context.
-
-        CURRENT TASK: Generate the '${stepName}' section.
-
-        ${
-          includeProjectInfo
-            ? `PROJECT DETAILS (from input 'data' object):
-${JSON.stringify(project, null, 2)}`
-            : ""
-        }
-
-        SPECIFIC INSTRUCTIONS FOR '${stepName}':
-${promptConstant}
-
-        Please generate *only* the content for the '${stepName}' section,
-        building upon the context from the attached file.`;
-
-        const response = await this.promptService.runPrompt({
-          provider: LLMProvider.GEMINI,
-          modelName: "gemini-2.0-flash-exp",
-          messages: [
-            {
-              role: "user",
-              content: currentStepPrompt,
-            },
-          ],
-          file: { localPath: tempFilePath, mimeType: "text/plain" },
-        });
-
-        logger.debug(
-          `LLM response for diagram section '${stepName}': ${response}`
-        );
-        const stepSpecificContent = this.promptService.getCleanAIText(response);
-        logger.info(
-          `Successfully generated and processed diagram section: '${stepName}' for projectId: ${projectId}`
-        );
-
-        const sectionOutputToFile = `\n\n## ${stepName}\n\n${stepSpecificContent}\n\n---\n`;
-        await fs.appendFile(tempFilePath, sectionOutputToFile, "utf-8");
-        logger.info(
-          `Appended diagram section '${stepName}' to temporary file: ${tempFilePath}`
-        );
-
-        return stepSpecificContent;
-      };
+      // Define diagram steps
+      const steps: IPromptStep[] = [
+        {
+          promptConstant: USE_CASE_DIAGRAM_PROMPT,
+          stepName: "Uses Cases Diagram",
+        },
+        {
+          promptConstant: CLASS_DIAGRAM_PROMPT,
+          stepName: "Class Diagram",
+        },
+        {
+          promptConstant: ARCHITECTURE_DIAGRAM_PROMPT,
+          stepName: "Architecture Diagram",
+        },
+        {
+          promptConstant: ENTITY_DIAGRAM_PROMPT,
+          stepName: "Entity Relationship Diagram",
+        },
+        {
+          promptConstant: SEQUENCE_DIAGRAM_PROMPT,
+          stepName: "Sequence Diagram",
+        },
+      ];
 
       // Generate each diagram section sequentially
-      // 1. Uses Cases Diagram
-      const usesCasesResponseContent = await runStepAndAppend(
-        USE_CASE_DIAGRAM_PROMPT,
-        "Uses Cases Diagram"
-      );
+      // Process all steps and get results
+      const sectionResults = await this.processSteps(steps, project);
 
-      // 2. Class Diagram
-      const classDiagramResponseContent = await runStepAndAppend(
-        CLASS_DIAGRAM_PROMPT,
-        "Class Diagram"
-      );
-      // 3. Architecture Diagram
-      const architectureResponseContent = await runStepAndAppend(
-        ARCHITECTURE_DIAGRAM_PROMPT,
-        "Architecture Diagram"
-      );
+      // Map sections from results
+      const sections: SectionModel[] = sectionResults.map((result) => ({
+        name: result.name,
+        type: result.type,
+        data: result.data,
+        summary: result.summary,
+      }));
 
-      // 4. Entity Relationship Diagram
-      const entityDiagramResponseContent = await runStepAndAppend(
-        ENTITY_DIAGRAM_PROMPT,
-        "Entity Relationship Diagram"
-      );
+      // Get the existing project to prepare for update
+      const oldProject = await this.projectRepository.findById(projectId, userId);
+      if (!oldProject) {
+        logger.warn(
+          `Original project not found with ID: ${projectId} for user: ${userId} before updating with diagrams.`
+        );
+        return null;
+      }
 
-      // 5. Sequence Diagram
-      const sequenceDiagramResponseContent = await runStepAndAppend(
-        SEQUENCE_DIAGRAM_PROMPT,
-        "Sequence Diagram"
-      );
+      // Filter out diagrams that need to be updated
+      const existingDiagrams = oldProject.analysisResultModel?.design?.sections || [];
+      const updatedDiagrams = [
+        ...existingDiagrams.filter((d: SectionModel) =>
+          !sections.some((s) => s.name === d.name)
+        ),
+        ...sections,
+      ];
 
-      // Helper function to parse section content
-      const parseSection = (content: string, sectionName: string): any => {
-        try {
-          const parsed = JSON.parse(content);
-          logger.info(
-            `Successfully parsed ${sectionName} for projectId: ${projectId}`
-          );
-          return parsed;
-        } catch (error) {
-          logger.error(
-            `Error parsing ${sectionName} for project ${projectId}:`,
-            error
-          );
-          // Return a fallback structure with the raw content
-          return {
-            content: content,
-            summary: `Error parsing ${sectionName}`,
-          };
-        }
-      };
-
-      const usesCasesData = parseSection(
-        usesCasesResponseContent,
-        "Uses Cases Diagram"
-      );
-      // Parse the diagram responses
-      const architectureData = parseSection(
-        architectureResponseContent,
-        "Architecture Diagram"
-      );
-
-      const classDiagramData = parseSection(
-        classDiagramResponseContent,
-        "Class Diagram"
-      );
-
-      const entityDiagramData = parseSection(
-        entityDiagramResponseContent,
-        "Entity Relationship Diagram"
-      );
-
-      const sequenceDiagramData = parseSection(
-        sequenceDiagramResponseContent,
-        "Sequence Diagram"
-      );
-
-      // Helper function to create a section
-      const createSection = (
-        name: string,
-        data: any,
-        type = "text/html"
-      ): SectionModel => {
-        return {
-          name,
-          type,
-          data:
-            typeof data.content === "string"
-              ? data.content
-              : JSON.stringify(data.content),
-          summary: data.summary || `${name} section`,
-        };
-      };
-
-      // Prepare all sections for the diagrams
-      const diagramSections: SectionModel[] = [];
-
-      // Add diagram sections
-      diagramSections.push(createSection("Uses Cases Diagram", usesCasesData));
-
-      diagramSections.push(createSection("Class Diagram", classDiagramData));
-
-      diagramSections.push(
-        createSection("Entity Relationship Diagram", entityDiagramData)
-      );
-      diagramSections.push(
-        createSection("Sequence Diagram", sequenceDiagramData)
-      );
-      diagramSections.push(
-        createSection("Architecture Diagram", architectureData)
-      );
-
-      // Create DiagramModel with sections
-      const diagramModel: DiagramModel = {
-        id: `diagram_${projectId}_${Date.now()}`,
-        sections: diagramSections,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      // Update the project with the new diagram data
-      const newProject: Partial<ProjectModel> = {
-        ...project,
+      // Create updated project with new diagram sections
+      const newProject = {
+        ...oldProject,
         analysisResultModel: {
-          ...project.analysisResultModel,
-          design: diagramModel,
+          ...oldProject.analysisResultModel,
+          design: {
+            sections: updatedDiagrams,
+            id: `diagram_${projectId}_${Date.now()}`,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
         },
       };
 
-      // Update project with new diagram data
+      // Update the project in the database
       const updatedProject = await this.projectRepository.update(
         projectId,
         newProject,
         userId
       );
 
-      logger.info(
-        `Successfully generated and updated diagrams for projectId: ${projectId}`
-      );
+      if (updatedProject) {
+        logger.info(
+          `Successfully updated project with ID: ${projectId} with diagrams`
+        );
+      }
       return updatedProject;
     } catch (error) {
       logger.error(
         `Error generating diagrams for projectId ${projectId}:`,
         error
       );
-      throw error;
+      // Clean up the temporary file
+      await this.cleanup();
+      return null;
     } finally {
       try {
-        logger.info(`Attempting to remove temporary file: ${tempFilePath}`);
-        if (await fs.pathExists(tempFilePath)) {
-          await fs.remove(tempFilePath);
-          logger.info(`Successfully removed temporary file: ${tempFilePath}`);
-        }
+        logger.info(`Attempting to remove temporary file:`);
+        // Clean up the temporary file
+        await this.cleanup();
       } catch (cleanupError) {
-        logger.error(
-          `Error removing temporary file ${tempFilePath}:`,
-          cleanupError
-        );
+        logger.error(`Error removing temporary file:`, cleanupError);
       }
     }
   }
