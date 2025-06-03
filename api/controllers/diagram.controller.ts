@@ -2,8 +2,11 @@ import { Response } from "express";
 import logger from "../config/logger";
 import { DiagramService } from "../services/Diagrams/diagram.service";
 import { CustomRequest } from "../interfaces/express.interface";
+import { PromptService } from "../services/prompt.service";
 
-const diagramService = new DiagramService();
+const diagramService = new DiagramService(
+  new PromptService()
+);
 
 export const generateDiagramController = async (
   req: CustomRequest,

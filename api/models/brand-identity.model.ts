@@ -7,4 +7,6 @@ export interface BrandIdentityModel {
   updatedAt?: Date; // Added by repository
   logo: { content: LogoModel; summary: string };
   brandIdentity: SectionModel[];
+  typography: { content: string; summary: string };
+  colorPalette: { content: string; summary: string };
 }

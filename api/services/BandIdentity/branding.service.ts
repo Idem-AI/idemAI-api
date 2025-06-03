@@ -18,7 +18,83 @@ export class BrandingService extends GenericService {
     super(promptService);
     logger.info("BrandingService initialized");
   }
-  
+
+  async generateLogoColorsAndTypography(
+    userId: string,
+    projectId: string
+  ): Promise<ProjectModel | null> {
+    logger.info(
+      `Generating logo colors and typography for userId: ${userId}, projectId: ${projectId}`
+    );
+    await this.initTempFile(projectId, "branding");
+    const project = await this.getProject(projectId, userId);
+    if (!project) {
+      return null;
+    }
+
+    const projectDescription = this.extractProjectDescription(project);
+    await this.addDescriptionToContext(projectDescription);
+
+    const steps: IPromptStep[] = [
+      {
+        promptConstant: LOGO_GENERATION_PROMPT,
+        stepName: "Logo Generation",
+        modelParser: (content) =>
+          this.parseSection(content, "Logo Generation", projectId),
+      },
+      {
+        promptConstant: TYPOGRAPHY_SECTION_PROMPT,
+        stepName: "Typography",
+        modelParser: (content) =>
+          this.parseSection(content, "Typography", projectId),
+      },
+      {
+        promptConstant: COLOR_PALETTE_SECTION_PROMPT,
+        stepName: "Color Palette",
+        modelParser: (content) =>
+          this.parseSection(content, "Color Palette", projectId),
+      },
+    ];
+    const sectionResults = await this.processSteps(steps, project);
+    const logoResult = sectionResults[0];
+    const typographyResult = sectionResults[1];
+    const colorPaletteResult = sectionResults[2];
+    const parsedLogoContent = logoResult.parsedData || {
+      svg: "<svg>Fallback SVG</svg>",
+      concept: "Minimalist design concept",
+      colors: ["#000000", "#ffffff"],
+      fonts: ["Arial", "Helvetica"],
+    };
+    const newProject: Partial<ProjectModel> = {
+      ...project,
+      analysisResultModel: {
+        ...project.analysisResultModel,
+        branding: project.analysisResultModel?.branding || {
+          logo: {
+            content: parsedLogoContent,
+            summary: "Generated logo",
+          },
+          typography: {
+            content: typographyResult.parsedData,
+            summary: "Generated typography",
+          },
+          colorPalette: {
+            content: colorPaletteResult.parsedData,
+            summary: "Generated color palette",
+          },
+        },
+      },
+    };
+    const updatedProject = await this.projectRepository.update(
+      projectId,
+      newProject,
+      userId
+    );
+    logger.info(
+      `Successfully generated and updated logo colors and typography for projectId: ${projectId}`
+    );
+    return updatedProject;
+  }
 
   async generateBranding(
     userId: string,
@@ -27,7 +103,7 @@ export class BrandingService extends GenericService {
     logger.info(
       `Generating branding for userId: ${userId}, projectId: ${projectId}`
     );
-    
+
     // Initialize temp file
     await this.initTempFile(projectId, "branding");
 
@@ -45,47 +121,35 @@ export class BrandingService extends GenericService {
       // Define branding steps
       const steps: IPromptStep[] = [
         {
-          promptConstant: LOGO_GENERATION_PROMPT,
-          stepName: "Logo Design",
-          modelParser: (content) => this.parseSection(content, "Logo Design", projectId)
-        },
-        {
-          promptConstant: COLOR_PALETTE_SECTION_PROMPT,
-          stepName: "Color Palette",
-          modelParser: (content) => this.parseSection(content, "Color Palette", projectId)
-        },
-        {
-          promptConstant: TYPOGRAPHY_SECTION_PROMPT,
-          stepName: "Typography System",
-          modelParser: (content) => this.parseSection(content, "Typography System", projectId)
-        },
-        {
           promptConstant: USAGE_GUIDELINES_SECTION_PROMPT,
           stepName: "Usage Guidelines",
-          modelParser: (content) => this.parseSection(content, "Usage Guidelines", projectId)
+          modelParser: (content) =>
+            this.parseSection(content, "Usage Guidelines", projectId),
         },
         {
           promptConstant: VISUAL_EXAMPLES_SECTION_PROMPT,
           stepName: "Visual Examples",
-          modelParser: (content) => this.parseSection(content, "Visual Examples", projectId)
+          modelParser: (content) =>
+            this.parseSection(content, "Visual Examples", projectId),
         },
         {
           promptConstant: GLOBAL_CSS_PROMPT,
           stepName: "Global CSS",
-          modelParser: (content) => this.parseSection(content, "Global CSS", projectId)
+          modelParser: (content) =>
+            this.parseSection(content, "Global CSS", projectId),
         },
         {
           promptConstant: VISUAL_IDENTITY_SYNTHESIZER_PROMPT,
           stepName: "Visual Identity Synthesis",
-          modelParser: (content) => this.parseSection(content, "Visual Identity Synthesis", projectId)
-        }
+          modelParser: (content) =>
+            this.parseSection(content, "Visual Identity Synthesis", projectId),
+        },
       ];
 
       // Process all steps and get results
       const sectionResults = await this.processSteps(steps, project);
 
       // Extract the parsed data from results
-      const logoResult = sectionResults[0];
       const colorPaletteResult = sectionResults[1];
       const typographyResult = sectionResults[2];
       const usageGuidelinesResult = sectionResults[3];
@@ -93,47 +157,26 @@ export class BrandingService extends GenericService {
       const globalCssResult = sectionResults[5];
       const visualIdentitySynthesisResult = sectionResults[6];
 
-      // Apply fallback values if needed
-      const parsedLogoContent = logoResult.parsedData || {
-        svg: "<svg>Fallback SVG</svg>",
-        concept: "Minimalist design concept",
-        colors: ["#000000", "#ffffff"],
-        fonts: ["Arial", "Helvetica"]
-      };
-
-      const parsedColorPaletteContent = colorPaletteResult.parsedData || {
-        colors: ["#000000", "#ffffff"],
-        description: "Minimalist black and white palette"
-      };
-
-      const parsedTypographyContent = typographyResult.parsedData || {
-        fonts: ["Arial", "Helvetica"],
-        description: "Standard font selection",
-        usage: {
-          heading: "Arial",
-          body: "Helvetica"
-        }
-      };
-
       const parsedUsageGuidelinesContent = usageGuidelinesResult.parsedData || {
         guidelines: ["Use logo consistently", "Maintain color integrity"],
-        explanation: "Standard usage guidelines"
+        explanation: "Standard usage guidelines",
       };
 
       const parsedVisualExamplesContent = visualExamplesResult.parsedData || {
         examples: ["Business card design", "Website mockup"],
-        description: "Standard visual examples"
+        description: "Standard visual examples",
       };
 
       const parsedGlobalCssContent = globalCssResult.parsedData || {
         css: "/* Default CSS */\nbody { font-family: Arial; }",
-        explanation: "Standard CSS variables"
+        explanation: "Standard CSS variables",
       };
 
-      const parsedVisualIdentitySynthesisContent = visualIdentitySynthesisResult.parsedData || {
-        summary: "Standard visual identity",
-        recommendations: ["Maintain consistent branding"]
-      };
+      const parsedVisualIdentitySynthesisContent =
+        visualIdentitySynthesisResult.parsedData || {
+          summary: "Standard visual identity",
+          recommendations: ["Maintain consistent branding"],
+        };
 
       // Create sections from all branding components
       // Helper function to create a section if data content isn't already in array format
@@ -157,17 +200,16 @@ export class BrandingService extends GenericService {
       const brandIdentitySections: SectionModel[] = [];
 
       // Add other sections
-      brandIdentitySections.push(
-        createSection("Color Palette", parsedColorPaletteContent)
-      );
-      brandIdentitySections.push(createSection("Typography", parsedTypographyContent));
+      brandIdentitySections.push(createSection("Typography", typographyResult));
       brandIdentitySections.push(
         createSection("Usage Guidelines", parsedUsageGuidelinesContent)
       );
       brandIdentitySections.push(
         createSection("Visual Examples", parsedVisualExamplesContent)
       );
-      brandIdentitySections.push(createSection("Global CSS", parsedGlobalCssContent));
+      brandIdentitySections.push(
+        createSection("Global CSS", parsedGlobalCssContent)
+      );
       brandIdentitySections.push(
         createSection("Visual Identity", parsedVisualIdentitySynthesisContent)
       );
@@ -178,10 +220,7 @@ export class BrandingService extends GenericService {
         analysisResultModel: {
           ...project.analysisResultModel,
           branding: {
-            logo: {
-              content: parsedLogoContent,
-              summary: "Generated logo",
-            },
+            ...project.analysisResultModel.branding,
             brandIdentity: brandIdentitySections,
           },
         },
@@ -206,7 +245,9 @@ export class BrandingService extends GenericService {
       throw error;
     } finally {
       try {
-        logger.info(`Attempting to remove temporary file: ${this.tempFilePath}`);
+        logger.info(
+          `Attempting to remove temporary file: ${this.tempFilePath}`
+        );
         // Clean up the temporary file
         await this.cleanup();
       } catch (cleanupError) {
@@ -317,6 +358,14 @@ export class BrandingService extends GenericService {
             },
             summary: "",
           },
+          typography: {
+            content: "",
+            summary: "",
+          },
+          colorPalette: {
+            content: "",
+            summary: "",
+          },
           brandIdentity: [],
         },
         landing: {} as LandingModel, // Empty object cast as LandingModel
@@ -332,6 +381,14 @@ export class BrandingService extends GenericService {
             colors: [],
             fonts: [],
           },
+          summary: "",
+        },
+        typography: {
+          content: "",
+          summary: "",
+        },
+        colorPalette: {
+          content: "",
           summary: "",
         },
         brandIdentity: [],
@@ -351,6 +408,14 @@ export class BrandingService extends GenericService {
               colors: [],
               fonts: [],
             },
+            summary: "",
+          },
+          typography: {
+            content: "",
+            summary: "",
+          },
+          colorPalette: {
+            content: "",
             summary: "",
           },
           brandIdentity: [],
