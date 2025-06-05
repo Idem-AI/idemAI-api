@@ -1,7 +1,10 @@
 import { ProjectModel } from "../../models/project.model";
 import { PromptService } from "../prompt.service";
-import { LandingModel } from "../../models/landing.model";
-import { BrandIdentityModel } from "../../models/brand-identity.model";
+import {
+  BrandIdentityModel,
+  ColorModel,
+  TypographyModel,
+} from "../../models/brand-identity.model";
 import { LOGO_GENERATION_PROMPT } from "./prompts/00_logo-generation-section.prompt";
 import { COLOR_PALETTE_SECTION_PROMPT } from "./prompts/02_color-palette-section.prompt";
 import { TYPOGRAPHY_SECTION_PROMPT } from "./prompts/03_typography-section.prompt";
@@ -12,88 +15,13 @@ import { VISUAL_IDENTITY_SYNTHESIZER_PROMPT } from "./prompts/07_visual-identity
 import logger from "../../config/logger";
 import { SectionModel } from "../../models/section.model";
 import { GenericService, IPromptStep } from "../common/generic.service";
+import { LogoModel } from "../../models/logo.model";
+import { COLORS_TYPOGRAPHY_GENERATION_PROMPT } from "./prompts/singleGenerations/colors-typography-generation.prompt";
 
 export class BrandingService extends GenericService {
   constructor(promptService: PromptService) {
     super(promptService);
     logger.info("BrandingService initialized");
-  }
-
-  async generateLogoColorsAndTypography(
-    userId: string,
-    projectId: string
-  ): Promise<ProjectModel | null> {
-    logger.info(
-      `Generating logo colors and typography for userId: ${userId}, projectId: ${projectId}`
-    );
-    await this.initTempFile(projectId, "branding");
-    const project = await this.getProject(projectId, userId);
-    if (!project) {
-      return null;
-    }
-
-    const projectDescription = this.extractProjectDescription(project);
-    await this.addDescriptionToContext(projectDescription);
-
-    const steps: IPromptStep[] = [
-      {
-        promptConstant: LOGO_GENERATION_PROMPT,
-        stepName: "Logo Generation",
-        modelParser: (content) =>
-          this.parseSection(content, "Logo Generation", projectId),
-      },
-      {
-        promptConstant: TYPOGRAPHY_SECTION_PROMPT,
-        stepName: "Typography",
-        modelParser: (content) =>
-          this.parseSection(content, "Typography", projectId),
-      },
-      {
-        promptConstant: COLOR_PALETTE_SECTION_PROMPT,
-        stepName: "Color Palette",
-        modelParser: (content) =>
-          this.parseSection(content, "Color Palette", projectId),
-      },
-    ];
-    const sectionResults = await this.processSteps(steps, project);
-    const logoResult = sectionResults[0];
-    const typographyResult = sectionResults[1];
-    const colorPaletteResult = sectionResults[2];
-    const parsedLogoContent = logoResult.parsedData || {
-      svg: "<svg>Fallback SVG</svg>",
-      concept: "Minimalist design concept",
-      colors: ["#000000", "#ffffff"],
-      fonts: ["Arial", "Helvetica"],
-    };
-    const newProject: Partial<ProjectModel> = {
-      ...project,
-      analysisResultModel: {
-        ...project.analysisResultModel,
-        branding: project.analysisResultModel?.branding || {
-          logo: {
-            content: parsedLogoContent,
-            summary: "Generated logo",
-          },
-          typography: {
-            content: typographyResult.parsedData,
-            summary: "Generated typography",
-          },
-          colorPalette: {
-            content: colorPaletteResult.parsedData,
-            summary: "Generated color palette",
-          },
-        },
-      },
-    };
-    const updatedProject = await this.projectRepository.update(
-      projectId,
-      newProject,
-      userId
-    );
-    logger.info(
-      `Successfully generated and updated logo colors and typography for projectId: ${projectId}`
-    );
-    return updatedProject;
   }
 
   async generateBranding(
@@ -126,6 +54,20 @@ export class BrandingService extends GenericService {
           modelParser: (content) =>
             this.parseSection(content, "Usage Guidelines", projectId),
         },
+        // color palette
+        {
+          promptConstant: COLOR_PALETTE_SECTION_PROMPT,
+          stepName: "Color Palette",
+          modelParser: (content) =>
+            this.parseSection(content, "Color Palette", projectId),
+        },
+        // typography
+        {
+          promptConstant: TYPOGRAPHY_SECTION_PROMPT,
+          stepName: "Typography",
+          modelParser: (content) =>
+            this.parseSection(content, "Typography", projectId),
+        },
         {
           promptConstant: VISUAL_EXAMPLES_SECTION_PROMPT,
           stepName: "Visual Examples",
@@ -150,6 +92,7 @@ export class BrandingService extends GenericService {
       const sectionResults = await this.processSteps(steps, project);
 
       // Extract the parsed data from results
+      const logoResult = sectionResults[0];
       const colorPaletteResult = sectionResults[1];
       const typographyResult = sectionResults[2];
       const usageGuidelinesResult = sectionResults[3];
@@ -219,10 +162,6 @@ export class BrandingService extends GenericService {
         ...project,
         analysisResultModel: {
           ...project.analysisResultModel,
-          branding: {
-            ...project.analysisResultModel.branding,
-            brandIdentity: brandIdentitySections,
-          },
         },
       };
 
@@ -257,6 +196,56 @@ export class BrandingService extends GenericService {
         );
       }
     }
+  }
+
+  async generateLogoColorsAndTypography(
+    userId: string,
+    projectId: string
+  ): Promise<{
+    logo: LogoModel[];
+    color: ColorModel[];
+    typography: TypographyModel[];
+  }> {
+    logger.info(
+      `Generating logo colors and typography for userId: ${userId}, projectId: ${projectId}`
+    );
+    await this.initTempFile(projectId, "branding");
+    const project = await this.getProject(projectId, userId);
+    if (!project) {
+      throw new Error(`Project not found with ID: ${projectId}`);
+    }
+
+    const projectDescription = this.extractProjectDescription(project);
+    await this.addDescriptionToContext(projectDescription);
+
+    const steps: IPromptStep[] = [
+      {
+        promptConstant: COLORS_TYPOGRAPHY_GENERATION_PROMPT,
+        stepName: "Colors and Typography Generation",
+        modelParser: (content) =>
+          this.parseSection(
+            content,
+            "Colors and Typography Generation",
+            projectId
+          ),
+      },
+      {
+        promptConstant: LOGO_GENERATION_PROMPT,
+        stepName: "Logo Generation",
+        modelParser: (content) =>
+          this.parseSection(content, "Logo Generation", projectId),
+      },
+    ];
+    const sectionResults = await this.processSteps(steps, project);
+    const colorsTypographyResult = sectionResults[0];
+    const logoResult = sectionResults[1];
+    const parsedLogoContent = logoResult.parsedData;
+
+    return {
+      logo: parsedLogoContent,
+      color: colorsTypographyResult.parsedData.colors,
+      typography: colorsTypographyResult.parsedData.typography,
+    };
   }
 
   async getBrandingsByProjectId(
@@ -340,90 +329,42 @@ export class BrandingService extends GenericService {
       return false;
     }
 
-    // Create a default structure for the analysis result model's branding field if not exists
-    if (!project.analysisResultModel) {
-      project.analysisResultModel = {
-        id: undefined,
-        architectures: [],
-        businessPlan: undefined,
-        design: undefined, // Changed from diagrams to match the model
-        development: "", // Empty string instead of undefined
-        branding: {
-          logo: {
-            content: {
-              svg: "",
-              concept: "",
-              colors: [],
-              fonts: [],
-            },
-            summary: "",
-          },
-          typography: {
-            content: "",
-            summary: "",
-          },
-          colorPalette: {
-            content: "",
-            summary: "",
-          },
-          brandIdentity: [],
-        },
-        landing: {} as LandingModel, // Empty object cast as LandingModel
-        testing: "", // Empty string instead of undefined
-        createdAt: new Date(),
-      };
-    } else if (!project.analysisResultModel.branding) {
-      project.analysisResultModel.branding = {
-        logo: {
-          content: {
-            svg: "",
-            concept: "",
-            colors: [],
-            fonts: [],
-          },
-          summary: "",
-        },
-        typography: {
-          content: "",
-          summary: "",
-        },
-        colorPalette: {
-          content: "",
-          summary: "",
-        },
-        brandIdentity: [],
-      };
-    }
-
     // Reset branding to empty state rather than removing it completely
-    const updatedProject = {
-      ...project,
-      analysisResultModel: {
-        ...project.analysisResultModel,
-        branding: {
-          logo: {
-            content: {
-              svg: "",
-              concept: "",
-              colors: [],
-              fonts: [],
-            },
-            summary: "",
-          },
-          typography: {
-            content: "",
-            summary: "",
-          },
-          colorPalette: {
-            content: "",
-            summary: "",
-          },
-          brandIdentity: [],
+    project.analysisResultModel.branding = {
+      logo: {
+        svg: "",
+        concept: "",
+        colors: [],
+        fonts: [],
+        id: "1",
+        name: "",
+      },
+      generatedLogos: [],
+      typography: {
+        id: "",
+        name: "",
+        url: "",
+        primaryFont: "",
+        secondaryFont: "",
+      },
+      generatedTypography: [],
+      generatedColors: [],
+      colors: {
+        id: "",
+        name: "",
+        url: "",
+        colors: {
+          primary: "",
+          secondary: "",
+          accent: "",
+          background: "",
+          text: "",
         },
       },
+      brandIdentity: [],
     };
 
-    await this.projectRepository.update(projectId, updatedProject, userId);
+    await this.projectRepository.update(projectId, project, userId);
     logger.info(`Successfully reset branding for projectId: ${projectId}`);
     return true;
   }

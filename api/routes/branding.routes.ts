@@ -5,6 +5,7 @@ import {
   getBrandingByIdController,
   updateBrandingController,
   deleteBrandingController,
+  generateLogoColorsAndTypographyController,
 } from "../controllers/branding.controller";
 import { authenticate } from "../services/auth.service"; // Updated import path
 
@@ -19,6 +20,13 @@ brandingRoutes.post(
   `/${resourceName}/generate/:projectId`,
   authenticate,
   generateBrandingController
+);
+
+// Generate logo, colors, and typography for a project
+brandingRoutes.post(
+  `/${resourceName}/genColorsAndTypography/:projectId`,
+  authenticate,
+  generateLogoColorsAndTypographyController
 );
 
 // Get all brandings for a specific project

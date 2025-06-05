@@ -1,12 +1,37 @@
 import { LogoModel } from "./logo.model";
-import { SectionModel } from "./section.model";
 
 export interface BrandIdentityModel {
-  id?: string; // Added by repository
-  createdAt?: Date; // Added by repository
-  updatedAt?: Date; // Added by repository
-  logo: { content: LogoModel; summary: string };
-  brandIdentity: SectionModel[];
-  typography: { content: string; summary: string };
-  colorPalette: { content: string; summary: string };
+  logo: LogoModel;
+  generatedLogos: LogoModel[];
+  colors: ColorModel;
+  generatedColors: ColorModel[];
+  typography: TypographyModel;
+  generatedTypography: TypographyModel[];
+  brandIdentity: {
+    id: string;
+    name: string;
+    data: any;
+    summary: string;
+  }[];
+}
+
+export interface TypographyModel {
+  id: string;
+  name: string;
+  url: string;
+  primaryFont: string;
+  secondaryFont: string;
+}
+
+export interface ColorModel {
+  id: string;
+  name: string;
+  url: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+    text: string;
+  };
 }
