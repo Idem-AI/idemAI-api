@@ -51,130 +51,93 @@ export class BrandingService extends GenericService {
         {
           promptConstant: USAGE_GUIDELINES_SECTION_PROMPT,
           stepName: "Usage Guidelines",
-          modelParser: (content) =>
-            this.parseSection(content, "Usage Guidelines", projectId),
         },
         // color palette
         {
           promptConstant: COLOR_PALETTE_SECTION_PROMPT,
           stepName: "Color Palette",
-          modelParser: (content) =>
-            this.parseSection(content, "Color Palette", projectId),
         },
         // typography
+
         {
           promptConstant: TYPOGRAPHY_SECTION_PROMPT,
           stepName: "Typography",
-          modelParser: (content) =>
-            this.parseSection(content, "Typography", projectId),
         },
         {
           promptConstant: VISUAL_EXAMPLES_SECTION_PROMPT,
           stepName: "Visual Examples",
-          modelParser: (content) =>
-            this.parseSection(content, "Visual Examples", projectId),
         },
         {
           promptConstant: GLOBAL_CSS_PROMPT,
           stepName: "Global CSS",
-          modelParser: (content) =>
-            this.parseSection(content, "Global CSS", projectId),
         },
         {
           promptConstant: VISUAL_IDENTITY_SYNTHESIZER_PROMPT,
           stepName: "Visual Identity Synthesis",
-          modelParser: (content) =>
-            this.parseSection(content, "Visual Identity Synthesis", projectId),
         },
       ];
 
-      // Process all steps and get results
-      const sectionResults = await this.processSteps(steps, project);
+      // Process all steps and get results. Each step's modelParser (this.parseSection) returns a SectionModel.
+      // We assume processSteps places the modelParser's output into a 'parsedData' field for each result.
+      const stepResults = await this.processSteps(steps, project);
 
-      // Extract the parsed data from results
-      const logoResult = sectionResults[0];
-      const colorPaletteResult = sectionResults[1];
-      const typographyResult = sectionResults[2];
-      const usageGuidelinesResult = sectionResults[3];
-      const visualExamplesResult = sectionResults[4];
-      const globalCssResult = sectionResults[5];
-      const visualIdentitySynthesisResult = sectionResults[6];
+      // Map sections from results
+      const sections: SectionModel[] = stepResults.map((result) => ({
+        name: result.name,
+        type: result.type,
+        data: result.data,
+        summary: result.summary,
+      }));
 
-      const parsedUsageGuidelinesContent = usageGuidelinesResult.parsedData || {
-        guidelines: ["Use logo consistently", "Maintain color integrity"],
-        explanation: "Standard usage guidelines",
-      };
-
-      const parsedVisualExamplesContent = visualExamplesResult.parsedData || {
-        examples: ["Business card design", "Website mockup"],
-        description: "Standard visual examples",
-      };
-
-      const parsedGlobalCssContent = globalCssResult.parsedData || {
-        css: "/* Default CSS */\nbody { font-family: Arial; }",
-        explanation: "Standard CSS variables",
-      };
-
-      const parsedVisualIdentitySynthesisContent =
-        visualIdentitySynthesisResult.parsedData || {
-          summary: "Standard visual identity",
-          recommendations: ["Maintain consistent branding"],
-        };
-
-      // Create sections from all branding components
-      // Helper function to create a section if data content isn't already in array format
-      const createSection = (
-        name: string,
-        data: any,
-        type = "text/html"
-      ): SectionModel => {
-        return {
-          name,
-          type,
-          data:
-            typeof data.content === "string"
-              ? data.content
-              : JSON.stringify(data.content),
-          summary: data.summary || `${name} section`,
-        };
-      };
-
-      // Prepare all sections for the brand identity
-      const brandIdentitySections: SectionModel[] = [];
-
-      // Add other sections
-      brandIdentitySections.push(createSection("Typography", typographyResult));
-      brandIdentitySections.push(
-        createSection("Usage Guidelines", parsedUsageGuidelinesContent)
+      // Get the existing project to prepare for update
+      const oldProject = await this.projectRepository.findById(
+        projectId,
+        userId
       );
-      brandIdentitySections.push(
-        createSection("Visual Examples", parsedVisualExamplesContent)
-      );
-      brandIdentitySections.push(
-        createSection("Global CSS", parsedGlobalCssContent)
-      );
-      brandIdentitySections.push(
-        createSection("Visual Identity", parsedVisualIdentitySynthesisContent)
-      );
+      if (!oldProject) {
+        logger.warn(
+          `Original project not found with ID: ${projectId} for user: ${userId} before updating with diagrams.`
+        );
+        return null;
+      }
 
-      // Update the project with the new branding data
-      const newProject: Partial<ProjectModel> = {
-        ...project,
+      // Filter out diagrams that need to be updated
+      const existingDiagrams =
+        oldProject.analysisResultModel?.branding?.sections || [];
+      const updatedDiagrams = [
+        ...existingDiagrams.filter(
+          (d: SectionModel) => !sections.some((s) => s.name === d.name)
+        ),
+        ...sections,
+      ];
+
+      // Create updated project with new diagram sections
+      const newProject = {
+        ...oldProject,
         analysisResultModel: {
-          ...project.analysisResultModel,
+          ...oldProject.analysisResultModel,
+          branding: {
+            ...oldProject.analysisResultModel?.branding,
+            sections: updatedDiagrams,
+            id: `branding_${projectId}_${Date.now()}`,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
         },
       };
 
-      // Update project with new branding data
+      // Update the project in the database
       const updatedProject = await this.projectRepository.update(
         projectId,
         newProject,
         userId
       );
 
-      logger.info(
-        `Successfully generated and updated branding for projectId: ${projectId}`
-      );
+      if (updatedProject) {
+        logger.info(
+          `Successfully updated project with ID: ${projectId} with branding`
+        );
+      }
       return updatedProject;
     } catch (error) {
       logger.error(
@@ -360,7 +323,7 @@ export class BrandingService extends GenericService {
           text: "",
         },
       },
-      brandIdentity: [],
+      sections: [],
     };
 
     await this.projectRepository.update(projectId, project, userId);

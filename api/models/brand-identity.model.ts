@@ -1,18 +1,17 @@
 import { LogoModel } from "./logo.model";
+import { SectionModel } from "./section.model";
 
 export interface BrandIdentityModel {
+  id?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
   logo: LogoModel;
   generatedLogos: LogoModel[];
   colors: ColorModel;
   generatedColors: ColorModel[];
   typography: TypographyModel;
   generatedTypography: TypographyModel[];
-  brandIdentity: {
-    id: string;
-    name: string;
-    data: any;
-    summary: string;
-  }[];
+  sections: SectionModel[];
 }
 
 export interface TypographyModel {
