@@ -24,7 +24,7 @@ brandingRoutes.post(
 
 // Generate logo, colors, and typography for a project
 brandingRoutes.post(
-  `/${resourceName}/genColorsAndTypography/:projectId`,
+  `/${resourceName}/genColorsAndTypography`,
   authenticate,
   generateLogoColorsAndTypographyController
 );

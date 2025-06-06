@@ -200,19 +200,18 @@ export class BrandingService extends GenericService {
 
   async generateLogoColorsAndTypography(
     userId: string,
-    projectId: string
+    project: ProjectModel
   ): Promise<{
     logo: LogoModel[];
     color: ColorModel[];
     typography: TypographyModel[];
   }> {
     logger.info(
-      `Generating logo colors and typography for userId: ${userId}, projectId: ${projectId}`
+      `Generating logo colors and typography for userId: ${userId}, projectId: ${project.id}`
     );
-    await this.initTempFile(projectId, "branding");
-    const project = await this.getProject(projectId, userId);
-    if (!project) {
-      throw new Error(`Project not found with ID: ${projectId}`);
+    await this.initTempFile(project.id!, "branding");
+    if (!project.id) {
+      throw new Error(`Project not found with ID: ${project.id}`);
     }
 
     const projectDescription = this.extractProjectDescription(project);
@@ -226,14 +225,14 @@ export class BrandingService extends GenericService {
           this.parseSection(
             content,
             "Colors and Typography Generation",
-            projectId
+            project.id!
           ),
       },
       {
         promptConstant: LOGO_GENERATION_PROMPT,
         stepName: "Logo Generation",
         modelParser: (content) =>
-          this.parseSection(content, "Logo Generation", projectId),
+          this.parseSection(content, "Logo Generation", project.id!),
       },
     ];
     const sectionResults = await this.processSteps(steps, project);

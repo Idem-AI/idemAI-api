@@ -62,10 +62,10 @@ export const generateLogoColorsAndTypographyController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const project = req.body.project;
   const userId = req.user?.uid;
   logger.info(
-    `generateLogoColorsAndTypographyController called - UserId: ${userId}, ProjectId: ${projectId}`,
+    `generateLogoColorsAndTypographyController called - UserId: ${userId}, ProjectId: ${project.id}`,
     { body: req.body }
   );
   try {
@@ -76,7 +76,7 @@ export const generateLogoColorsAndTypographyController = async (
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
-    if (!projectId) {
+    if (!project.id) {
       logger.warn(
         "Project ID is required for generateLogoColorsAndTypographyController"
       );
@@ -84,11 +84,11 @@ export const generateLogoColorsAndTypographyController = async (
       return;
     }
     const updatedProject =
-      await brandingService.generateLogoColorsAndTypography(userId, projectId);
+      await brandingService.generateLogoColorsAndTypography(userId, project);
 
     if (!updatedProject) {
       logger.warn(
-        `Failed to generate logo, colors, and typography - UserId: ${userId}, ProjectId: ${projectId}`
+        `Failed to generate logo, colors, and typography - UserId: ${userId}, ProjectId: ${project.id}`
       );
       res
         .status(500)
@@ -97,21 +97,19 @@ export const generateLogoColorsAndTypographyController = async (
     }
 
     logger.info(
-      `Logo, colors, and typography generated successfully - UserId: ${userId}, ProjectId: ${projectId}`
+      `Logo, colors, and typography generated successfully - UserId: ${userId}, ProjectId: ${project.id}`
     );
     // Return the branding from the updated project
     res.status(201).json(updatedProject);
   } catch (error: any) {
     logger.error(
-      `Error in generateLogoColorsAndTypographyController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      `Error in generateLogoColorsAndTypographyController - UserId: ${userId}, ProjectId: ${project.id}: ${error.message}`,
       { stack: error.stack, body: req.body, params: req.params }
     );
-    res
-      .status(500)
-      .json({
-        message: "Error generating logo, colors, and typography",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error generating logo, colors, and typography",
+      error: error.message,
+    });
   }
 };
 

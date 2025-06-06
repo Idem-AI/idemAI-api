@@ -7,6 +7,8 @@ export const projectRoutes = Router();
 // Create a new project
 projectRoutes.post("/create", authenticate, projectController.createProject);
 
+
+
 // Get all projects for the authenticated user
 projectRoutes.get("/getAll", authenticate, projectController.getAllProjects);
 
