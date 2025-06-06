@@ -202,8 +202,8 @@ export class BrandingService extends GenericService {
     userId: string,
     project: ProjectModel
   ): Promise<{
-    logo: LogoModel[];
-    color: ColorModel[];
+    logos: LogoModel[];
+    colors: ColorModel[];
     typography: TypographyModel[];
   }> {
     logger.info(
@@ -241,8 +241,8 @@ export class BrandingService extends GenericService {
     const parsedLogoContent = logoResult.parsedData;
 
     return {
-      logo: parsedLogoContent,
-      color: colorsTypographyResult.parsedData.colors,
+      logos: parsedLogoContent,
+      colors: colorsTypographyResult.parsedData.colors,
       typography: colorsTypographyResult.parsedData.typography,
     };
   }

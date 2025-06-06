@@ -64,6 +64,7 @@ export const generateLogoColorsAndTypographyController = async (
 ): Promise<void> => {
   const project = req.body.project;
   const userId = req.user?.uid;
+  console.log("project", project);
   logger.info(
     `generateLogoColorsAndTypographyController called - UserId: ${userId}, ProjectId: ${project.id}`,
     { body: req.body }
