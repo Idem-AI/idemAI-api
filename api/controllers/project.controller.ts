@@ -21,11 +21,13 @@ class ProjectController {
         res.status(401).json({ message: "User not authenticated" });
         return;
       }
-      const { name, description, ...otherProjectData } = req.body;
+      const { id, name, description, ...otherProjectData } = req.body;
       const projectData: Omit<
         ProjectModel,
         "id" | "createdAt" | "updatedAt" | "userId"
       > = { name, description, ...otherProjectData };
+
+
       if (!projectData.name || !projectData.description) {
         logger.warn(
           `Create project attempt failed for userId ${userId}: Missing required fields (name or description).`
