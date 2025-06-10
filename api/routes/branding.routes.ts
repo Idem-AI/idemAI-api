@@ -175,7 +175,7 @@ brandingRoutes.get(
 // Get a specific branding by its ID
 /**
  * @openapi
- * /brandings/get/{brandingId}:
+ * /brandings/get/{projectId}:
  *   get:
  *     tags:
  *       - Branding
@@ -184,7 +184,7 @@ brandingRoutes.get(
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: brandingId
+ *         name: projectId
  *         required: true
  *         schema:
  *           type: string
@@ -204,7 +204,7 @@ brandingRoutes.get(
  *         description: Internal server error.
  */
 brandingRoutes.get(
-  `/${resourceName}/get/:brandingId`,
+  `/${resourceName}/get/:projectId`,
   authenticate,
   getBrandingByIdController
 );
@@ -212,7 +212,7 @@ brandingRoutes.get(
 // Update a specific branding by its ID
 /**
  * @openapi
- * /brandings/update/{brandingId}:
+ * /brandings/update/{projectId}:
  *   put:
  *     tags:
  *       - Branding
@@ -221,7 +221,7 @@ brandingRoutes.get(
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: brandingId
+ *         name: projectId
  *         required: true
  *         schema:
  *           type: string
@@ -249,7 +249,7 @@ brandingRoutes.get(
  *         description: Internal server error.
  */
 brandingRoutes.put(
-  `/${resourceName}/update/:brandingId`,
+  `/${resourceName}/update/:projectId`,
   authenticate,
   updateBrandingController
 );
@@ -257,7 +257,7 @@ brandingRoutes.put(
 // Delete a specific branding by its ID
 /**
  * @openapi
- * /brandings/delete/{brandingId}:
+ * /brandings/delete/{projectId}:
  *   delete:
  *     tags:
  *       - Branding
@@ -266,7 +266,7 @@ brandingRoutes.put(
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: brandingId
+ *         name: projectId
  *         required: true
  *         schema:
  *           type: string
@@ -290,7 +290,7 @@ brandingRoutes.put(
  *         description: Internal server error.
  */
 brandingRoutes.delete(
-  `/${resourceName}/delete/:brandingId`,
+  `/${resourceName}/delete/:projectId`,
   authenticate,
   deleteBrandingController
 );

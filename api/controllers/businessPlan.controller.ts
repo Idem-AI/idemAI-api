@@ -41,11 +41,9 @@ export const generateBusinessPlanController = async (
       logger.warn(
         `Business plan generation returned null (Project not updated) - UserId: ${userId}, ProjectId: ${projectId}`
       );
-      res
-        .status(500)
-        .json({
-          message: "Failed to generate business plan and update project",
-        });
+      res.status(500).json({
+        message: "Failed to generate business plan and update project",
+      });
     }
   } catch (error: any) {
     logger.error(

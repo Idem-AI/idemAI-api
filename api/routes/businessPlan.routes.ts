@@ -66,58 +66,19 @@ businessPlanRoutes.post(
   generateBusinessPlanController
 );
 
-// Get all business plans for a specific project
+// Get a specific business plan by its project ID
 /**
  * @openapi
- * /{projectId}/businessPlans:
+ * /businessPlans/{projectId}:
  *   get:
  *     tags:
  *       - Business Plans
- *     summary: Retrieve all business plans for a specific project
+ *     summary: Retrieve a specific business plan by its project ID
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: projectId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the project whose business plans are to be retrieved.
- *     responses:
- *       '200':
- *         description: A list of business plans.
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/BusinessPlanModel'
- *       '401':
- *         description: Unauthorized.
- *       '404':
- *         description: Project not found.
- *       '500':
- *         description: Internal server error.
- */
-businessPlanRoutes.get(
-  `/:projectId/${resourceName}`,
-  authenticate,
-  getBusinessPlansByProjectController
-);
-
-// Get a specific business plan by its ID
-/**
- * @openapi
- * /businessPlans/{itemId}:
- *   get:
- *     tags:
- *       - Business Plans
- *     summary: Retrieve a specific business plan by its ID
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: itemId
  *         required: true
  *         schema:
  *           type: string
@@ -137,24 +98,24 @@ businessPlanRoutes.get(
  *         description: Internal server error.
  */
 businessPlanRoutes.get(
-  `/${resourceName}/:itemId`,
+  `/${resourceName}/:projectId`,
   authenticate,
   getBusinessPlanByIdController
 );
 
-// Update a specific business plan by its ID
+// Update a specific business plan by its project ID
 /**
  * @openapi
- * /businessPlans/{itemId}:
+ * /businessPlans/{projectId}:
  *   put:
  *     tags:
  *       - Business Plans
- *     summary: Update an existing business plan
+ *     summary: Update an existing business plan by its project ID
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: itemId
+ *         name: projectId
  *         required: true
  *         schema:
  *           type: string
@@ -182,24 +143,24 @@ businessPlanRoutes.get(
  *         description: Internal server error.
  */
 businessPlanRoutes.put(
-  `/${resourceName}/:itemId`,
+  `/${resourceName}/:projectId`,
   authenticate,
   updateBusinessPlanController
 );
 
-// Delete a specific business plan by its ID
+// Delete a specific business plan by its project ID
 /**
  * @openapi
- * /businessPlans/{itemId}:
+ * /businessPlans/{projectId}:
  *   delete:
  *     tags:
  *       - Business Plans
- *     summary: Delete a business plan by its ID
+ *     summary: Delete a business plan by its project ID
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: itemId
+ *         name: projectId
  *         required: true
  *         schema:
  *           type: string
@@ -223,7 +184,7 @@ businessPlanRoutes.put(
  *         description: Internal server error.
  */
 businessPlanRoutes.delete(
-  `/${resourceName}/:itemId`,
+  `/${resourceName}/:projectId`,
   authenticate,
   deleteBusinessPlanController
 );
