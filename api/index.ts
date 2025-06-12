@@ -7,9 +7,9 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import { authRoutes } from "./routes/auth.routes";
 import { promptRoutes } from "./routes/prompt.routes";
-import swaggerJsdoc from 'swagger-jsdoc';
-import swaggerUi from 'swagger-ui-express';
-import swaggerOptions from './config/swagger.config';
+import swaggerJsdoc from "swagger-jsdoc";
+import swaggerUi from "swagger-ui-express";
+import swaggerOptions from "./config/swagger.config";
 
 dotenv.config();
 
@@ -86,7 +86,7 @@ app.use("/api/prompt", promptRoutes);
 
 // Swagger setup
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.get("/", (req: Request, res: Response) => {
   res.status(200).json({
