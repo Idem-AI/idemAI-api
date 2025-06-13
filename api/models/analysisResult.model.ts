@@ -3,6 +3,7 @@ import { BrandIdentityModel } from './brand-identity.model';
 import { DiagramModel } from './diagram.model';
 import { LandingModel } from './landing.model';
 import { BusinessPlanModel } from './businessPlan.model';
+import { WebContainerModel } from './webcontainer.model';
 
 /**
  * @openapi
@@ -51,7 +52,7 @@ export interface AnalysisResultModel {
   architectures: ArchitectureModel[];
   businessPlan?: BusinessPlanModel;
   design: DiagramModel;
-  development: string;
+  development: WebContainerModel[];
   branding: BrandIdentityModel;
   landing: LandingModel;
   testing: string;

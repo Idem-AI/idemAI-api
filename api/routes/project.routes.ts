@@ -108,7 +108,7 @@ projectRoutes.get('/', authenticate, projectController.getAllProjects);
  *         description: Internal server error.
  */
 projectRoutes.get(
-  "/get/:projectId",
+  "/:projectId",
   authenticate,
   projectController.getProjectById
 );

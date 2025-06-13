@@ -45,6 +45,7 @@ import { brandingRoutes } from "./routes/branding.routes";
 import { diagramRoutes } from "./routes/diagram.routes";
 import { businessPlanRoutes } from "./routes/businessPlan.routes";
 import { deploymentRoutes } from "./routes/deployment.routes";
+import { developmentRoutes } from "./routes/development.routes";
 
 const app: Express = express();
 
@@ -73,7 +74,7 @@ app.use(
       }
     },
     credentials: true,
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -83,6 +84,7 @@ app.use("/api/project", brandingRoutes);
 app.use("/api/project", diagramRoutes);
 app.use("/api/project", businessPlanRoutes);
 app.use("/api/project", deploymentRoutes);
+app.use("/api/webcontainers", developmentRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/prompt", promptRoutes);
 

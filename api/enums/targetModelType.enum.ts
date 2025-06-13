@@ -8,5 +8,6 @@ export enum TargetModelType {
   DIAGRAMS = 'diagrams',
   LANDING = 'landings',
   BUSINESS_PLAN = 'businessPlans', 
-  DEPLOYMENT = 'deployments', 
+  DEPLOYMENT = 'deployments',
+  WEBCONTAINER = 'webcontainers',
 }
