@@ -58,7 +58,9 @@ const allowedOrigins = [
   "http://localhost:4200",
   "http://localhost:3001",
   "http://localhost:5173",
-  "https://idem.pharaon.me",
+  "https://idem.africa",
+  "https://webgen.idem.africa",
+  "https://chart.idem.africa",
 ];
 
 app.use(
