@@ -3,13 +3,14 @@ export interface WebContainerModel {
   projectId: string;
   name: string;
   description?: string;
-  status: 'creating' | 'active' | 'stopped' | 'error';
-  createdAt: Date;
-  updatedAt: Date;
+  status: "creating" | "active" | "stopped" | "error";
+  createdAt: string;
+  updatedAt: string;
   metadata?: {
     workdirName: string;
     ports?: number[];
     files?: string[];
+    fileContents?: Record<string, string>;
     url?: string;
   };
   userId: string;
@@ -23,16 +24,18 @@ export interface CreateWebContainerRequest {
     workdirName: string;
     ports?: number[];
     files?: string[];
+    fileContents?: Record<string, string>;
     url?: string;
   };
 }
 
 export interface UpdateWebContainerRequest {
-  status?: 'creating' | 'active' | 'stopped' | 'error';
+  status?: "creating" | "active" | "stopped" | "error";
   metadata?: {
     workdirName?: string;
     ports?: number[];
     files?: string[];
+    fileContents?: Record<string, string>;
     url?: string;
   };
 }

@@ -14,6 +14,26 @@ export class DevelopmentService extends GenericService {
   }
 
   /**
+   * Helper method to remove undefined values from an object before Firestore operations
+   */
+  private cleanUndefinedValues(obj: any): any {
+    if (obj === null || obj === undefined) return obj;
+    if (typeof obj !== 'object') return obj;
+    
+    const cleaned: any = {};
+    for (const key in obj) {
+      if (obj[key] !== undefined) {
+        if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
+          cleaned[key] = this.cleanUndefinedValues(obj[key]);
+        } else {
+          cleaned[key] = obj[key];
+        }
+      }
+    }
+    return cleaned;
+  }
+
+  /**
    * Create a new WebContainer and add it to the project
    */
   async createWebContainer(
@@ -46,15 +66,38 @@ export class DevelopmentService extends GenericService {
         name: request.name,
         description: request.description,
         status: "creating",
-        metadata: request.metadata || {
-          workdirName: request.name.toLowerCase().replace(/\s+/g, "-"),
-          ports: [],
-          files: [],
+        metadata: {
+          workdirName:
+            request.metadata?.workdirName ||
+            request.name.toLowerCase().replace(/\s+/g, "-"),
+          ports: request.metadata?.ports || [],
+          files: request.metadata?.files || [],
+          fileContents: request.metadata?.fileContents || {},
+          ...(request.metadata?.url && { url: request.metadata.url }),
         },
         userId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
+
+      // Log webcontainer files if any
+      if (
+        webContainerData.metadata?.files &&
+        webContainerData.metadata.files.length > 0
+      ) {
+        logger.info(
+          `WebContainer files being created for webcontainer: ${webContainerId}, userId: ${userId}`,
+          {
+            files: webContainerData.metadata.files,
+            fileCount: webContainerData.metadata.files.length,
+            projectId: request.projectId,
+          }
+        );
+      } else {
+        logger.info(
+          `WebContainer created without files for webcontainer: ${webContainerId}, userId: ${userId}`
+        );
+      }
 
       // Initialize analysisResultModel.development if it doesn't exist
       if (!project.analysisResultModel.development) {
@@ -67,7 +110,7 @@ export class DevelopmentService extends GenericService {
       // Update the project
       const updatedProject = await this.projectRepository.update(
         request.projectId,
-        { analysisResultModel: project.analysisResultModel },
+        { analysisResultModel: this.cleanUndefinedValues(project.analysisResultModel) },
         userId
       );
 
@@ -139,19 +182,46 @@ export class DevelopmentService extends GenericService {
       }
 
       if (updates.metadata !== undefined) {
-        existingContainer.metadata = {
+        existingContainer.metadata = this.cleanUndefinedValues({
           workdirName: existingContainer.metadata?.workdirName || "default",
           ...existingContainer.metadata,
           ...updates.metadata,
-        };
+        });
+
+        // Log webcontainer files if they were updated
+        if (updates.metadata.files !== undefined) {
+          logger.info(
+            `WebContainer files being updated for webcontainer: ${webContainerId}, userId: ${userId}`,
+            {
+              newFiles: updates.metadata.files,
+              newFileCount: updates.metadata.files?.length || 0,
+              previousFiles: existingContainer.metadata?.files || [],
+              previousFileCount: existingContainer.metadata?.files?.length || 0,
+              projectId: project.id,
+            }
+          );
+        }
+
+        // Log if file contents were updated
+        if (updates.metadata.fileContents !== undefined) {
+          const updatedFileNames = Object.keys(updates.metadata.fileContents);
+          logger.info(
+            `WebContainer file contents being updated for webcontainer: ${webContainerId}, userId: ${userId}`,
+            {
+              updatedFiles: updatedFileNames,
+              updatedFileCount: updatedFileNames.length,
+              projectId: project.id,
+            }
+          );
+        }
       }
 
-      existingContainer.updatedAt = new Date();
+      existingContainer.updatedAt = new Date().toISOString();
 
       // Update the project
       const updatedProject = await this.projectRepository.update(
         project.id!,
-        { analysisResultModel: project.analysisResultModel },
+        { analysisResultModel: this.cleanUndefinedValues(project.analysisResultModel) },
         userId
       );
 
@@ -335,7 +405,7 @@ export class DevelopmentService extends GenericService {
       // Update the project
       const updatedProject = await this.projectRepository.update(
         project.id!,
-        { analysisResultModel: project.analysisResultModel },
+        { analysisResultModel: this.cleanUndefinedValues(project.analysisResultModel) },
         userId
       );
 

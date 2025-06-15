@@ -36,6 +36,16 @@ export const createWebContainerController = async (
       return;
     }
 
+    // Log incoming file information if present
+    if (createRequest.metadata?.files && createRequest.metadata.files.length > 0) {
+      logger.info(`createWebContainerController - Incoming files for userId: ${userId}`, {
+        files: createRequest.metadata.files,
+        fileCount: createRequest.metadata.files.length,
+        hasFileContents: !!createRequest.metadata.fileContents && Object.keys(createRequest.metadata.fileContents).length > 0,
+        fileContentsCount: createRequest.metadata.fileContents ? Object.keys(createRequest.metadata.fileContents).length : 0
+      });
+    }
+
     const webContainer = await developmentService.createWebContainer(userId, createRequest);
 
     logger.info(`WebContainer created successfully - UserId: ${userId}, WebContainerId: ${webContainer.id}`);
@@ -76,6 +86,22 @@ export const updateWebContainerController = async (
       logger.warn("WebContainer ID is required for updateWebContainerController");
       res.status(400).json({ message: "WebContainer ID is required" });
       return;
+    }
+
+    // Log incoming file updates if present
+    if (updateRequest.metadata?.files !== undefined) {
+      logger.info(`updateWebContainerController - Incoming file updates for userId: ${userId}, webContainerId: ${webContainerId}`, {
+        files: updateRequest.metadata.files,
+        fileCount: updateRequest.metadata.files?.length || 0
+      });
+    }
+    
+    if (updateRequest.metadata?.fileContents !== undefined) {
+      const fileContentKeys = Object.keys(updateRequest.metadata.fileContents);
+      logger.info(`updateWebContainerController - Incoming file content updates for userId: ${userId}, webContainerId: ${webContainerId}`, {
+        updatedFiles: fileContentKeys,
+        updatedFileCount: fileContentKeys.length
+      });
     }
 
     const updatedWebContainer = await developmentService.updateWebContainer(
