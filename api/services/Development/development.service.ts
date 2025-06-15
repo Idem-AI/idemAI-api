@@ -6,6 +6,23 @@ import {
 import logger from "../../config/logger";
 import { GenericService } from "../common/generic.service";
 import { PromptService } from "../prompt.service";
+import { Octokit } from "@octokit/rest";
+
+export interface PushToGitHubRequest {
+  token: string;
+  repoName: string;
+  files: Record<string, string>;
+  description?: string;
+  private?: boolean;
+}
+
+export interface PushToGitHubResponse {
+  repositoryUrl: string;
+  owner: string;
+  repoName: string;
+  success: boolean;
+  message?: string;
+}
 
 export class DevelopmentService extends GenericService {
   constructor(promptService: PromptService) {
@@ -18,12 +35,16 @@ export class DevelopmentService extends GenericService {
    */
   private cleanUndefinedValues(obj: any): any {
     if (obj === null || obj === undefined) return obj;
-    if (typeof obj !== 'object') return obj;
-    
+    if (typeof obj !== "object") return obj;
+
     const cleaned: any = {};
     for (const key in obj) {
       if (obj[key] !== undefined) {
-        if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
+        if (
+          typeof obj[key] === "object" &&
+          obj[key] !== null &&
+          !Array.isArray(obj[key])
+        ) {
           cleaned[key] = this.cleanUndefinedValues(obj[key]);
         } else {
           cleaned[key] = obj[key];
@@ -110,7 +131,11 @@ export class DevelopmentService extends GenericService {
       // Update the project
       const updatedProject = await this.projectRepository.update(
         request.projectId,
-        { analysisResultModel: this.cleanUndefinedValues(project.analysisResultModel) },
+        {
+          analysisResultModel: this.cleanUndefinedValues(
+            project.analysisResultModel
+          ),
+        },
         userId
       );
 
@@ -221,7 +246,11 @@ export class DevelopmentService extends GenericService {
       // Update the project
       const updatedProject = await this.projectRepository.update(
         project.id!,
-        { analysisResultModel: this.cleanUndefinedValues(project.analysisResultModel) },
+        {
+          analysisResultModel: this.cleanUndefinedValues(
+            project.analysisResultModel
+          ),
+        },
         userId
       );
 
@@ -405,7 +434,11 @@ export class DevelopmentService extends GenericService {
       // Update the project
       const updatedProject = await this.projectRepository.update(
         project.id!,
-        { analysisResultModel: this.cleanUndefinedValues(project.analysisResultModel) },
+        {
+          analysisResultModel: this.cleanUndefinedValues(
+            project.analysisResultModel
+          ),
+        },
         userId
       );
 
@@ -482,6 +515,151 @@ export class DevelopmentService extends GenericService {
   }
 
   /**
+   * Push WebContainer files to GitHub
+   */
+  async pushWebContainerToGitHub(
+    userId: string,
+    webContainerId: string,
+    request: PushToGitHubRequest
+  ): Promise<PushToGitHubResponse> {
+    logger.info(
+      `Pushing WebContainer to GitHub for userId: ${userId}, webContainerId: ${webContainerId}`
+    );
+
+    try {
+      // Find the project containing this WebContainer
+      const project = await this.findProjectByWebContainerId(
+        webContainerId,
+        userId
+      );
+      if (!project) {
+        throw new Error("WebContainer not found");
+      }
+
+      const webContainer = project.analysisResultModel.development.find(
+        (container: WebContainerModel) => container.id === webContainerId
+      );
+
+      if (!webContainer) {
+        throw new Error("WebContainer not found in project");
+      }
+
+      // Use provided files or WebContainer fileContents
+      const filesToPush =
+        request.files || webContainer.metadata?.fileContents || {};
+
+      if (Object.keys(filesToPush).length === 0) {
+        throw new Error("No files to push to GitHub");
+      }
+
+      logger.info(
+        `Pushing ${
+          Object.keys(filesToPush).length
+        } files to GitHub repository: ${request.repoName}`
+      );
+
+      const octokit = new Octokit({ auth: request.token });
+
+      // Get authenticated user
+      const { data: user } = await octokit.rest.users.getAuthenticated();
+      logger.info(`Authenticated GitHub user: ${user.login}`);
+
+      // Create the repository
+      try {
+        await octokit.rest.repos.createForAuthenticatedUser({
+          name: request.repoName,
+          private: request.private || false,
+          description:
+            request.description ||
+            `Repository created from WebContainer: ${webContainer.name}`,
+        });
+        logger.info(
+          `Created GitHub repository: ${user.login}/${request.repoName}`
+        );
+      } catch (repoError: any) {
+        if (repoError.status === 422) {
+          logger.warn(
+            `Repository ${request.repoName} already exists, continuing with file push`
+          );
+        } else {
+          throw repoError;
+        }
+      }
+
+      // Push each file to the repository
+      let pushedFiles = 0;
+      for (const [filePath, content] of Object.entries(filesToPush)) {
+        try {
+          // Remove leading slash if present
+          const cleanPath = filePath.startsWith("/")
+            ? filePath.slice(1)
+            : filePath;
+
+          await octokit.rest.repos.createOrUpdateFileContents({
+            owner: user.login,
+            repo: request.repoName,
+            path: cleanPath,
+            message: `Add ${cleanPath} from WebContainer`,
+            content: Buffer.from(content).toString("base64"),
+          });
+
+          pushedFiles++;
+          logger.info(`Pushed file: ${cleanPath}`);
+        } catch (fileError: any) {
+          logger.error(`Failed to push file ${filePath}:`, {
+            error: fileError.message,
+            status: fileError.status,
+          });
+          throw new Error(
+            `Failed to push file ${filePath}: ${fileError.message}`
+          );
+        }
+      }
+
+      const repositoryUrl = `https://github.com/${user.login}/${request.repoName}`;
+
+      // Update WebContainer metadata with GitHub URL
+      const updatedMetadata = {
+        ...webContainer.metadata,
+        githubUrl: repositoryUrl,
+        lastPushedAt: new Date().toISOString(),
+      };
+
+      await this.updateWebContainer(userId, webContainerId, {
+        metadata: updatedMetadata,
+      });
+
+      logger.info(
+        `Successfully pushed ${pushedFiles} files to GitHub repository: ${repositoryUrl}`
+      );
+
+      return {
+        repositoryUrl,
+        owner: user.login,
+        repoName: request.repoName,
+        success: true,
+        message: `Successfully pushed ${pushedFiles} files to GitHub`,
+      };
+    } catch (error: any) {
+      logger.error("Error pushing WebContainer to GitHub:", {
+        userId,
+        webContainerId,
+        repoName: request.repoName,
+        error: error.message,
+        stack: error.stack,
+      });
+
+      return {
+        repositoryUrl: "",
+        owner: "",
+        repoName: request.repoName,
+        success: false,
+        message: error.message,
+      };
+    }
+  }
+
+  /**
    * Find a project that contains a specific WebContainer
    * Private helper method
    */
@@ -494,7 +672,7 @@ export class DevelopmentService extends GenericService {
     for (const project of projects) {
       if (project.analysisResultModel?.development) {
         const webContainer = project.analysisResultModel.development.find(
-          (container) => container.id === webContainerId
+          (container: WebContainerModel) => container.id === webContainerId
         );
         if (webContainer) {
           return project;

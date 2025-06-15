@@ -6,6 +6,7 @@ import {
   getAllWebContainersController,
   getWebContainersByProjectController,
   deleteWebContainerController,
+  pushWebContainerToGitHubController,
 } from "../controllers/development.controller";
 import { authenticate } from "../services/auth.service";
 
@@ -272,6 +273,83 @@ developmentRoutes.put("/:webContainerId", authenticate, updateWebContainerContro
  *         description: Internal server error
  */
 developmentRoutes.delete("/:webContainerId", authenticate, deleteWebContainerController);
+
+/**
+ * @openapi
+ * /webcontainers/{webContainerId}/push-to-github:
+ *   post:
+ *     tags:
+ *       - Development
+ *     summary: Push WebContainer files to GitHub
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: webContainerId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the WebContainer to push to GitHub
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - repoName
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: GitHub personal access token with repo permissions
+ *               repoName:
+ *                 type: string
+ *                 description: Name of the GitHub repository to create or update
+ *               files:
+ *                 type: object
+ *                 additionalProperties:
+ *                   type: string
+ *                 description: Optional files to push (overrides WebContainer fileContents)
+ *               description:
+ *                 type: string
+ *                 description: Optional repository description
+ *               private:
+ *                 type: boolean
+ *                 description: Whether the repository should be private (default false)
+ *     responses:
+ *       200:
+ *         description: Files pushed to GitHub successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 repositoryUrl:
+ *                   type: string
+ *                   description: URL of the created/updated GitHub repository
+ *                 owner:
+ *                   type: string
+ *                   description: GitHub username of the repository owner
+ *                 repoName:
+ *                   type: string
+ *                   description: Name of the repository
+ *                 success:
+ *                   type: boolean
+ *                   description: Whether the operation was successful
+ *                 message:
+ *                   type: string
+ *                   description: Success or error message
+ *       400:
+ *         description: Bad request - missing required fields or push failed
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: WebContainer not found
+ *       500:
+ *         description: Internal server error
+ */
+developmentRoutes.post("/:webContainerId/push-to-github", authenticate, pushWebContainerToGitHubController);
 
 /**
  * @openapi

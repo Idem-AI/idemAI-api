@@ -12,6 +12,8 @@ export interface WebContainerModel {
     files?: string[];
     fileContents?: Record<string, string>;
     url?: string;
+    githubUrl?: string;
+    lastPushedAt?: string;
   };
   userId: string;
 }
@@ -37,5 +39,7 @@ export interface UpdateWebContainerRequest {
     files?: string[];
     fileContents?: Record<string, string>;
     url?: string;
+    githubUrl?: string;
+    lastPushedAt?: string;
   };
 }

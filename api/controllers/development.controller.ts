@@ -1,6 +1,6 @@
 import { Response } from "express";
 import logger from "../config/logger";
-import { DevelopmentService } from "../services/Development/development.service";
+import { DevelopmentService, PushToGitHubRequest } from "../services/Development/development.service";
 import { CustomRequest } from "../interfaces/express.interface";
 import { CreateWebContainerRequest, UpdateWebContainerRequest } from "../models/webcontainer.model";
 import { PromptService } from "../services/prompt.service";
@@ -291,6 +291,66 @@ export const deleteWebContainerController = async (
       stack: error instanceof Error ? error.stack : undefined
     });
     res.status(500).json({ message: "Failed to delete webcontainer" });
+    return;
+  }
+};
+
+/**
+ * Push WebContainer files to GitHub
+ */
+export const pushWebContainerToGitHubController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { webContainerId } = req.params;
+  const pushRequest: PushToGitHubRequest = req.body;
+  
+  logger.info(`pushWebContainerToGitHubController called - UserId: ${userId}, WebContainerId: ${webContainerId}`);
+
+  try {
+    if (!userId) {
+      logger.warn("User not authenticated for pushWebContainerToGitHubController");
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    if (!webContainerId) {
+      logger.warn("Missing webContainerId for pushWebContainerToGitHubController");
+      res.status(400).json({ message: "WebContainer ID is required" });
+      return;
+    }
+
+    if (!pushRequest.token || !pushRequest.repoName) {
+      logger.warn("Missing required fields for pushWebContainerToGitHubController", { 
+        hasToken: !!pushRequest.token, 
+        repoName: pushRequest.repoName 
+      });
+      res.status(400).json({ message: "GitHub token and repository name are required" });
+      return;
+    }
+
+    logger.info(`Pushing WebContainer ${webContainerId} to GitHub repository: ${pushRequest.repoName}`);
+
+    const result = await developmentService.pushWebContainerToGitHub(userId, webContainerId, pushRequest);
+
+    if (result.success) {
+      logger.info(`Successfully pushed WebContainer to GitHub - Repository: ${result.repositoryUrl}`);
+      res.status(200).json(result);
+    } else {
+      logger.error(`Failed to push WebContainer to GitHub - Error: ${result.message}`);
+      res.status(400).json(result);
+    }
+    return;
+  } catch (error: any) {
+    logger.error("Error in pushWebContainerToGitHubController:", {
+      userId,
+      webContainerId,
+      repoName: pushRequest?.repoName,
+      error: error.message,
+      stack: error.stack,
+    });
+    res.status(500).json({ message: "Internal server error", error: error.message });
     return;
   }
 };
