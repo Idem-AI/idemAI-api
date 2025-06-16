@@ -4,11 +4,7 @@ import { DeploymentService } from "../services/Deployment/deployment.service";
 import { CustomRequest } from "../interfaces/express.interface";
 import {
   GitRepository,
-  CloudProvider,
-  InfrastructureConfig,
   EnvironmentVariable,
-  DockerConfig,
-  TerraformConfig,
   DeploymentModel,
 } from "../models/deployment.model";
 
@@ -231,16 +227,8 @@ export const updateGitRepositoryConfigController = async (
     res.status(400).json({ message: "Deployment ID is required" });
     return;
   }
-  // Add more specific validation for gitConfig if needed
-  if (
-    !gitConfig ||
-    !gitConfig.provider ||
-    !gitConfig.url ||
-    !gitConfig.branch
-  ) {
-    res
-      .status(400)
-      .json({ message: "Invalid Git repository configuration data" });
+  if (!gitConfig || !gitConfig.provider || !gitConfig.url || !gitConfig.branch) {
+    res.status(400).json({ message: "Invalid Git repository configuration data" });
     return;
   }
 
@@ -259,145 +247,17 @@ export const updateGitRepositoryConfigController = async (
       logger.warn(
         `Deployment not found or GitRepository config update failed - UserId: ${userId}, DeploymentId: ${deploymentId}`
       );
-      res
-        .status(404)
-        .json({ message: "Deployment not found or update failed" });
+      res.status(404).json({ message: "Deployment not found or update failed" });
     }
   } catch (error: any) {
     logger.error(
       `Error in updateGitRepositoryConfigController - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
       { stack: error.stack, body: req.body }
     );
-    res
-      .status(500)
-      .json({
-        message: "Error updating Git repository configuration",
-        error: error.message,
-      });
-  }
-};
-
-export const updateCloudProviderConfigController = async (
-  req: CustomRequest,
-  res: Response
-): Promise<void> => {
-  const { deploymentId } = req.params;
-  const userId = req.user?.uid;
-  const cloudConfig = req.body as CloudProvider;
-
-  logger.info(
-    `updateCloudProviderConfigController called - UserId: ${userId}, DeploymentId: ${deploymentId}`
-  );
-  if (!userId) {
-    res.status(401).json({ message: "User not authenticated" });
-    return;
-  }
-  if (!deploymentId) {
-    res.status(400).json({ message: "Deployment ID is required" });
-    return;
-  }
-  if (!cloudConfig || !cloudConfig.type) {
-    res
-      .status(400)
-      .json({ message: "Invalid Cloud provider configuration data" });
-    return;
-  }
-
-  try {
-    const updatedDeployment = await deploymentService.updateCloudProviderConfig(
-      userId!,
-      deploymentId,
-      cloudConfig
-    );
-    if (updatedDeployment) {
-      logger.info(
-        `CloudProvider config updated successfully - UserId: ${userId}, DeploymentId: ${updatedDeployment.id}`
-      );
-      res.status(200).json(updatedDeployment);
-    } else {
-      logger.warn(
-        `Deployment not found or CloudProvider config update failed - UserId: ${userId}, DeploymentId: ${deploymentId}`
-      );
-      res
-        .status(404)
-        .json({ message: "Deployment not found or update failed" });
-    }
-  } catch (error: any) {
-    logger.error(
-      `Error in updateCloudProviderConfigController - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
-      { stack: error.stack, body: req.body }
-    );
-    res
-      .status(500)
-      .json({
-        message: "Error updating Cloud provider configuration",
-        error: error.message,
-      });
-  }
-};
-
-export const updateInfrastructureConfigController = async (
-  req: CustomRequest,
-  res: Response
-): Promise<void> => {
-  const { deploymentId } = req.params;
-  const userId = req.user?.uid;
-  const infraConfig = req.body as InfrastructureConfig;
-
-  logger.info(
-    `updateInfrastructureConfigController called - UserId: ${userId}, DeploymentId: ${deploymentId}`
-  );
-  if (!userId) {
-    res.status(401).json({ message: "User not authenticated" });
-    return;
-  }
-  if (!deploymentId) {
-    res.status(400).json({ message: "Deployment ID is required" });
-    return;
-  }
-  if (
-    !infraConfig ||
-    !infraConfig.serviceType ||
-    !infraConfig.resources ||
-    !infraConfig.networking
-  ) {
-    res
-      .status(400)
-      .json({ message: "Invalid Infrastructure configuration data" });
-    return;
-  }
-
-  try {
-    const updatedDeployment =
-      await deploymentService.updateInfrastructureConfig(
-        userId!,
-        deploymentId,
-        infraConfig
-      );
-    if (updatedDeployment) {
-      logger.info(
-        `Infrastructure config updated successfully - UserId: ${userId}, DeploymentId: ${updatedDeployment.id}`
-      );
-      res.status(200).json(updatedDeployment);
-    } else {
-      logger.warn(
-        `Deployment not found or Infrastructure config update failed - UserId: ${userId}, DeploymentId: ${deploymentId}`
-      );
-      res
-        .status(404)
-        .json({ message: "Deployment not found or update failed" });
-    }
-  } catch (error: any) {
-    logger.error(
-      `Error in updateInfrastructureConfigController - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
-      { stack: error.stack, body: req.body }
-    );
-    res
-      .status(500)
-      .json({
-        message: "Error updating Infrastructure configuration",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error updating Git repository configuration",
+      error: error.message,
+    });
   }
 };
 
@@ -420,22 +280,17 @@ export const updateEnvironmentVariablesController = async (
     res.status(400).json({ message: "Deployment ID is required" });
     return;
   }
-  if (!Array.isArray(envVars)) {
-    res
-      .status(400)
-      .json({
-        message: "Invalid Environment variables data, expected an array",
-      });
+  if (!envVars || !Array.isArray(envVars)) {
+    res.status(400).json({ message: "Invalid environment variables data" });
     return;
   }
 
   try {
-    const updatedDeployment =
-      await deploymentService.updateEnvironmentVariables(
-        userId!,
-        deploymentId,
-        envVars
-      );
+    const updatedDeployment = await deploymentService.updateEnvironmentVariables(
+      userId!,
+      deploymentId,
+      envVars
+    );
     if (updatedDeployment) {
       logger.info(
         `Environment variables updated successfully - UserId: ${userId}, DeploymentId: ${updatedDeployment.id}`
@@ -443,36 +298,32 @@ export const updateEnvironmentVariablesController = async (
       res.status(200).json(updatedDeployment);
     } else {
       logger.warn(
-        `Deployment not found or Environment variables update failed - UserId: ${userId}, DeploymentId: ${deploymentId}`
+        `Deployment not found or environment variables update failed - UserId: ${userId}, DeploymentId: ${deploymentId}`
       );
-      res
-        .status(404)
-        .json({ message: "Deployment not found or update failed" });
+      res.status(404).json({ message: "Deployment not found or update failed" });
     }
   } catch (error: any) {
     logger.error(
       `Error in updateEnvironmentVariablesController - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
       { stack: error.stack, body: req.body }
     );
-    res
-      .status(500)
-      .json({
-        message: "Error updating Environment variables",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error updating environment variables",
+      error: error.message,
+    });
   }
 };
 
-export const updateDockerConfigController = async (
+export const updateChatMessagesController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
   const { deploymentId } = req.params;
   const userId = req.user?.uid;
-  const dockerConfig = req.body as DockerConfig;
+  const messages = req.body;
 
   logger.info(
-    `updateDockerConfigController called - UserId: ${userId}, DeploymentId: ${deploymentId}`
+    `updateChatMessagesController called - UserId: ${userId}, DeploymentId: ${deploymentId}`
   );
   if (!userId) {
     res.status(401).json({ message: "User not authenticated" });
@@ -482,54 +333,50 @@ export const updateDockerConfigController = async (
     res.status(400).json({ message: "Deployment ID is required" });
     return;
   }
-  if (!dockerConfig || !dockerConfig.imageName || !dockerConfig.imageTag) {
-    res.status(400).json({ message: "Invalid Docker configuration data" });
+  if (!messages || !Array.isArray(messages)) {
+    res.status(400).json({ message: "Invalid chat messages data" });
     return;
   }
 
   try {
-    const updatedDeployment = await deploymentService.updateDockerConfig(
+    const updatedDeployment = await deploymentService.updateDeployment(
       userId!,
       deploymentId,
-      dockerConfig
+      { chatMessages: messages }
     );
     if (updatedDeployment) {
       logger.info(
-        `Docker config updated successfully - UserId: ${userId}, DeploymentId: ${updatedDeployment.id}`
+        `Chat messages updated successfully - UserId: ${userId}, DeploymentId: ${updatedDeployment.id}`
       );
       res.status(200).json(updatedDeployment);
     } else {
       logger.warn(
-        `Deployment not found or Docker config update failed - UserId: ${userId}, DeploymentId: ${deploymentId}`
+        `Deployment not found or chat messages update failed - UserId: ${userId}, DeploymentId: ${deploymentId}`
       );
-      res
-        .status(404)
-        .json({ message: "Deployment not found or update failed" });
+      res.status(404).json({ message: "Deployment not found or update failed" });
     }
   } catch (error: any) {
     logger.error(
-      `Error in updateDockerConfigController - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
+      `Error in updateChatMessagesController - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
       { stack: error.stack, body: req.body }
     );
-    res
-      .status(500)
-      .json({
-        message: "Error updating Docker configuration",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error updating chat messages",
+      error: error.message,
+    });
   }
 };
 
-export const updateTerraformConfigController = async (
+export const updateArchitectureTemplatesController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
   const { deploymentId } = req.params;
   const userId = req.user?.uid;
-  const terraformConfig = req.body as TerraformConfig;
+  const templates = req.body;
 
   logger.info(
-    `updateTerraformConfigController called - UserId: ${userId}, DeploymentId: ${deploymentId}`
+    `updateArchitectureTemplatesController called - UserId: ${userId}, DeploymentId: ${deploymentId}`
   );
   if (!userId) {
     res.status(401).json({ message: "User not authenticated" });
@@ -539,42 +386,37 @@ export const updateTerraformConfigController = async (
     res.status(400).json({ message: "Deployment ID is required" });
     return;
   }
-  // Basic validation, can be expanded
-  if (!terraformConfig) {
-    res.status(400).json({ message: "Invalid Terraform configuration data" });
+  if (!templates || !Array.isArray(templates)) {
+    res.status(400).json({ message: "Invalid architecture templates data" });
     return;
   }
 
   try {
-    const updatedDeployment = await deploymentService.updateTerraformConfig(
+    const updatedDeployment = await deploymentService.updateDeployment(
       userId!,
       deploymentId,
-      terraformConfig
+      { architectureTemplates: templates }
     );
     if (updatedDeployment) {
       logger.info(
-        `Terraform config updated successfully - UserId: ${userId}, DeploymentId: ${updatedDeployment.id}`
+        `Architecture templates updated successfully - UserId: ${userId}, DeploymentId: ${updatedDeployment.id}`
       );
       res.status(200).json(updatedDeployment);
     } else {
       logger.warn(
-        `Deployment not found or Terraform config update failed - UserId: ${userId}, DeploymentId: ${deploymentId}`
+        `Deployment not found or architecture templates update failed - UserId: ${userId}, DeploymentId: ${deploymentId}`
       );
-      res
-        .status(404)
-        .json({ message: "Deployment not found or update failed" });
+      res.status(404).json({ message: "Deployment not found or update failed" });
     }
   } catch (error: any) {
     logger.error(
-      `Error in updateTerraformConfigController - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
+      `Error in updateArchitectureTemplatesController - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
       { stack: error.stack, body: req.body }
     );
-    res
-      .status(500)
-      .json({
-        message: "Error updating Terraform configuration",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error updating architecture templates",
+      error: error.message,
+    });
   }
 };
 

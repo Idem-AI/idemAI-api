@@ -43,172 +43,6 @@ export interface GitRepository {
  * @openapi
  * components:
  *   schemas:
- *     CloudProviderCredentials:
- *       type: object
- *       description: Credentials identifiers for cloud provider.
- *       properties:
- *         roleArn:
- *           type: string
- *           description: For AWS, ARN of the IAM role to assume.
- *           nullable: true
- *         serviceAccountId:
- *           type: string
- *           description: For GCP, ID of the service account.
- *           nullable: true
- *         servicePrincipalId:
- *           type: string
- *           description: For Azure, ID of the service principal.
- *           nullable: true
- *     CloudProvider:
- *       type: object
- *       description: Cloud provider configuration details.
- *       properties:
- *         type:
- *           type: string
- *           enum: [aws, gcp, azure, self-hosted]
- *           description: The cloud provider type.
- *         region:
- *           type: string
- *           description: The cloud region.
- *           nullable: true
- *         accountId:
- *           type: string
- *           description: Cloud account ID (AWS account ID, GCP project ID, etc.).
- *           nullable: true
- *         credentials:
- *           $ref: '#/components/schemas/CloudProviderCredentials'
- *           nullable: true
- *       required:
- *         - type
- */
-export interface CloudProvider {
-  type: "aws" | "gcp" | "azure" | "self-hosted";
-  region?: string;
-  accountId?: string; // Cloud account ID (AWS account ID, GCP project ID, etc.)
-  credentials?: {
-    roleArn?: string; // For AWS, ARN of the IAM role to assume
-    serviceAccountId?: string; // For GCP, ID of the service account
-    servicePrincipalId?: string; // For Azure, ID of the service principal
-    // Credentials are never stored, only the identifiers to assume roles
-  };
-}
-
-/**
- * @openapi
- * components:
- *   schemas:
- *     InfrastructureResources:
- *       type: object
- *       properties:
- *         cpu:
- *           type: string
- *           description: CPU allocation (e.g., '0.5' or '2').
- *           nullable: true
- *         memory:
- *           type: string
- *           description: Memory allocation (e.g., '512Mi' or '2Gi').
- *           nullable: true
- *         storage:
- *           type: string
- *           description: Storage allocation (e.g., '20Gi').
- *           nullable: true
- *         instances:
- *           type: integer
- *           description: Number of instances.
- *           nullable: true
- *     InfrastructureNetworking:
- *       type: object
- *       properties:
- *         vpcId:
- *           type: string
- *           nullable: true
- *         subnetIds:
- *           type: array
- *           items:
- *             type: string
- *           nullable: true
- *         securityGroupIds:
- *           type: array
- *           items:
- *             type: string
- *           nullable: true
- *         loadBalancer:
- *           type: boolean
- *           nullable: true
- *         highAvailability:
- *           type: boolean
- *           description: Multi-AZ or multi-region.
- *           nullable: true
- *         publicAccess:
- *           type: boolean
- *           nullable: true
- *     InfrastructureDatabase:
- *       type: object
- *       properties:
- *         type:
- *           type: string
- *           enum: [mysql, postgres, mongodb, redis, dynamodb]
- *           nullable: true
- *         version:
- *           type: string
- *           nullable: true
- *         size:
- *           type: string
- *           nullable: true
- *         replicas:
- *           type: integer
- *           nullable: true
- *         highAvailability:
- *           type: boolean
- *           nullable: true
- *     InfrastructureConfig:
- *       type: object
- *       description: Infrastructure configuration details.
- *       properties:
- *         serviceType:
- *           type: string
- *           enum: [container, vm, kubernetes, serverless]
- *         resources:
- *           $ref: '#/components/schemas/InfrastructureResources'
- *           nullable: true
- *         networking:
- *           $ref: '#/components/schemas/InfrastructureNetworking'
- *           nullable: true
- *         database:
- *           $ref: '#/components/schemas/InfrastructureDatabase'
- *           nullable: true
- *       required:
- *         - serviceType
- */
-export interface InfrastructureConfig {
-  serviceType: "container" | "vm" | "kubernetes" | "serverless";
-  resources: {
-    cpu?: string; // Ex: '0.5' or '2'
-    memory?: string; // Ex: '512Mi' or '2Gi'
-    storage?: string; // Ex: '20Gi'
-    instances?: number; // Number of instances
-  };
-  networking: {
-    vpcId?: string;
-    subnetIds?: string[];
-    securityGroupIds?: string[];
-    loadBalancer?: boolean;
-    highAvailability?: boolean; // Multi-AZ or multi-region
-    publicAccess?: boolean;
-  };
-  database?: {
-    type?: "mysql" | "postgres" | "mongodb" | "redis" | "dynamodb";
-    version?: string;
-    size?: string;
-    replicas?: number;
-    highAvailability?: boolean;
-  };
-}
-
-/**
- * @openapi
- * components:
- *   schemas:
  *     EnvironmentVariable:
  *       type: object
  *       description: Environment variable configuration.
@@ -230,78 +64,6 @@ export interface EnvironmentVariable {
   value: string;
   isSecret: boolean;
   // Secrets are encrypted at rest and in transit
-}
-
-/**
- * @openapi
- * components:
- *   schemas:
- *     DockerConfig:
- *       type: object
- *       description: Docker configuration details.
- *       properties:
- *         useCustomDockerfile:
- *           type: boolean
- *         dockerfileLocation:
- *           type: string
- *           description: Relative path to the Dockerfile in the repository.
- *           nullable: true
- *         baseImage:
- *           type: string
- *           description: Base image if Dockerfile is generated by Idem.
- *           nullable: true
- *         registryUrl:
- *           type: string
- *           description: URL of the Docker registry (e.g., ECR, GCR, ACR).
- *           nullable: true
- *         imageName:
- *           type: string
- *         imageTag:
- *           type: string
- *       required:
- *         - useCustomDockerfile
- *         - imageName
- *         - imageTag
- */
-export interface DockerConfig {
-  useCustomDockerfile: boolean;
-  dockerfileLocation?: string; // Relative path to the repo
-  baseImage?: string; // If generated by Idem
-  registryUrl?: string; // URL of the Docker registry (ECR, GCR, ACR, etc.)
-  imageName: string;
-  imageTag: string;
-}
-
-/**
- * @openapi
- * components:
- *   schemas:
- *     TerraformConfig:
- *       type: object
- *       description: Terraform configuration details.
- *       properties:
- *         stateBucketName:
- *           type: string
- *           description: Name of the S3/GCS bucket for the Terraform state.
- *           nullable: true
- *         stateKey:
- *           type: string
- *           description: Path to the Terraform state file in the bucket.
- *           nullable: true
- *         planApproved:
- *           type: boolean
- *           description: If the Terraform plan has been approved by the user.
- *           nullable: true
- *         lastPlanOutput:
- *           type: string
- *           description: Summary of the last Terraform plan.
- *           nullable: true
- */
-export interface TerraformConfig {
-  stateBucketName?: string; // Name of the S3/GCS bucket for the Terraform state
-  stateKey?: string; // Path to the Terraform state file in the bucket
-  planApproved?: boolean; // If the plan has been approved by the user
-  lastPlanOutput?: string; // Summary of the last Terraform plan (operations planned)
 }
 
 /**
@@ -383,49 +145,6 @@ export interface CostEstimation {
   currency: string;
   breakdown: Record<string, number>; // Breakdown by service
   lastUpdated: Date;
-}
-
-/**
- * @openapi
- * components:
- *   schemas:
- *     SecurityScanResult:
- *       type: object
- *       description: Result of a security scan.
- *       properties:
- *         severity:
- *           type: string
- *           enum: [critical, high, medium, low, info]
- *         category:
- *           type: string
- *         description:
- *           type: string
- *         file:
- *           type: string
- *           nullable: true
- *         line:
- *           type: integer
- *           nullable: true
- *         recommendation:
- *           type: string
- *           nullable: true
- *         reference:
- *           type: string
- *           format: url
- *           nullable: true
- *       required:
- *         - severity
- *         - category
- *         - description
- */
-export interface SecurityScanResult {
-  severity: "critical" | "high" | "medium" | "low" | "info";
-  category: string;
-  description: string;
-  file?: string;
-  line?: number;
-  recommendation?: string;
-  reference?: string;
 }
 
 /**
@@ -587,11 +306,7 @@ export interface DeploymentModel {
 
   // Configuration
   gitRepository?: GitRepository;
-  cloudProvider?: CloudProvider;
-  infrastructureConfig?: InfrastructureConfig;
   environmentVariables?: EnvironmentVariable[];
-  dockerConfig?: DockerConfig;
-  terraformConfig?: TerraformConfig;
 
   // Monitoring of the pipeline
   pipeline?: {
@@ -602,7 +317,6 @@ export interface DeploymentModel {
   };
 
   // Security and analysis
-  securityScanResults?: SecurityScanResult[];
   staticCodeAnalysis?: {
     score?: number; // Code quality score (0-100)
     issues?: { severity: string; count: number }[];
@@ -623,4 +337,53 @@ export interface DeploymentModel {
   // Standard timestamps
   createdAt: Date;
   updatedAt: Date;
+
+  // New fields using simplified interfaces
+  chatMessages?: ChatMessage[];
+  architectureTemplates?: ArchitectureTemplate[];
+  cloudComponents?: CloudComponentDetailed[];
+  architectureComponents?: ArchitectureComponent[];
+}
+
+export interface ChatMessage {
+  sender: "user" | "ai";
+  text: string;
+}
+
+export interface ArchitectureTemplate {
+  id: string;
+  provider: "aws" | "gcp" | "azure";
+  category: string;
+  name: string;
+  description: string;
+  tags: string[];
+  icon: string;
+}
+
+interface FormOption {
+  name: string;
+  label: string;
+  type: "text" | "number" | "select" | "toggle";
+  required: boolean;
+  defaultValue?: any;
+  placeholder?: string;
+  options?: { value: string; label: string }[];
+  description?: string;
+}
+
+interface CloudComponentDetailed {
+  id: string;
+  provider: "aws" | "gcp" | "azure";
+  category: string;
+  name: string;
+  icon: string;
+  description: string;
+  options: FormOption[];
+}
+
+interface ArchitectureComponent {
+  instanceId: string;
+  componentId: string;
+  name: string;
+  icon: string;
 }

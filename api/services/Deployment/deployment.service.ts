@@ -1,15 +1,12 @@
+import { DeploymentModel } from "../../models/deployment.model";
 import { IRepository } from "../../repository/IRepository";
 import { RepositoryFactory } from "../../repository/RepositoryFactory";
 import { TargetModelType } from "../../enums/targetModelType.enum";
 import {
-  DeploymentModel,
   GitRepository,
-  CloudProvider,
-  InfrastructureConfig,
   EnvironmentVariable,
-  DockerConfig,
-  TerraformConfig,
-  PipelineStep,
+  ChatMessage,
+  ArchitectureTemplate,
 } from "../../models/deployment.model";
 import logger from "../../config/logger";
 
@@ -41,18 +38,17 @@ export class DeploymentService {
         environment: data.environment,
         status: "configuring", // Initial status
         gitRepository: undefined,
-        cloudProvider: undefined,
-        infrastructureConfig: undefined,
         environmentVariables: [],
-        dockerConfig: undefined,
-        terraformConfig: undefined,
+        chatMessages: [],
+        architectureTemplates: [],
+        cloudComponents: [],
+        architectureComponents: [],
         pipeline: {
           currentStage: "Initial Configuration",
           steps: [],
           startedAt: undefined,
           estimatedCompletionTime: undefined,
         },
-        securityScanResults: [],
         staticCodeAnalysis: undefined,
         costEstimation: undefined,
         url: undefined,
@@ -198,120 +194,19 @@ export class DeploymentService {
     }
   }
 
-  // Configuration Update Methods
   async updateGitRepositoryConfig(
     userId: string,
     deploymentId: string,
     gitConfig: GitRepository
   ): Promise<DeploymentModel | null> {
-    logger.info(
-      `updateGitRepositoryConfig called for userId: ${userId}, deploymentId: ${deploymentId}`
-    );
     try {
-      const deployment = await this.repository.findById(deploymentId, userId);
-      if (!deployment) {
-        logger.warn(
-          `Deployment not found with deploymentId: ${deploymentId} for userId: ${userId}`
-        );
-        return null;
-      }
-      const updatedDeployment = await this.repository.update(
+      return await this.repository.update(
         deploymentId,
         { gitRepository: gitConfig },
         userId
       );
-      if (!updatedDeployment) {
-        logger.warn(
-          `Failed to update gitRepository for deploymentId: ${deploymentId}`
-        );
-        return null;
-      }
-      logger.info(
-        `GitRepository configuration updated for deploymentId: ${deploymentId}`
-      );
-      return updatedDeployment;
     } catch (error: any) {
-      logger.error(
-        `Error in updateGitRepositoryConfig for deploymentId ${deploymentId}: ${error.message}`,
-        { stack: error.stack, userId }
-      );
-      throw error;
-    }
-  }
-
-  async updateCloudProviderConfig(
-    userId: string,
-    deploymentId: string,
-    cloudConfig: CloudProvider
-  ): Promise<DeploymentModel | null> {
-    logger.info(
-      `updateCloudProviderConfig called for userId: ${userId}, deploymentId: ${deploymentId}`
-    );
-    try {
-      const deployment = await this.repository.findById(deploymentId, userId);
-      if (!deployment) {
-        logger.warn(`Deployment not found: ${deploymentId}`);
-        return null;
-      }
-      const updatedDeployment = await this.repository.update(
-        deploymentId,
-        { cloudProvider: cloudConfig },
-        userId
-      );
-      if (!updatedDeployment) {
-        logger.warn(
-          `Failed to update cloudProvider for deploymentId: ${deploymentId}`
-        );
-        return null;
-      }
-      logger.info(
-        `CloudProvider configuration updated for deploymentId: ${deploymentId}`
-      );
-      return updatedDeployment;
-    } catch (error: any) {
-      logger.error(
-        `Error in updateCloudProviderConfig for deploymentId ${deploymentId}: ${error.message}`,
-        { stack: error.stack, userId }
-      );
-      throw error;
-    }
-  }
-
-  async updateInfrastructureConfig(
-    userId: string,
-    deploymentId: string,
-    infraConfig: InfrastructureConfig
-  ): Promise<DeploymentModel | null> {
-    logger.info(
-      `updateInfrastructureConfig called for userId: ${userId}, deploymentId: ${deploymentId}`
-    );
-    try {
-      const deployment = await this.repository.findById(deploymentId, userId);
-      if (!deployment) {
-        logger.warn(`Deployment not found: ${deploymentId}`);
-        return null;
-      }
-      const updatedDeployment = await this.repository.update(
-        deploymentId,
-        { infrastructureConfig: infraConfig },
-        userId
-      );
-      if (!updatedDeployment) {
-        logger.warn(
-          `Failed to update infrastructureConfig for deploymentId: ${deploymentId}`
-        );
-        return null;
-      }
-      logger.info(
-        `Infrastructure configuration updated for deploymentId: ${deploymentId}`
-      );
-      // Future: await this.updateCostEstimation(userId, deploymentId, updatedDeployment);
-      return updatedDeployment;
-    } catch (error: any) {
-      logger.error(
-        `Error in updateInfrastructureConfig for deploymentId ${deploymentId}: ${error.message}`,
-        { stack: error.stack, userId }
-      );
+      logger.error(`Error updating git config: ${error.message}`, { stack: error.stack, userId });
       throw error;
     }
   }
@@ -321,124 +216,93 @@ export class DeploymentService {
     deploymentId: string,
     envVars: EnvironmentVariable[]
   ): Promise<DeploymentModel | null> {
-    logger.info(
-      `updateEnvironmentVariables called for userId: ${userId}, deploymentId: ${deploymentId}`
-    );
     try {
-      const deployment = await this.repository.findById(deploymentId, userId);
-      if (!deployment) {
-        logger.warn(`Deployment not found: ${deploymentId}`);
-        return null;
-      }
-      // Future: Encrypt secrets if isSecret is true before saving
-      const updatedDeployment = await this.repository.update(
+      return await this.repository.update(
         deploymentId,
         { environmentVariables: envVars },
         userId
       );
-      if (!updatedDeployment) {
-        logger.warn(
-          `Failed to update environmentVariables for deploymentId: ${deploymentId}`
-        );
-        return null;
-      }
-      logger.info(
-        `Environment variables updated for deploymentId: ${deploymentId}`
-      );
-      return updatedDeployment;
     } catch (error: any) {
-      logger.error(
-        `Error in updateEnvironmentVariables for deploymentId ${deploymentId}: ${error.message}`,
-        { stack: error.stack, userId }
-      );
+      logger.error(`Error updating env vars: ${error.message}`, { stack: error.stack, userId });
       throw error;
     }
   }
 
-  async updateDockerConfig(
+  async updateChatMessages(
     userId: string,
     deploymentId: string,
-    dockerConfig: DockerConfig
+    messages: ChatMessage[]
   ): Promise<DeploymentModel | null> {
-    logger.info(
-      `updateDockerConfig called for userId: ${userId}, deploymentId: ${deploymentId}`
-    );
     try {
-      const deployment = await this.repository.findById(deploymentId, userId);
-      if (!deployment) {
-        logger.warn(`Deployment not found: ${deploymentId}`);
-        return null;
-      }
-      const updatedDeployment = await this.repository.update(
+      return await this.repository.update(
         deploymentId,
-        { dockerConfig: dockerConfig },
+        { chatMessages: messages },
         userId
       );
-      if (!updatedDeployment) {
-        logger.warn(
-          `Failed to update dockerConfig for deploymentId: ${deploymentId}`
-        );
-        return null;
-      }
-      logger.info(
-        `Docker configuration updated for deploymentId: ${deploymentId}`
-      );
-      return updatedDeployment;
     } catch (error: any) {
-      logger.error(
-        `Error in updateDockerConfig for deploymentId ${deploymentId}: ${error.message}`,
-        { stack: error.stack, userId }
-      );
+      logger.error(`Error updating chat messages: ${error.message}`, { stack: error.stack, userId });
       throw error;
     }
   }
 
-  async updateTerraformConfig(
+  async updateArchitectureTemplates(
     userId: string,
     deploymentId: string,
-    terraformConfig: TerraformConfig
+    templates: ArchitectureTemplate[]
   ): Promise<DeploymentModel | null> {
-    logger.info(
-      `updateTerraformConfig called for userId: ${userId}, deploymentId: ${deploymentId}`
-    );
     try {
-      const deployment = await this.repository.findById(deploymentId, userId);
-      if (!deployment) {
-        logger.warn(`Deployment not found: ${deploymentId}`);
-        return null;
-      }
-      const updatedDeployment = await this.repository.update(
+      return await this.repository.update(
         deploymentId,
-        { terraformConfig: terraformConfig },
+        { architectureTemplates: templates },
         userId
       );
-      if (!updatedDeployment) {
-        logger.warn(
-          `Failed to update terraformConfig for deploymentId: ${deploymentId}`
-        );
-        return null;
-      }
-      logger.info(
-        `Terraform configuration updated for deploymentId: ${deploymentId}`
-      );
-      return updatedDeployment;
     } catch (error: any) {
-      logger.error(
-        `Error in updateTerraformConfig for deploymentId ${deploymentId}: ${error.message}`,
-        { stack: error.stack, userId }
-      );
+      logger.error(`Error updating architecture templates: ${error.message}`, { stack: error.stack, userId });
       throw error;
     }
   }
 
-  // Pipeline Management Methods
+  async updateCloudComponents(
+    userId: string,
+    deploymentId: string,
+    components: any[]
+  ): Promise<DeploymentModel | null> {
+    try {
+      return await this.repository.update(
+        deploymentId,
+        { cloudComponents: components },
+        userId
+      );
+    } catch (error: any) {
+      logger.error(`Error updating cloud components: ${error.message}`, { stack: error.stack, userId });
+      throw error;
+    }
+  }
+
+  async updateArchitectureComponents(
+    userId: string,
+    deploymentId: string,
+    components: any[]
+  ): Promise<DeploymentModel | null> {
+    try {
+      return await this.repository.update(
+        deploymentId,
+        { architectureComponents: components },
+        userId
+      );
+    } catch (error: any) {
+      logger.error(`Error updating architecture components: ${error.message}`, { stack: error.stack, userId });
+      throw error;
+    }
+  }
+
   async updateDeploymentStatusAndStep(
     userId: string,
     deploymentId: string,
     newStatus: DeploymentModel["status"],
     stepDetails?: {
       name: string;
-      status: PipelineStep["status"];
+      status: any["status"];
       message?: string;
       logs?: string;
       aiRecommendation?: string;
@@ -584,10 +448,11 @@ export class DeploymentService {
     // Validate all required configurations are present
     if (
       !deployment.gitRepository ||
-      !deployment.cloudProvider ||
-      !deployment.infrastructureConfig ||
-      !deployment.dockerConfig ||
-      !deployment.terraformConfig
+      !deployment.environmentVariables ||
+      !deployment.chatMessages ||
+      !deployment.architectureTemplates ||
+      !deployment.cloudComponents ||
+      !deployment.architectureComponents
     ) {
       logger.warn(
         `startDeploymentPipeline: Deployment ${deploymentId} is missing required configurations.`
@@ -600,7 +465,7 @@ export class DeploymentService {
           name: "Pre-flight Check",
           status: "failed",
           message:
-            "Missing critical deployment configurations. Please ensure Git, Cloud, Infrastructure, Docker, and Terraform settings are complete.",
+            "Missing critical deployment configurations. Please ensure Git, Environment Variables, Chat Messages, Architecture Templates, Cloud Components, and Architecture Components settings are complete.",
         }
       );
       return updatedDeploymentState;

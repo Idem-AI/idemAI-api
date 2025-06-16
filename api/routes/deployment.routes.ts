@@ -6,36 +6,26 @@ import {
   updateDeploymentController,
   deleteDeploymentController,
   updateGitRepositoryConfigController,
-  updateCloudProviderConfigController,
-  updateInfrastructureConfigController,
   updateEnvironmentVariablesController,
-  updateDockerConfigController,
-  updateTerraformConfigController,
+  updateChatMessagesController,
+  updateArchitectureTemplatesController,
   startDeploymentPipelineController,
 } from "../controllers/deployment.controller";
 import { authenticate } from "../services/auth.service";
 
 export const deploymentRoutes = Router();
+const resourceName = "/deployments";
 
-const resourceName = "deployments"; // Corresponds to TargetModelType.DEPLOYMENT
-
-// Generate a new deployment for a project
+// Core CRUD Routes
 /**
  * @openapi
- * /deployments/generate/{projectId}:
+ * /deployments/generate:
  *   post:
  *     tags:
  *       - Deployments
- *     summary: Generate a new deployment configuration for a project
+ *     summary: Generate a new deployment configuration
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: projectId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the project for which to generate the deployment.
  *     requestBody:
  *       description: Optional initial data for the deployment.
  *       required: false
@@ -66,16 +56,11 @@ const resourceName = "deployments"; // Corresponds to TargetModelType.DEPLOYMENT
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.post(
-  `${resourceName}/generate/:projectId`,
-  authenticate,
-  generateDeploymentController
-);
+deploymentRoutes.post(`${resourceName}/generate`, authenticate, generateDeploymentController);
 
-// Get all deployments for a specific project
 /**
  * @openapi
- * /deployments/getAll/{projectId}:
+ * /deployments/getByProject/{projectId}:
  *   get:
  *     tags:
  *       - Deployments
@@ -105,13 +90,8 @@ deploymentRoutes.post(
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.get(
-  `${resourceName}/getAll/:projectId`,
-  authenticate,
-  getDeploymentsByProjectController
-);
+deploymentRoutes.get(`${resourceName}/getByProject/:projectId`, authenticate, getDeploymentsByProjectController);
 
-// Get a specific deployment by its ID
 /**
  * @openapi
  * /deployments/get/{deploymentId}:
@@ -142,13 +122,8 @@ deploymentRoutes.get(
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.get(
-  `${resourceName}/get/:deploymentId`,
-  authenticate,
-  getDeploymentByIdController
-);
+deploymentRoutes.get(`${resourceName}/get/:deploymentId`, authenticate, getDeploymentByIdController);
 
-// Update a specific deployment by its ID
 /**
  * @openapi
  * /deployments/update/{deploymentId}:
@@ -187,13 +162,8 @@ deploymentRoutes.get(
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.put(
-  `${resourceName}/update/:deploymentId`,
-  authenticate,
-  updateDeploymentController
-);
+deploymentRoutes.put(`${resourceName}/update/:deploymentId`, authenticate, updateDeploymentController);
 
-// Delete a specific deployment by its ID
 /**
  * @openapi
  * /deployments/delete/{deploymentId}:
@@ -228,16 +198,12 @@ deploymentRoutes.put(
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.delete(
-  `${resourceName}/delete/:deploymentId`,
-  authenticate,
-  deleteDeploymentController
-);
+deploymentRoutes.delete(`${resourceName}/delete/:deploymentId`, authenticate, deleteDeploymentController);
 
-// Routes for updating specific parts of the deployment configuration
+// Configuration Update Routes
 /**
  * @openapi
- * /deployments/config/git/{deploymentId}:
+ * /deployments/updateGitConfig/{deploymentId}:
  *   put:
  *     tags:
  *       - Deployments Configuration
@@ -264,7 +230,6 @@ deploymentRoutes.delete(
  *         content:
  *           application/json:
  *             schema:
- *               # You might want to define a standard success response DTO or reference DeploymentModel
  *               type: object
  *               properties:
  *                 message:
@@ -281,117 +246,11 @@ deploymentRoutes.delete(
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.put(
-  `${resourceName}/config/git/:deploymentId`,
-  authenticate,
-  updateGitRepositoryConfigController
-);
+deploymentRoutes.put(`${resourceName}/updateGitConfig/:deploymentId`, authenticate, updateGitRepositoryConfigController);
 
 /**
  * @openapi
- * /deployments/config/cloud/{deploymentId}:
- *   put:
- *     tags:
- *       - Deployments Configuration
- *     summary: Update cloud provider configuration
- *     description: Updates the cloud provider settings for a specific deployment.
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: deploymentId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the deployment to update.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/UpdateCloudProviderConfigDto'
- *     responses:
- *       '200':
- *         description: Cloud provider configuration updated successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: 'Cloud provider configuration updated successfully.'
- *                 deployment:
- *                   $ref: '#/components/schemas/DeploymentModel'
- *       '400':
- *         description: Bad request (e.g., validation error).
- *       '401':
- *         description: Unauthorized.
- *       '404':
- *         description: Deployment not found.
- *       '500':
- *         description: Internal server error.
- */
-deploymentRoutes.put(
-  `${resourceName}/config/cloud/:deploymentId`,
-  authenticate,
-  updateCloudProviderConfigController
-);
-
-/**
- * @openapi
- * /deployments/config/infrastructure/{deploymentId}:
- *   put:
- *     tags:
- *       - Deployments Configuration
- *     summary: Update infrastructure configuration
- *     description: Updates the infrastructure settings for a specific deployment.
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: deploymentId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the deployment to update.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/UpdateInfrastructureConfigDto'
- *     responses:
- *       '200':
- *         description: Infrastructure configuration updated successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: 'Infrastructure configuration updated successfully.'
- *                 deployment:
- *                   $ref: '#/components/schemas/DeploymentModel'
- *       '400':
- *         description: Bad request (e.g., validation error).
- *       '401':
- *         description: Unauthorized.
- *       '404':
- *         description: Deployment not found.
- *       '500':
- *         description: Internal server error.
- */
-deploymentRoutes.put(
-  `${resourceName}/config/infrastructure/:deploymentId`,
-  authenticate,
-  updateInfrastructureConfigController
-);
-
-/**
- * @openapi
- * /deployments/config/envvars/{deploymentId}:
+ * /deployments/updateEnvVars/{deploymentId}:
  *   put:
  *     tags:
  *       - Deployments Configuration
@@ -434,20 +293,16 @@ deploymentRoutes.put(
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.put(
-  `${resourceName}/config/envvars/:deploymentId`,
-  authenticate,
-  updateEnvironmentVariablesController
-);
+deploymentRoutes.put(`${resourceName}/updateEnvVars/:deploymentId`, authenticate, updateEnvironmentVariablesController);
 
 /**
  * @openapi
- * /deployments/config/docker/{deploymentId}:
+ * /deployments/updateChatMessages/{deploymentId}:
  *   put:
  *     tags:
  *       - Deployments Configuration
- *     summary: Update Docker configuration
- *     description: Updates the Docker settings for a specific deployment.
+ *     summary: Update chat messages
+ *     description: Updates the chat messages for a specific deployment.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -462,10 +317,10 @@ deploymentRoutes.put(
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/UpdateDockerConfigDto'
+ *             $ref: '#/components/schemas/UpdateChatMessagesDto'
  *     responses:
  *       '200':
- *         description: Docker configuration updated successfully.
+ *         description: Chat messages updated successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -473,7 +328,7 @@ deploymentRoutes.put(
  *               properties:
  *                 message:
  *                   type: string
- *                   example: 'Docker configuration updated successfully.'
+ *                   example: 'Chat messages updated successfully.'
  *                 deployment:
  *                   $ref: '#/components/schemas/DeploymentModel'
  *       '400':
@@ -485,20 +340,16 @@ deploymentRoutes.put(
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.put(
-  `${resourceName}/config/docker/:deploymentId`,
-  authenticate,
-  updateDockerConfigController
-);
+deploymentRoutes.put(`${resourceName}/updateChatMessages/:deploymentId`, authenticate, updateChatMessagesController);
 
 /**
  * @openapi
- * /deployments/config/terraform/{deploymentId}:
+ * /deployments/updateArchitectureTemplates/{deploymentId}:
  *   put:
  *     tags:
  *       - Deployments Configuration
- *     summary: Update Terraform configuration
- *     description: Updates the Terraform settings for a specific deployment.
+ *     summary: Update architecture templates
+ *     description: Updates the architecture templates for a specific deployment.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -513,10 +364,10 @@ deploymentRoutes.put(
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/UpdateTerraformConfigDto'
+ *             $ref: '#/components/schemas/UpdateArchitectureTemplatesDto'
  *     responses:
  *       '200':
- *         description: Terraform configuration updated successfully.
+ *         description: Architecture templates updated successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -524,7 +375,7 @@ deploymentRoutes.put(
  *               properties:
  *                 message:
  *                   type: string
- *                   example: 'Terraform configuration updated successfully.'
+ *                   example: 'Architecture templates updated successfully.'
  *                 deployment:
  *                   $ref: '#/components/schemas/DeploymentModel'
  *       '400':
@@ -536,16 +387,12 @@ deploymentRoutes.put(
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.put(
-  `${resourceName}/config/terraform/:deploymentId`,
-  authenticate,
-  updateTerraformConfigController
-);
+deploymentRoutes.put(`${resourceName}/updateArchitectureTemplates/:deploymentId`, authenticate, updateArchitectureTemplatesController);
 
-// Route for starting the deployment pipeline
+// Pipeline Management
 /**
  * @openapi
- * /deployments/pipeline/start/{deploymentId}:
+ * /deployments/startPipeline/{deploymentId}:
  *   post:
  *     tags:
  *       - Deployments Pipeline
@@ -582,8 +429,4 @@ deploymentRoutes.put(
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.post(
-  `${resourceName}/pipeline/start/:deploymentId`,
-  authenticate,
-  startDeploymentPipelineController
-);
+deploymentRoutes.post(`${resourceName}/startPipeline/:deploymentId`, authenticate, startDeploymentPipelineController);
