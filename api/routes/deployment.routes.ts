@@ -1,17 +1,20 @@
 import { Router } from "express";
-import {
-  generateDeploymentController,
-  getDeploymentsByProjectController,
-  getDeploymentByIdController,
-  updateDeploymentController,
-  deleteDeploymentController,
-  updateGitRepositoryConfigController,
-  updateEnvironmentVariablesController,
-  updateChatMessagesController,
-  updateArchitectureTemplatesController,
-  startDeploymentPipelineController,
-} from "../controllers/deployment.controller";
 import { authenticate } from "../services/auth.service";
+import {
+  CreateDeploymentController,
+  GetDeploymentsByProjectController,
+  GetDeploymentByIdController,
+  UpdateDeploymentController,
+  DeleteDeploymentController,
+  UpdateGitConfigController,
+  UpdateEnvironmentVariablesController,
+  UpdateArchitectureComponentsController,
+  AddChatMessageController,
+  StartPipelineController,
+  GetPipelineStatusController,
+  EstimateCostController,
+  GenerateDeploymentController,
+} from "../controllers/deployment.controller";
 
 export const deploymentRoutes = Router();
 const resourceName = "/deployments";
@@ -56,7 +59,11 @@ const resourceName = "/deployments";
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.post(`${resourceName}/generate`, authenticate, generateDeploymentController);
+deploymentRoutes.post(
+  `${resourceName}/generate`,
+  authenticate,
+  GenerateDeploymentController
+);
 
 /**
  * @openapi
@@ -90,7 +97,11 @@ deploymentRoutes.post(`${resourceName}/generate`, authenticate, generateDeployme
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.get(`${resourceName}/getByProject/:projectId`, authenticate, getDeploymentsByProjectController);
+deploymentRoutes.get(
+  `${resourceName}/getByProject/:projectId`,
+  authenticate,
+  GetDeploymentsByProjectController
+);
 
 /**
  * @openapi
@@ -122,7 +133,11 @@ deploymentRoutes.get(`${resourceName}/getByProject/:projectId`, authenticate, ge
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.get(`${resourceName}/get/:deploymentId`, authenticate, getDeploymentByIdController);
+deploymentRoutes.get(
+  `${resourceName}/get/:deploymentId`,
+  authenticate,
+  GetDeploymentByIdController
+);
 
 /**
  * @openapi
@@ -162,7 +177,11 @@ deploymentRoutes.get(`${resourceName}/get/:deploymentId`, authenticate, getDeplo
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.put(`${resourceName}/update/:deploymentId`, authenticate, updateDeploymentController);
+deploymentRoutes.put(
+  `${resourceName}/update/:deploymentId`,
+  authenticate,
+  UpdateDeploymentController
+);
 
 /**
  * @openapi
@@ -198,7 +217,11 @@ deploymentRoutes.put(`${resourceName}/update/:deploymentId`, authenticate, updat
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.delete(`${resourceName}/delete/:deploymentId`, authenticate, deleteDeploymentController);
+deploymentRoutes.delete(
+  `${resourceName}/delete/:deploymentId`,
+  authenticate,
+  DeleteDeploymentController
+);
 
 // Configuration Update Routes
 /**
@@ -246,7 +269,11 @@ deploymentRoutes.delete(`${resourceName}/delete/:deploymentId`, authenticate, de
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.put(`${resourceName}/updateGitConfig/:deploymentId`, authenticate, updateGitRepositoryConfigController);
+deploymentRoutes.put(
+  `${resourceName}/updateGitConfig/:deploymentId`,
+  authenticate,
+  UpdateGitConfigController
+);
 
 /**
  * @openapi
@@ -293,7 +320,11 @@ deploymentRoutes.put(`${resourceName}/updateGitConfig/:deploymentId`, authentica
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.put(`${resourceName}/updateEnvVars/:deploymentId`, authenticate, updateEnvironmentVariablesController);
+deploymentRoutes.put(
+  `${resourceName}/updateEnvVars/:deploymentId`,
+  authenticate,
+  UpdateEnvironmentVariablesController
+);
 
 /**
  * @openapi
@@ -340,7 +371,11 @@ deploymentRoutes.put(`${resourceName}/updateEnvVars/:deploymentId`, authenticate
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.put(`${resourceName}/updateChatMessages/:deploymentId`, authenticate, updateChatMessagesController);
+deploymentRoutes.put(
+  `${resourceName}/updateChatMessages/:deploymentId`,
+  authenticate,
+  AddChatMessageController
+);
 
 /**
  * @openapi
@@ -387,7 +422,11 @@ deploymentRoutes.put(`${resourceName}/updateChatMessages/:deploymentId`, authent
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.put(`${resourceName}/updateArchitectureTemplates/:deploymentId`, authenticate, updateArchitectureTemplatesController);
+deploymentRoutes.put(
+  `${resourceName}/updateArchitectureTemplates/:deploymentId`,
+  authenticate,
+  UpdateArchitectureComponentsController
+);
 
 // Pipeline Management
 /**
@@ -429,4 +468,140 @@ deploymentRoutes.put(`${resourceName}/updateArchitectureTemplates/:deploymentId`
  *       '500':
  *         description: Internal server error.
  */
-deploymentRoutes.post(`${resourceName}/startPipeline/:deploymentId`, authenticate, startDeploymentPipelineController);
+deploymentRoutes.post(
+  `${resourceName}/startPipeline/:deploymentId`,
+  authenticate,
+  StartPipelineController
+);
+
+/**
+ * @openapi
+ * /deployments/getPipelineStatus/{deploymentId}:
+ *   get:
+ *     tags:
+ *       - Deployments Pipeline
+ *     summary: Get deployment pipeline status
+ *     description: Retrieves the status of the deployment pipeline for a specific deployment.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: deploymentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the deployment to get the pipeline status for.
+ *     responses:
+ *       '200':
+ *         description: Deployment pipeline status retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: 'Deployment pipeline status retrieved successfully.'
+ *                 deployment:
+ *                   $ref: '#/components/schemas/DeploymentModel'
+ *       '400':
+ *         description: Bad request (e.g., deployment not configured, already running).
+ *       '401':
+ *         description: Unauthorized.
+ *       '404':
+ *         description: Deployment not found.
+ *       '500':
+ *         description: Internal server error.
+ */
+deploymentRoutes.get(
+  `${resourceName}/getPipelineStatus/:deploymentId`,
+  authenticate,
+  GetPipelineStatusController
+);
+
+/**
+ * @openapi
+ * /deployments/estimateCost/{deploymentId}:
+ *   get:
+ *     tags:
+ *       - Deployments Pipeline
+ *     summary: Estimate deployment cost
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: deploymentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the deployment to estimate the cost for.
+ *     responses:
+ *       '200':
+ *         description: Deployment cost estimation retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: 'Deployment cost estimation retrieved successfully.'
+ *                 deployment:
+ *                   $ref: '#/components/schemas/DeploymentModel'
+ *       '400':
+ *         description: Bad request (e.g., deployment not configured, already running).
+ *       '401':
+ *         description: Unauthorized.
+ *       '404':
+ *         description: Deployment not found.
+ *       '500':
+ *         description: Internal server error.
+ */
+deploymentRoutes.get(
+  `${resourceName}/estimateCost/:deploymentId`,
+  authenticate,
+  EstimateCostController
+);
+
+
+/**
+ * @openapi
+ * /deployments/create:
+ *   post:
+ *     tags:
+ *       - Deployments Pipeline
+ *     summary: Create deployment
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateDeploymentDto'
+ *     responses:
+ *       '200':
+ *         description: Deployment created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: 'Deployment created successfully.'
+ *                 deployment:
+ *                   $ref: '#/components/schemas/DeploymentModel'
+ *       '400':
+ *         description: Bad request (e.g., invalid deployment configuration).
+ *       '401':
+ *         description: Unauthorized.
+ *       '500':
+ *         description: Internal server error.
+ */
+deploymentRoutes.post(
+  `${resourceName}/create`,
+  authenticate,
+  CreateDeploymentController
+);
+

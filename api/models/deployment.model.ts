@@ -1,64 +1,11 @@
-// Interfaces for each component of the deployment
-/**
- * @openapi
- * components:
- *   schemas:
- *     GitRepository:
- *       type: object
- *       description: Git repository configuration details.
- *       properties:
- *         provider:
- *           type: string
- *           enum: [github, gitlab, bitbucket, azure-repos]
- *           description: The Git provider.
- *         url:
- *           type: string
- *           format: url
- *           description: The URL of the Git repository.
- *         branch:
- *           type: string
- *           description: The branch to deploy from.
- *         accessToken:
- *           type: string
- *           description: PAT or OAuth token (stored encrypted).
- *           nullable: true
- *         webhookId:
- *           type: string
- *           description: ID of the configured webhook.
- *           nullable: true
- *       required:
- *         - provider
- *         - url
- *         - branch
- */
 export interface GitRepository {
-  provider: "github" | "gitlab" | "bitbucket" | "azure-repos";
+  provider: 'github' | 'gitlab' | 'bitbucket' | 'azure-repos';
   url: string;
   branch: string;
   accessToken?: string; // PAT or OAuth token (stored encrypted)
   webhookId?: string; // ID of the configured webhook
 }
 
-/**
- * @openapi
- * components:
- *   schemas:
- *     EnvironmentVariable:
- *       type: object
- *       description: Environment variable configuration.
- *       properties:
- *         key:
- *           type: string
- *         value:
- *           type: string
- *         isSecret:
- *           type: boolean
- *           description: If true, the value is treated as a secret and handled accordingly.
- *       required:
- *         - key
- *         - value
- *         - isSecret
- */
 export interface EnvironmentVariable {
   key: string;
   value: string;
@@ -66,45 +13,9 @@ export interface EnvironmentVariable {
   // Secrets are encrypted at rest and in transit
 }
 
-/**
- * @openapi
- * components:
- *   schemas:
- *     PipelineStep:
- *       type: object
- *       description: Represents a single step in the deployment pipeline.
- *       properties:
- *         name:
- *           type: string
- *         status:
- *           type: string
- *           enum: [pending, in-progress, succeeded, failed, skipped]
- *         startedAt:
- *           type: string
- *           format: date-time
- *           nullable: true
- *         finishedAt:
- *           type: string
- *           format: date-time
- *           nullable: true
- *         logs:
- *           type: string
- *           description: URL of the logs or a snippet.
- *           nullable: true
- *         errorMessage:
- *           type: string
- *           nullable: true
- *         aiRecommendation:
- *           type: string
- *           description: AI recommendations if the step failed.
- *           nullable: true
- *       required:
- *         - name
- *         - status
- */
 export interface PipelineStep {
   name: string;
-  status: "pending" | "in-progress" | "succeeded" | "failed" | "skipped";
+  status: 'pending' | 'in-progress' | 'succeeded' | 'failed' | 'skipped';
   startedAt?: Date;
   finishedAt?: Date;
   logs?: string; // URL of the logs or snippet
@@ -112,197 +23,35 @@ export interface PipelineStep {
   aiRecommendation?: string; // AI recommendations if failed
 }
 
-/**
- * @openapi
- * components:
- *   schemas:
- *     CostEstimation:
- *       type: object
- *       description: Estimated cost of the deployment.
- *       properties:
- *         monthlyCost:
- *           type: number
- *           format: float
- *         currency:
- *           type: string
- *         breakdown:
- *           type: object
- *           additionalProperties:
- *             type: number
- *             format: float
- *           description: Cost breakdown by service.
- *         lastUpdated:
- *           type: string
- *           format: date-time
- *       required:
- *         - monthlyCost
- *         - currency
- *         - breakdown
- *         - lastUpdated
- */
 export interface CostEstimation {
   monthlyCost: number;
+  hourlyCost: number;
+  oneTimeCost: number;
   currency: string;
-  breakdown: Record<string, number>; // Breakdown by service
-  lastUpdated: Date;
+  estimatedAt: Date;
+  breakdown: {
+    componentId: string;
+    componentName: string;
+    cost: number;
+    description: string;
+  }[];
 }
 
-/**
- * @openapi
- * components:
- *   schemas:
- *     DeploymentPipelineMonitoring:
- *       type: object
- *       properties:
- *         currentStage:
- *           type: string
- *         steps:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/PipelineStep'
- *         startedAt:
- *           type: string
- *           format: date-time
- *           nullable: true
- *         estimatedCompletionTime:
- *           type: string
- *           format: date-time
- *           nullable: true
- *       required:
- *         - currentStage
- *         - steps
- *     DeploymentStaticCodeAnalysis:
- *       type: object
- *       properties:
- *         score:
- *           type: number
- *           format: integer
- *           description: Code quality score (0-100).
- *           nullable: true
- *         issues:
- *           type: array
- *           items:
- *             type: object
- *             properties:
- *               severity:
- *                 type: string
- *               count:
- *                 type: integer
- *           nullable: true
- *         reportUrl:
- *           type: string
- *           format: url
- *           nullable: true
- *     DeploymentModel:
- *       type: object
- *       description: Represents a deployment configuration and its status.
- *       properties:
- *         id:
- *           type: string
- *           format: uuid
- *         projectId:
- *           type: string
- *           format: uuid
- *         name:
- *           type: string
- *           description: Friendly name for the deployment.
- *         environment:
- *           type: string
- *           enum: [development, staging, production]
- *         status:
- *           type: string
- *           enum: [configuring, pending, building, infrastructure-provisioning, deploying, deployed, rollback, failed, cancelled]
- *         gitRepository:
- *           $ref: '#/components/schemas/GitRepository'
- *           nullable: true
- *         cloudProvider:
- *           $ref: '#/components/schemas/CloudProvider'
- *           nullable: true
- *         infrastructureConfig:
- *           $ref: '#/components/schemas/InfrastructureConfig'
- *           nullable: true
- *         environmentVariables:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/EnvironmentVariable'
- *           nullable: true
- *         dockerConfig:
- *           $ref: '#/components/schemas/DockerConfig'
- *           nullable: true
- *         terraformConfig:
- *           $ref: '#/components/schemas/TerraformConfig'
- *           nullable: true
- *         pipeline:
- *           $ref: '#/components/schemas/DeploymentPipelineMonitoring'
- *           nullable: true
- *         securityScanResults:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/SecurityScanResult'
- *           nullable: true
- *         staticCodeAnalysis:
- *           $ref: '#/components/schemas/DeploymentStaticCodeAnalysis'
- *           nullable: true
- *         costEstimation:
- *           $ref: '#/components/schemas/CostEstimation'
- *           nullable: true
- *         url:
- *           type: string
- *           format: url
- *           description: URL where the deployment can be accessed.
- *           nullable: true
- *         version:
- *           type: string
- *           description: Commit hash or semantic version.
- *           nullable: true
- *         logs:
- *           type: string
- *           format: url
- *           description: Link to the deployment logs.
- *           nullable: true
- *         deployedAt:
- *           type: string
- *           format: date-time
- *           nullable: true
- *         rollbackVersions:
- *           type: array
- *           items:
- *             type: string
- *           nullable: true
- *         lastSuccessfulDeployment:
- *           type: string
- *           format: uuid
- *           nullable: true
- *         createdAt:
- *           type: string
- *           format: date-time
- *         updatedAt:
- *           type: string
- *           format: date-time
- *       required:
- *         - id
- *         - projectId
- *         - name
- *         - environment
- *         - status
- *         - createdAt
- *         - updatedAt
- */
 export interface DeploymentModel {
   id: string;
   projectId: string;
   name: string; // Friendly name for the deployment
-  environment: "development" | "staging" | "production";
+  environment: 'development' | 'staging' | 'production';
   status:
-    | "configuring"
-    | "pending"
-    | "building"
-    | "infrastructure-provisioning"
-    | "deploying"
-    | "deployed"
-    | "rollback"
-    | "failed"
-    | "cancelled";
+    | 'configuring'
+    | 'pending'
+    | 'building'
+    | 'infrastructure-provisioning'
+    | 'deploying'
+    | 'deployed'
+    | 'rollback'
+    | 'failed'
+    | 'cancelled';
 
   // Configuration
   gitRepository?: GitRepository;
@@ -346,13 +95,13 @@ export interface DeploymentModel {
 }
 
 export interface ChatMessage {
-  sender: "user" | "ai";
+  sender: 'user' | 'ai';
   text: string;
 }
 
 export interface ArchitectureTemplate {
   id: string;
-  provider: "aws" | "gcp" | "azure";
+  provider: 'aws' | 'gcp' | 'azure';
   category: string;
   name: string;
   description: string;
@@ -360,30 +109,214 @@ export interface ArchitectureTemplate {
   icon: string;
 }
 
-interface FormOption {
+// Form configuration interfaces
+export interface FormOption {
   name: string;
   label: string;
-  type: "text" | "number" | "select" | "toggle";
-  required: boolean;
+  type: 'text' | 'number' | 'select' | 'toggle';
+  required?: boolean;
   defaultValue?: any;
   placeholder?: string;
-  options?: { value: string; label: string }[];
   description?: string;
+  options?: { label: string; value: string }[];
 }
 
-interface CloudComponentDetailed {
+export interface CloudComponentDetailed {
   id: string;
-  provider: "aws" | "gcp" | "azure";
-  category: string;
   name: string;
-  icon: string;
   description: string;
-  options: FormOption[];
+  category: string;
+  provider: 'aws' | 'gcp' | 'azure';
+  icon: string;
+  pricing?: string;
+  options?: FormOption[];
 }
 
-interface ArchitectureComponent {
+export interface ArchitectureComponent extends CloudComponentDetailed {
   instanceId: string;
-  componentId: string;
+  type: string; // Component type identifier (e.g., 'database', 'compute', 'storage')
+  configuration?: { [key: string]: any };
+  dependencies?: string[];
+}
+
+// Deployment creation payload for API calls
+export interface CreateDeploymentPayload {
   name: string;
-  icon: string;
+  environment: 'development' | 'staging' | 'production';
+  description?: string;
+  gitRepository?: GitRepository;
+  environmentVariables?: EnvironmentVariable[];
+  architectureComponents?: ArchitectureComponent[];
+  mode?: 'beginner' | 'assistant' | 'template' | 'expert';
+  architectureTemplate?: string;
+  customArchitecture?: {
+    name: string;
+    components: {
+      instanceId: string;
+      type: string;
+      config: Record<string, any>;
+    }[];
+  };
+  aiGeneratedConfig?: {
+    prompt: string;
+    generatedInfrastructure: Record<string, any>;
+  };
+}
+
+export interface UpdateDeploymentPayload {
+  name?: string;
+  description?: string;
+  status?: 'pending' | 'failed' | 'configuring' | 'building' | 'infrastructure-provisioning' | 'deploying' | 'deployed' | 'rollback' | 'cancelled';
+  environment?: 'development' | 'staging' | 'production';
+  gitRepository?: GitRepository;
+  environmentVariables?: EnvironmentVariable[];
+  architectureComponents?: ArchitectureComponent[];
+  chatMessages?: ChatMessage[];
+  pipeline?: {
+    currentStage: string;
+    steps: PipelineStep[];
+    startedAt?: Date;
+    estimatedCompletionTime?: Date;
+  };
+  costEstimation?: CostEstimation;
+  mode?: 'beginner' | 'assistant' | 'template' | 'expert';
+}
+
+// Form data interfaces
+export interface DeploymentFormData {
+  mode: 'beginner' | 'assistant' | 'template' | 'expert';
+  name: string;
+  environment: DeploymentModel['environment'];
+  repoUrl?: string;
+  branch?: string;
+  templateId?: string;
+  aiPrompt?: string;
+  customComponents?: ArchitectureComponent[];
+  environmentVariables?: EnvironmentVariable[];
+}
+
+// Validation helpers
+export class DeploymentValidators {
+  static validateBasicInfo(data: Partial<DeploymentFormData>): string[] {
+    const errors: string[] = [];
+    
+    if (!data.name?.trim()) {
+      errors.push('Deployment name is required');
+    }
+    
+    if (!data.environment) {
+      errors.push('Environment is required');
+    }
+    
+    return errors;
+  }
+
+  static validateGitRepository(repo?: Partial<GitRepository>): string[] {
+    const errors: string[] = [];
+    
+    if (repo) {
+      if (!repo.url?.trim()) {
+        errors.push('Repository URL is required');
+      }
+      
+      if (!repo.branch?.trim()) {
+        errors.push('Branch is required');
+      }
+      
+      if (repo.url && !this.isValidGitUrl(repo.url)) {
+        errors.push('Invalid Git repository URL');
+      }
+    }
+    
+    return errors;
+  }
+
+  static validateArchitectureComponents(components?: ArchitectureComponent[]): string[] {
+    const errors: string[] = [];
+    
+    if (components && components.length === 0) {
+      errors.push('At least one architecture component is required');
+    }
+    
+    return errors;
+  }
+
+  private static isValidGitUrl(url: string): boolean {
+    const gitUrlPattern = /^(https?:\/\/)?([\w\.-]+@)?[\w\.-]+[:\.][\w\.-]+(\/[\w\.-]*)*\/?$/;
+    return gitUrlPattern.test(url);
+  }
+}
+
+// Mapping utilities
+export class DeploymentMapper {
+  static fromFormToPayload(formData: DeploymentFormData, projectId: string): CreateDeploymentPayload {
+    const payload: CreateDeploymentPayload = {
+      name: formData.name,
+      environment: formData.environment,
+    };
+
+    // Map git repository if provided
+    if (formData.repoUrl) {
+      payload.gitRepository = {
+        url: formData.repoUrl,
+        branch: formData.branch || 'main',
+        provider: this.inferGitProvider(formData.repoUrl),
+      };
+    }
+
+    // Map based on deployment mode
+    switch (formData.mode) {
+      case 'template':
+        payload.architectureTemplate = formData.templateId;
+        break;
+      
+      case 'expert':
+        if (formData.customComponents && formData.customComponents.length > 0) {
+          payload.customArchitecture = {
+            name: 'Custom Architecture',
+            components: formData.customComponents.map(comp => ({
+              instanceId: comp.instanceId,
+              type: comp.id,
+              config: {} // This should be filled with actual form data
+            }))
+          };
+        }
+        break;
+      
+      case 'assistant':
+        if (formData.aiPrompt) {
+          payload.aiGeneratedConfig = {
+            prompt: formData.aiPrompt,
+            generatedInfrastructure: {}
+          };
+        }
+        break;
+    }
+
+    // Add environment variables if provided
+    if (formData.environmentVariables?.length) {
+      payload.environmentVariables = formData.environmentVariables;
+    }
+
+    return payload;
+  }
+
+  static toFormData(deployment: DeploymentModel): Partial<DeploymentFormData> {
+    return {
+      name: deployment.name,
+      environment: deployment.environment,
+      repoUrl: deployment.gitRepository?.url,
+      branch: deployment.gitRepository?.branch,
+      customComponents: deployment.architectureComponents,
+      environmentVariables: deployment.environmentVariables,
+    };
+  }
+
+  private static inferGitProvider(url: string): GitRepository['provider'] {
+    if (url.includes('github.com')) return 'github';
+    if (url.includes('gitlab.com')) return 'gitlab';
+    if (url.includes('bitbucket.org')) return 'bitbucket';
+    if (url.includes('azure.com') || url.includes('visualstudio.com')) return 'azure-repos';
+    return 'github'; // default
+  }
 }

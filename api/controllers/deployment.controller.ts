@@ -1,479 +1,727 @@
 import { Response } from "express";
-import logger from "../config/logger";
-import { DeploymentService } from "../services/Deployment/deployment.service";
 import { CustomRequest } from "../interfaces/express.interface";
+import { DeploymentService } from "../services/Deployment/deployment.service";
+import logger from "../config/logger";
 import {
+  CreateDeploymentPayload,
+  UpdateDeploymentPayload,
   GitRepository,
   EnvironmentVariable,
-  DeploymentModel,
+  DeploymentValidators,
+  ChatMessage,
+  ArchitectureComponent,
 } from "../models/deployment.model";
 
 const deploymentService = new DeploymentService();
 
-export const generateDeploymentController = async (
+// Create a new deployment
+export const CreateDeploymentController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
-  const userId = req.user?.uid;
-  logger.info(
-    `generateDeploymentController called - UserId: ${userId}, ProjectId: ${projectId}`
-  );
   try {
+    const userId = req.user?.uid;
+    const { projectId } = req.params;
+    const payload: CreateDeploymentPayload = req.body;
+
     if (!userId) {
-      res.status(401).json({ message: "User not authenticated" });
+      res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
       return;
     }
-    if (!projectId) {
-      res.status(400).json({ message: "Project ID is required" });
-      return;
-    }
-    const { name, environment } = req.body as Pick<
-      DeploymentModel,
-      "name" | "environment"
-    >;
-    if (!name || !environment) {
-      res
-        .status(400)
-        .json({ message: "Deployment name and environment are required" });
-      return;
-    }
-    const deployment = await deploymentService.generateDeployment(
-      userId!,
-      projectId,
-      { name, environment }
-    );
+
     logger.info(
-      `Deployment generated successfully - UserId: ${userId}, ProjectId: ${projectId}, DeploymentId: ${deployment.id}`
+      `Creating deployment for userId: ${userId}, projectId: ${projectId}`
     );
-    res.status(201).json(deployment);
+
+    // Validate the payload
+    const validationErrors = DeploymentValidators.validateBasicInfo(payload);
+    if (validationErrors.length > 0) {
+      res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: validationErrors,
+      });
+      return;
+    }
+
+    const deployment = await deploymentService.createDeployment(
+      userId,
+      projectId,
+      payload
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Deployment created successfully",
+      data: deployment,
+    });
   } catch (error: any) {
-    logger.error(
-      `Error in generateDeploymentController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
-      { stack: error.stack, body: req.body }
-    );
-    res
-      .status(500)
-      .json({ message: "Error generating deployment", error: error.message });
+    logger.error(`Error creating deployment: ${error.message}`, {
+      error: error.stack,
+    });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
-export const getDeploymentsByProjectController = async (
+// Get deployments by project
+export const GetDeploymentsByProjectController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
-  const userId = req.user?.uid;
-  logger.info(
-    `getDeploymentsByProjectController called - UserId: ${userId}, ProjectId: ${projectId}`
-  );
   try {
+    const userId = req.user?.uid;
+    const { projectId } = req.params;
+
     if (!userId) {
-      res.status(401).json({ message: "User not authenticated" });
+      res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
       return;
     }
-    if (!projectId) {
-      res.status(400).json({ message: "Project ID is required" });
-      return;
-    }
-    const deployments = await deploymentService.getDeploymentsByProjectId(
-      userId!,
+
+    logger.info(
+      `Getting deployments for userId: ${userId}, projectId: ${projectId}`
+    );
+
+    const deployments = await deploymentService.getDeploymentsByProject(
+      userId,
       projectId
     );
-    logger.info(
-      `Deployments fetched successfully for project - UserId: ${userId}, ProjectId: ${projectId}, Count: ${deployments.length}`
-    );
-    res.status(200).json(deployments);
+
+    res.status(200).json({
+      success: true,
+      message: "Deployments retrieved successfully",
+      data: deployments,
+    });
   } catch (error: any) {
-    logger.error(
-      `Error in getDeploymentsByProjectController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
-      { stack: error.stack }
-    );
-    res
-      .status(500)
-      .json({ message: "Error fetching deployments", error: error.message });
+    logger.error(`Error getting deployments: ${error.message}`, {
+      error: error.stack,
+    });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
-export const getDeploymentByIdController = async (
+// Get deployment by ID
+export const GetDeploymentByIdController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { deploymentId } = req.params;
-  const userId = req.user?.uid;
-  logger.info(
-    `getDeploymentByIdController called - UserId: ${userId}, DeploymentId: ${deploymentId}`
-  );
   try {
+    const userId = req.user?.uid;
+    const { deploymentId } = req.params;
+
     if (!userId) {
-      res.status(401).json({ message: "User not authenticated" });
+      res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
       return;
     }
+
+    logger.info(
+      `Getting deployment for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+
     const deployment = await deploymentService.getDeploymentById(
-      userId!,
+      userId,
       deploymentId
     );
-    if (deployment) {
-      logger.info(
-        `Deployment fetched successfully - UserId: ${userId}, DeploymentId: ${deployment.id}`
-      );
-      res.status(200).json(deployment);
-    } else {
-      logger.warn(
-        `Deployment not found - UserId: ${userId}, DeploymentId: ${deploymentId}`
-      );
-      res.status(404).json({ message: "Deployment not found" });
+
+    if (!deployment) {
+      res.status(404).json({
+        success: false,
+        message: "Deployment not found",
+      });
+      return;
     }
+
+    res.status(200).json({
+      success: true,
+      message: "Deployment retrieved successfully",
+      data: deployment,
+    });
   } catch (error: any) {
-    logger.error(
-      `Error in getDeploymentByIdController - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
-      { stack: error.stack }
-    );
-    res
-      .status(500)
-      .json({ message: "Error fetching deployment", error: error.message });
+    logger.error(`Error getting deployment: ${error.message}`, {
+      error: error.stack,
+    });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
-export const updateDeploymentController = async (
+// Update deployment
+export const UpdateDeploymentController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { deploymentId } = req.params;
-  const userId = req.user?.uid;
-  logger.info(
-    `updateDeploymentController called - UserId: ${userId}, DeploymentId: ${deploymentId}`
-  );
   try {
-    if (!userId) {
-      res.status(401).json({ message: "User not authenticated" });
-      return;
-    }
-    const deployment = await deploymentService.updateDeployment(
-      userId!,
-      deploymentId,
-      req.body
-    );
-    if (deployment) {
-      logger.info(
-        `Deployment updated successfully - UserId: ${userId}, DeploymentId: ${deployment.id}`
-      );
-      res.status(200).json(deployment);
-    } else {
-      logger.warn(
-        `Deployment not found for update - UserId: ${userId}, DeploymentId: ${deploymentId}`
-      );
-      res.status(404).json({ message: "Deployment not found for update" });
-    }
-  } catch (error: any) {
-    logger.error(
-      `Error in updateDeploymentController - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
-      { stack: error.stack, body: req.body }
-    );
-    res
-      .status(500)
-      .json({ message: "Error updating deployment", error: error.message });
-  }
-};
+    const userId = req.user?.uid;
+    const { deploymentId } = req.params;
+    const updates: UpdateDeploymentPayload = req.body;
 
-export const deleteDeploymentController = async (
-  req: CustomRequest,
-  res: Response
-): Promise<void> => {
-  const { deploymentId } = req.params;
-  const userId = req.user?.uid;
-  logger.info(
-    `deleteDeploymentController called - UserId: ${userId}, DeploymentId: ${deploymentId}`
-  );
-  try {
     if (!userId) {
-      res.status(401).json({ message: "User not authenticated" });
+      res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
       return;
     }
-    await deploymentService.deleteDeployment(userId!, deploymentId);
+
     logger.info(
-      `Deployment deleted successfully - UserId: ${userId}, DeploymentId: ${deploymentId}`
+      `Updating deployment for userId: ${userId}, deploymentId: ${deploymentId}`
     );
-    res.status(204).send();
+
+    const deployment = await deploymentService.updateDeployment(
+      userId,
+      deploymentId,
+      updates
+    );
+
+    if (!deployment) {
+      res.status(404).json({
+        success: false,
+        message: "Deployment not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Deployment updated successfully",
+      data: deployment,
+    });
   } catch (error: any) {
-    logger.error(
-      `Error in deleteDeploymentController - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
-      { stack: error.stack }
-    );
-    res
-      .status(500)
-      .json({ message: "Error deleting deployment", error: error.message });
+    logger.error(`Error updating deployment: ${error.message}`, {
+      error: error.stack,
+    });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
-// New Configuration Update Controllers
-
-export const updateGitRepositoryConfigController = async (
+// Delete deployment
+export const DeleteDeploymentController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { deploymentId } = req.params;
-  const userId = req.user?.uid;
-  const gitConfig = req.body as GitRepository;
-
-  logger.info(
-    `updateGitRepositoryConfigController called - UserId: ${userId}, DeploymentId: ${deploymentId}`
-  );
-  if (!userId) {
-    res.status(401).json({ message: "User not authenticated" });
-    return;
-  }
-  if (!deploymentId) {
-    res.status(400).json({ message: "Deployment ID is required" });
-    return;
-  }
-  if (!gitConfig || !gitConfig.provider || !gitConfig.url || !gitConfig.branch) {
-    res.status(400).json({ message: "Invalid Git repository configuration data" });
-    return;
-  }
-
   try {
-    const updatedDeployment = await deploymentService.updateGitRepositoryConfig(
-      userId!,
+    const userId = req.user?.uid;
+    const { deploymentId } = req.params;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+      return;
+    }
+
+    logger.info(
+      `Deleting deployment for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+
+    const success = await deploymentService.deleteDeployment(
+      userId,
+      deploymentId
+    );
+
+    if (!success) {
+      res.status(404).json({
+        success: false,
+        message: "Deployment not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Deployment deleted successfully",
+    });
+  } catch (error: any) {
+    logger.error(`Error deleting deployment: ${error.message}`, {
+      error: error.stack,
+    });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+// Update Git repository configuration
+export const UpdateGitConfigController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.uid;
+    const { deploymentId } = req.params;
+    const gitConfig: GitRepository = req.body;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+      return;
+    }
+
+    logger.info(
+      `Updating git config for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+
+    // Validate git repository configuration
+    const validationErrors =
+      DeploymentValidators.validateGitRepository(gitConfig);
+    if (validationErrors.length > 0) {
+      res.status(400).json({
+        success: false,
+        message: "Git repository validation failed",
+        errors: validationErrors,
+      });
+      return;
+    }
+
+    const deployment = await deploymentService.updateGitRepository(
+      userId,
       deploymentId,
       gitConfig
     );
-    if (updatedDeployment) {
-      logger.info(
-        `GitRepository config updated successfully - UserId: ${userId}, DeploymentId: ${updatedDeployment.id}`
-      );
-      res.status(200).json(updatedDeployment);
-    } else {
-      logger.warn(
-        `Deployment not found or GitRepository config update failed - UserId: ${userId}, DeploymentId: ${deploymentId}`
-      );
-      res.status(404).json({ message: "Deployment not found or update failed" });
+
+    if (!deployment) {
+      res.status(404).json({
+        success: false,
+        message: "Deployment not found",
+      });
+      return;
     }
+
+    res.status(200).json({
+      success: true,
+      message: "Git configuration updated successfully",
+      data: deployment,
+    });
   } catch (error: any) {
-    logger.error(
-      `Error in updateGitRepositoryConfigController - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
-      { stack: error.stack, body: req.body }
-    );
+    logger.error(`Error updating git config: ${error.message}`, {
+      error: error.stack,
+    });
     res.status(500).json({
-      message: "Error updating Git repository configuration",
+      success: false,
+      message: "Internal server error",
       error: error.message,
     });
   }
 };
 
-export const updateEnvironmentVariablesController = async (
+// Update environment variables
+export const UpdateEnvironmentVariablesController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { deploymentId } = req.params;
-  const userId = req.user?.uid;
-  const envVars = req.body as EnvironmentVariable[];
-
-  logger.info(
-    `updateEnvironmentVariablesController called - UserId: ${userId}, DeploymentId: ${deploymentId}`
-  );
-  if (!userId) {
-    res.status(401).json({ message: "User not authenticated" });
-    return;
-  }
-  if (!deploymentId) {
-    res.status(400).json({ message: "Deployment ID is required" });
-    return;
-  }
-  if (!envVars || !Array.isArray(envVars)) {
-    res.status(400).json({ message: "Invalid environment variables data" });
-    return;
-  }
-
   try {
-    const updatedDeployment = await deploymentService.updateEnvironmentVariables(
-      userId!,
+    const userId = req.user?.uid;
+    const { deploymentId } = req.params;
+    const environmentVariables: EnvironmentVariable[] = req.body;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+      return;
+    }
+
+    logger.info(
+      `Updating environment variables for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+
+    const deployment = await deploymentService.updateEnvironmentVariables(
+      userId,
       deploymentId,
-      envVars
+      environmentVariables
     );
-    if (updatedDeployment) {
-      logger.info(
-        `Environment variables updated successfully - UserId: ${userId}, DeploymentId: ${updatedDeployment.id}`
-      );
-      res.status(200).json(updatedDeployment);
-    } else {
-      logger.warn(
-        `Deployment not found or environment variables update failed - UserId: ${userId}, DeploymentId: ${deploymentId}`
-      );
-      res.status(404).json({ message: "Deployment not found or update failed" });
+
+    if (!deployment) {
+      res.status(404).json({
+        success: false,
+        message: "Deployment not found",
+      });
+      return;
     }
+
+    res.status(200).json({
+      success: true,
+      message: "Environment variables updated successfully",
+      data: deployment,
+    });
   } catch (error: any) {
-    logger.error(
-      `Error in updateEnvironmentVariablesController - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
-      { stack: error.stack, body: req.body }
-    );
+    logger.error(`Error updating environment variables: ${error.message}`, {
+      error: error.stack,
+    });
     res.status(500).json({
-      message: "Error updating environment variables",
+      success: false,
+      message: "Internal server error",
       error: error.message,
     });
   }
 };
 
-export const updateChatMessagesController = async (
+// Update architecture components
+export const UpdateArchitectureComponentsController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { deploymentId } = req.params;
-  const userId = req.user?.uid;
-  const messages = req.body;
-
-  logger.info(
-    `updateChatMessagesController called - UserId: ${userId}, DeploymentId: ${deploymentId}`
-  );
-  if (!userId) {
-    res.status(401).json({ message: "User not authenticated" });
-    return;
-  }
-  if (!deploymentId) {
-    res.status(400).json({ message: "Deployment ID is required" });
-    return;
-  }
-  if (!messages || !Array.isArray(messages)) {
-    res.status(400).json({ message: "Invalid chat messages data" });
-    return;
-  }
-
   try {
-    const updatedDeployment = await deploymentService.updateDeployment(
-      userId!,
+    const userId = req.user?.uid;
+    const { deploymentId } = req.params;
+    const components: ArchitectureComponent[] = req.body;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+      return;
+    }
+
+    logger.info(
+      `Updating architecture components for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+
+    // Validate architecture components
+    const validationErrors =
+      DeploymentValidators.validateArchitectureComponents(components);
+    if (validationErrors.length > 0) {
+      res.status(400).json({
+        success: false,
+        message: "Architecture components validation failed",
+        errors: validationErrors,
+      });
+      return;
+    }
+
+    const deployment = await deploymentService.updateArchitectureComponents(
+      userId,
       deploymentId,
-      { chatMessages: messages }
+      components
     );
-    if (updatedDeployment) {
-      logger.info(
-        `Chat messages updated successfully - UserId: ${userId}, DeploymentId: ${updatedDeployment.id}`
-      );
-      res.status(200).json(updatedDeployment);
-    } else {
-      logger.warn(
-        `Deployment not found or chat messages update failed - UserId: ${userId}, DeploymentId: ${deploymentId}`
-      );
-      res.status(404).json({ message: "Deployment not found or update failed" });
+
+    if (!deployment) {
+      res.status(404).json({
+        success: false,
+        message: "Deployment not found",
+      });
+      return;
     }
+
+    res.status(200).json({
+      success: true,
+      message: "Architecture components updated successfully",
+      data: deployment,
+    });
   } catch (error: any) {
-    logger.error(
-      `Error in updateChatMessagesController - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
-      { stack: error.stack, body: req.body }
-    );
+    logger.error(`Error updating architecture components: ${error.message}`, {
+      error: error.stack,
+    });
     res.status(500).json({
-      message: "Error updating chat messages",
+      success: false,
+      message: "Internal server error",
       error: error.message,
     });
   }
 };
 
-export const updateArchitectureTemplatesController = async (
+// Add chat message
+export const AddChatMessageController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { deploymentId } = req.params;
-  const userId = req.user?.uid;
-  const templates = req.body;
-
-  logger.info(
-    `updateArchitectureTemplatesController called - UserId: ${userId}, DeploymentId: ${deploymentId}`
-  );
-  if (!userId) {
-    res.status(401).json({ message: "User not authenticated" });
-    return;
-  }
-  if (!deploymentId) {
-    res.status(400).json({ message: "Deployment ID is required" });
-    return;
-  }
-  if (!templates || !Array.isArray(templates)) {
-    res.status(400).json({ message: "Invalid architecture templates data" });
-    return;
-  }
-
   try {
-    const updatedDeployment = await deploymentService.updateDeployment(
-      userId!,
+    const userId = req.user?.uid;
+    const { deploymentId } = req.params;
+    const { message } = req.body;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+      return;
+    }
+
+    if (!message || typeof message !== "string") {
+      res.status(400).json({
+        success: false,
+        message: "Message is required and must be a string",
+      });
+      return;
+    }
+
+    logger.info(
+      `Adding chat message for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+
+    const chatMessage: ChatMessage = {
+      sender: "user",
+      text: message,
+    };
+
+    const deployment = await deploymentService.addChatMessage(
+      userId,
       deploymentId,
-      { architectureTemplates: templates }
+      chatMessage
     );
-    if (updatedDeployment) {
-      logger.info(
-        `Architecture templates updated successfully - UserId: ${userId}, DeploymentId: ${updatedDeployment.id}`
-      );
-      res.status(200).json(updatedDeployment);
-    } else {
-      logger.warn(
-        `Deployment not found or architecture templates update failed - UserId: ${userId}, DeploymentId: ${deploymentId}`
-      );
-      res.status(404).json({ message: "Deployment not found or update failed" });
+
+    if (!deployment) {
+      res.status(404).json({
+        success: false,
+        message: "Deployment not found",
+      });
+      return;
     }
+
+    res.status(200).json({
+      success: true,
+      message: "Chat message added successfully",
+      data: deployment,
+    });
   } catch (error: any) {
-    logger.error(
-      `Error in updateArchitectureTemplatesController - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
-      { stack: error.stack, body: req.body }
-    );
+    logger.error(`Error adding chat message: ${error.message}`, {
+      error: error.stack,
+    });
     res.status(500).json({
-      message: "Error updating architecture templates",
+      success: false,
+      message: "Internal server error",
       error: error.message,
     });
   }
 };
 
-// Pipeline Control
-
-export const startDeploymentPipelineController = async (
+// Start deployment pipeline
+export const StartPipelineController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { deploymentId } = req.params;
-  const userId = req.user?.uid;
-
-  logger.info(
-    `startDeploymentPipelineController called - UserId: ${userId}, DeploymentId: ${deploymentId}`
-  );
-  if (!userId) {
-    res.status(401).json({ message: "User not authenticated" });
-    return;
-  }
-  if (!deploymentId) {
-    res.status(400).json({ message: "Deployment ID is required" });
-    return;
-  }
-
   try {
+    const userId = req.user?.uid;
+    const { deploymentId } = req.params;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+      return;
+    }
+
+    logger.info(
+      `Starting pipeline for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+
     const deployment = await deploymentService.startDeploymentPipeline(
-      userId!,
+      userId,
       deploymentId
     );
-    if (deployment) {
-      logger.info(
-        `Deployment pipeline initiated/status retrieved - UserId: ${userId}, DeploymentId: ${deployment.id}, Status: ${deployment.status}`
-      );
-      res.status(200).json(deployment); // Or 202 if it's a long-running async process started
-    } else {
-      logger.warn(
-        `Deployment not found or pipeline could not be started - UserId: ${userId}, DeploymentId: ${deploymentId}`
-      );
-      // The service might return null if deployment not found, or the deployment itself if it's in a non-startable state but found.
-      // Check service logic for exact return on non-startable state.
-      res
-        .status(404)
-        .json({
-          message:
-            "Deployment not found or pipeline could not be started (check status or configuration)",
-        });
-    }
-  } catch (error: any) {
-    logger.error(
-      `Error in startDeploymentPipelineController - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
-      { stack: error.stack }
-    );
-    res
-      .status(500)
-      .json({
-        message: "Error starting deployment pipeline",
-        error: error.message,
+
+    if (!deployment) {
+      res.status(404).json({
+        success: false,
+        message: "Deployment not found",
       });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Deployment pipeline started successfully",
+      data: deployment,
+    });
+  } catch (error: any) {
+    logger.error(`Error starting pipeline: ${error.message}`, {
+      error: error.stack,
+    });
+    res.status(500).json({
+      success: false,
+      message: "Failed to start deployment pipeline",
+      error: error.message,
+    });
+  }
+};
+
+// Get pipeline status
+export const GetPipelineStatusController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.uid;
+    const { deploymentId } = req.params;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+      return;
+    }
+
+    logger.info(
+      `Getting pipeline status for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+
+    const deployment = await deploymentService.getDeploymentById(
+      userId,
+      deploymentId
+    );
+
+    if (!deployment) {
+      res.status(404).json({
+        success: false,
+        message: "Deployment not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Pipeline status retrieved successfully",
+      data: {
+        status: deployment.status,
+        pipeline: deployment.pipeline,
+        costEstimation: deployment.costEstimation,
+      },
+    });
+  } catch (error: any) {
+    logger.error(`Error getting pipeline status: ${error.message}`, {
+      error: error.stack,
+    });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+// Estimate deployment cost
+export const EstimateCostController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.uid;
+    const { deploymentId } = req.params;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+      return;
+    }
+
+    logger.info(
+      `Estimating cost for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+
+    const costEstimation = await deploymentService.estimateDeploymentCost(
+      userId,
+      deploymentId
+    );
+
+    if (!costEstimation) {
+      res.status(404).json({
+        success: false,
+        message: "Deployment not found or cost estimation failed",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Cost estimation calculated successfully",
+      data: costEstimation,
+    });
+  } catch (error: any) {
+    logger.error(`Error estimating cost: ${error.message}`, {
+      error: error.stack,
+    });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+// Legacy method for backward compatibility
+export const GenerateDeploymentController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.uid;
+    const { projectId } = req.params;
+    const { name, environment } = req.body;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+      return;
+    }
+
+    if (!name || !environment) {
+      res.status(400).json({
+        success: false,
+        message: "Name and environment are required",
+      });
+      return;
+    }
+
+    logger.info(
+      `Generating deployment (legacy) for userId: ${userId}, projectId: ${projectId}`
+    );
+
+    const deployment = await deploymentService.generateDeployment(
+      userId,
+      projectId,
+      { name, environment }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Deployment generated successfully",
+      data: deployment,
+    });
+  } catch (error: any) {
+    logger.error(`Error generating deployment: ${error.message}`, {
+      error: error.stack,
+    });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
