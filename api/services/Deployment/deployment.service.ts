@@ -1,8 +1,8 @@
-import { 
-  DeploymentModel, 
-  GitRepository, 
-  EnvironmentVariable, 
-  ChatMessage, 
+import {
+  DeploymentModel,
+  GitRepository,
+  EnvironmentVariable,
+  ChatMessage,
   ArchitectureTemplate,
   CloudComponentDetailed,
   ArchitectureComponent,
@@ -11,7 +11,7 @@ import {
   CreateDeploymentPayload,
   DeploymentFormData,
   DeploymentValidators,
-  DeploymentMapper
+  DeploymentMapper,
 } from "../../models/deployment.model";
 import { IRepository } from "../../repository/IRepository";
 import { RepositoryFactory } from "../../repository/RepositoryFactory";
@@ -36,11 +36,11 @@ export class DeploymentService {
     logger.info(
       `createDeployment called for userId: ${userId}, projectId: ${projectId}, name: ${payload.name}`
     );
-    
+
     try {
       // Validate the payload
       const formData: DeploymentFormData = {
-        mode: 'beginner', // Default mode, can be overridden
+        mode: "beginner", // Default mode, can be overridden
         name: payload.name,
         environment: payload.environment,
         repoUrl: payload.gitRepository?.url,
@@ -50,11 +50,13 @@ export class DeploymentService {
 
       const validationErrors = this.validateDeploymentData(formData);
       if (validationErrors.length > 0) {
-        throw new Error(`Validation failed: ${validationErrors.join(', ')}`);
+        throw new Error(`Validation failed: ${validationErrors.join(", ")}`);
       }
 
-      const deploymentId = `deployment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+      const deploymentId = `deployment_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+
       const newDeployment: DeploymentModel = {
         id: deploymentId,
         projectId,
@@ -80,26 +82,30 @@ export class DeploymentService {
       // Add architecture template if specified
       if (payload.architectureTemplate) {
         newDeployment.architectureTemplates = [
-          await this.getArchitectureTemplate(payload.architectureTemplate)
+          await this.getArchitectureTemplate(payload.architectureTemplate),
         ];
       }
 
       // Add custom architecture components if specified
       if (payload.customArchitecture?.components) {
-        newDeployment.architectureComponents = payload.customArchitecture.components.map(comp => ({
-          ...this.getDefaultCloudComponent(),
-          instanceId: comp.instanceId,
-          type: comp.type,
-          configuration: comp.config,
-        }));
+        newDeployment.architectureComponents =
+          payload.customArchitecture.components.map((comp) => ({
+            ...this.getDefaultCloudComponent(),
+            instanceId: comp.instanceId,
+            type: comp.type,
+            configuration: comp.config,
+          }));
       }
 
-      const createdDeployment = await this.repository.create(newDeployment, userId);
-      
+      const createdDeployment = await this.repository.create(
+        newDeployment,
+        userId
+      );
+
       logger.info(
         `Deployment created successfully - UserId: ${userId}, ProjectId: ${projectId}, DeploymentId: ${createdDeployment.id}`
       );
-      
+
       return createdDeployment;
     } catch (error: any) {
       logger.error(
@@ -133,9 +139,9 @@ export class DeploymentService {
     try {
       const deployments = await this.repository.findAll(userId);
       const filteredDeployments = deployments.filter(
-        deployment => deployment.projectId === projectId
+        (deployment) => deployment.projectId === projectId
       );
-      
+
       logger.info(
         `Found ${filteredDeployments.length} deployments for userId: ${userId}, projectId: ${projectId}`
       );
@@ -186,7 +192,10 @@ export class DeploymentService {
       `updateDeployment called for userId: ${userId}, deploymentId: ${deploymentId}`
     );
     try {
-      const existingDeployment = await this.repository.findById(userId, deploymentId);
+      const existingDeployment = await this.repository.findById(
+        userId,
+        deploymentId
+      );
       if (!existingDeployment) {
         logger.warn(
           `Deployment not found for update - UserId: ${userId}, DeploymentId: ${deploymentId}`
@@ -199,8 +208,12 @@ export class DeploymentService {
         updatedAt: new Date(),
       };
 
-      const updatedDeployment = await this.repository.update(deploymentId, updatedData, userId);
-      
+      const updatedDeployment = await this.repository.update(
+        deploymentId,
+        updatedData,
+        userId
+      );
+
       logger.info(
         `Deployment updated successfully - UserId: ${userId}, DeploymentId: ${deploymentId}`
       );
@@ -214,7 +227,10 @@ export class DeploymentService {
     }
   }
 
-  async deleteDeployment(userId: string, deploymentId: string): Promise<boolean> {
+  async deleteDeployment(
+    userId: string,
+    deploymentId: string
+  ): Promise<boolean> {
     logger.info(
       `deleteDeployment called for userId: ${userId}, deploymentId: ${deploymentId}`
     );
@@ -248,11 +264,14 @@ export class DeploymentService {
     logger.info(
       `updateGitRepository called for userId: ${userId}, deploymentId: ${deploymentId}`
     );
-    
+
     try {
-      const validationErrors = DeploymentValidators.validateGitRepository(gitConfig);
+      const validationErrors =
+        DeploymentValidators.validateGitRepository(gitConfig);
       if (validationErrors.length > 0) {
-        throw new Error(`Git repository validation failed: ${validationErrors.join(', ')}`);
+        throw new Error(
+          `Git repository validation failed: ${validationErrors.join(", ")}`
+        );
       }
 
       return await this.updateDeployment(userId, deploymentId, {
@@ -275,7 +294,7 @@ export class DeploymentService {
     logger.info(
       `updateEnvironmentVariables called for userId: ${userId}, deploymentId: ${deploymentId}, count: ${environmentVariables.length}`
     );
-    
+
     try {
       return await this.updateDeployment(userId, deploymentId, {
         environmentVariables,
@@ -297,11 +316,16 @@ export class DeploymentService {
     logger.info(
       `updateArchitectureComponents called for userId: ${userId}, deploymentId: ${deploymentId}, count: ${components.length}`
     );
-    
+
     try {
-      const validationErrors = DeploymentValidators.validateArchitectureComponents(components);
+      const validationErrors =
+        DeploymentValidators.validateArchitectureComponents(components);
       if (validationErrors.length > 0) {
-        throw new Error(`Architecture components validation failed: ${validationErrors.join(', ')}`);
+        throw new Error(
+          `Architecture components validation failed: ${validationErrors.join(
+            ", "
+          )}`
+        );
       }
 
       return await this.updateDeployment(userId, deploymentId, {
@@ -324,7 +348,7 @@ export class DeploymentService {
     logger.info(
       `addChatMessage called for userId: ${userId}, deploymentId: ${deploymentId}, sender: ${message.sender}`
     );
-    
+
     try {
       const deployment = await this.getDeploymentById(userId, deploymentId);
       if (!deployment) {
@@ -352,7 +376,7 @@ export class DeploymentService {
     logger.info(
       `startDeploymentPipeline called for userId: ${userId}, deploymentId: ${deploymentId}`
     );
-    
+
     try {
       const deployment = await this.getDeploymentById(userId, deploymentId);
       if (!deployment) {
@@ -362,24 +386,33 @@ export class DeploymentService {
       // Validate deployment is ready for pipeline execution
       const validationErrors = this.validateDeploymentForPipeline(deployment);
       if (validationErrors.length > 0) {
-        throw new Error(`Pipeline validation failed: ${validationErrors.join(', ')}`);
+        throw new Error(
+          `Pipeline validation failed: ${validationErrors.join(", ")}`
+        );
       }
 
       const updatedPipeline = {
         currentStage: "Building",
-        steps: this.initializePipelineSteps().map(step => ({
+        steps: this.initializePipelineSteps().map((step) => ({
           ...step,
-          status: step.name === "Code Analysis" ? 'in-progress' as const : 'pending' as const,
+          status:
+            step.name === "Code Analysis"
+              ? ("in-progress" as const)
+              : ("pending" as const),
           startedAt: step.name === "Code Analysis" ? new Date() : undefined,
         })),
         startedAt: new Date(),
         estimatedCompletionTime: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes estimate
       };
 
-      const updatedDeployment = await this.updateDeployment(userId, deploymentId, {
-        status: "building",
-        pipeline: updatedPipeline,
-      });
+      const updatedDeployment = await this.updateDeployment(
+        userId,
+        deploymentId,
+        {
+          status: "building",
+          pipeline: updatedPipeline,
+        }
+      );
 
       // Start asynchronous pipeline execution
       this.executePipeline(userId, deploymentId);
@@ -403,14 +436,14 @@ export class DeploymentService {
     logger.info(
       `updatePipelineStep called for userId: ${userId}, deploymentId: ${deploymentId}, step: ${stepName}`
     );
-    
+
     try {
       const deployment = await this.getDeploymentById(userId, deploymentId);
       if (!deployment || !deployment.pipeline) {
         return null;
       }
 
-      const updatedSteps = deployment.pipeline.steps.map(step =>
+      const updatedSteps = deployment.pipeline.steps.map((step) =>
         step.name === stepName ? { ...step, ...stepUpdate } : step
       );
 
@@ -438,7 +471,7 @@ export class DeploymentService {
     logger.info(
       `updateCostEstimation called for userId: ${userId}, deploymentId: ${deploymentId}, cost: ${costEstimation.monthlyCost}`
     );
-    
+
     try {
       return await this.updateDeployment(userId, deploymentId, {
         costEstimation,
@@ -452,9 +485,14 @@ export class DeploymentService {
     }
   }
 
-  async estimateDeploymentCost(userId: string, deploymentId: string): Promise<CostEstimation | null> {
-    logger.info(`estimateDeploymentCost called for userId: ${userId}, deploymentId: ${deploymentId}`);
-    
+  async estimateDeploymentCost(
+    userId: string,
+    deploymentId: string
+  ): Promise<CostEstimation | null> {
+    logger.info(
+      `estimateDeploymentCost called for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+
     try {
       const deployment = await this.getDeploymentById(userId, deploymentId);
       if (!deployment) {
@@ -462,43 +500,50 @@ export class DeploymentService {
       }
 
       // Calculate cost based on architecture components
-      const costEstimation = this.calculateCostEstimation(deployment.architectureComponents || []);
-      
+      const costEstimation = this.calculateCostEstimation(
+        deployment.architectureComponents || []
+      );
+
       // Update deployment with new cost estimation
       await this.updateDeployment(userId, deploymentId, { costEstimation });
-      
+
       return costEstimation;
     } catch (error: any) {
-      logger.error(`Error estimating deployment cost for deployment ${deploymentId}: ${error.message}`, { error: error.stack });
+      logger.error(
+        `Error estimating deployment cost for deployment ${deploymentId}: ${error.message}`,
+        { error: error.stack }
+      );
       throw error;
     }
   }
 
-  private calculateCostEstimation(components: ArchitectureComponent[]): CostEstimation {
+  private calculateCostEstimation(
+    components: ArchitectureComponent[]
+  ): CostEstimation {
     let monthlyCost = 0;
     let hourlyCost = 0;
     let oneTimeCost = 0;
 
-    components.forEach(component => {
+    components.forEach((component) => {
       switch (component.type) {
-        case 'lambda':
-        case 'function':
+        case "lambda":
+        case "function":
           monthlyCost += 10; // Base Lambda cost
           hourlyCost += 0.01;
           break;
-        case 'database':
+        case "database":
           monthlyCost += 25; // Database cost
           hourlyCost += 0.04;
           break;
-        case 'storage':
+        case "storage":
           monthlyCost += 5; // Storage cost
           hourlyCost += 0.007;
           break;
-        case 'cdn':
+        case "cdn":
           monthlyCost += 15; // CDN cost
           hourlyCost += 0.02;
           break;
-        case 'load-balancer':
+        case "load-balancer":
           monthlyCost += 20; // Load balancer cost
           hourlyCost += 0.03;
           break;
@@ -516,9 +561,9 @@ export class DeploymentService {
       monthlyCost,
       hourlyCost,
       oneTimeCost,
-      currency: 'USD',
+      currency: "USD",
       estimatedAt: new Date(),
-      breakdown: components.map(component => ({
+      breakdown: components.map((component) => ({
         componentId: component.id,
         componentName: component.name,
         cost: 10, // Simplified cost per component
@@ -530,9 +575,9 @@ export class DeploymentService {
   // Validation Methods
   private validateDeploymentData(formData: DeploymentFormData): string[] {
     const errors: string[] = [];
-    
+
     errors.push(...DeploymentValidators.validateBasicInfo(formData));
-    
+
     if (formData.repoUrl || formData.branch) {
       const gitRepo = {
         url: formData.repoUrl,
@@ -540,25 +585,31 @@ export class DeploymentService {
       };
       errors.push(...DeploymentValidators.validateGitRepository(gitRepo));
     }
-    
+
     if (formData.customComponents) {
-      errors.push(...DeploymentValidators.validateArchitectureComponents(formData.customComponents));
+      errors.push(
+        ...DeploymentValidators.validateArchitectureComponents(
+          formData.customComponents
+        )
+      );
     }
-    
+
     return errors;
   }
 
   private validateDeploymentForPipeline(deployment: DeploymentModel): string[] {
     const errors: string[] = [];
-    
+
     if (!deployment.gitRepository) {
-      errors.push('Git repository configuration is required for pipeline execution');
+      errors.push(
+        "Git repository configuration is required for pipeline execution"
+      );
     }
-    
-    if (deployment.status === 'building' || deployment.status === 'deploying') {
-      errors.push('Deployment pipeline is already running');
+
+    if (deployment.status === "building" || deployment.status === "deploying") {
+      errors.push("Deployment pipeline is already running");
     }
-    
+
     return errors;
   }
 
@@ -592,28 +643,31 @@ export class DeploymentService {
     ];
   }
 
-  private async getArchitectureTemplate(templateId: string): Promise<ArchitectureTemplate> {
+  private async getArchitectureTemplate(
+    templateId: string
+  ): Promise<ArchitectureTemplate> {
     // Mock implementation - in real scenario, this would fetch from a template repository
     return {
       id: templateId,
-      provider: 'aws',
-      category: 'web-application',
-      name: 'Standard Web Application',
-      description: 'A standard web application template with load balancer, compute, and database',
-      tags: ['web', 'scalable', 'production-ready'],
-      icon: 'web-app-icon',
+      provider: "aws",
+      category: "web-application",
+      name: "Standard Web Application",
+      description:
+        "A standard web application template with load balancer, compute, and database",
+      tags: ["web", "scalable", "production-ready"],
+      icon: "web-app-icon",
     };
   }
 
   private getDefaultCloudComponent(): CloudComponentDetailed {
     return {
-      id: '',
-      name: '',
-      description: '',
-      category: '',
-      provider: 'aws',
-      icon: '',
-      pricing: '$0.00/month',
+      id: "",
+      name: "",
+      description: "",
+      category: "",
+      provider: "aws",
+      icon: "",
+      pricing: "$0.00/month",
       options: [],
     };
   }
@@ -621,51 +675,59 @@ export class DeploymentService {
   private calculateComponentCost(component: ArchitectureComponent): number {
     // Basic cost calculation - would be more sophisticated in real implementation
     const baseCosts: Record<string, number> = {
-      'database': 25,
-      'compute': 50,
-      'storage': 10,
-      'load-balancer': 15,
+      database: 25,
+      compute: 50,
+      storage: 10,
+      "load-balancer": 15,
     };
-    
+
     return baseCosts[component.type] || 20;
   }
 
-  private async executePipeline(userId: string, deploymentId: string): Promise<void> {
+  private async executePipeline(
+    userId: string,
+    deploymentId: string
+  ): Promise<void> {
     // Asynchronous pipeline execution simulation
     setTimeout(async () => {
       try {
         await this.simulatePipelineExecution(userId, deploymentId);
       } catch (error: any) {
-        logger.error(`Pipeline execution failed for deployment ${deploymentId}: ${error.message}`);
+        logger.error(
+          `Pipeline execution failed for deployment ${deploymentId}: ${error.message}`
+        );
       }
     }, 1000);
   }
 
-  private async simulatePipelineExecution(userId: string, deploymentId: string): Promise<void> {
+  private async simulatePipelineExecution(
+    userId: string,
+    deploymentId: string
+  ): Promise<void> {
     const steps = [
       "Code Analysis",
-      "Security Scan", 
+      "Security Scan",
       "Build",
       "Infrastructure Provisioning",
       "Deployment",
-      "Post-deployment Tests"
+      "Post-deployment Tests",
     ];
 
     for (let i = 0; i < steps.length; i++) {
       const stepName = steps[i];
-      
+
       // Start step
       await this.updatePipelineStep(userId, deploymentId, stepName, {
-        status: 'in-progress',
+        status: "in-progress",
         startedAt: new Date(),
       });
 
       // Simulate step execution time
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Complete step
       await this.updatePipelineStep(userId, deploymentId, stepName, {
-        status: 'succeeded',
+        status: "succeeded",
         finishedAt: new Date(),
         logs: `Step ${stepName} completed successfully`,
       });

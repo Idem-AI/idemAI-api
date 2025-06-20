@@ -38,6 +38,10 @@ const resourceName = "/deployments";
  *           schema:
  *             type: object
  *             properties:
+ *               projectId:
+ *                 type: string
+ *                 description: ID of the project this deployment belongs to
+ *                 example: "project_123456789"
  *               name:
  *                 type: string
  *                 description: Optional initial name for the deployment

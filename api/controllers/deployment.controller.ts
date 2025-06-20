@@ -20,6 +20,7 @@ export const CreateDeploymentController = async (
   res: Response
 ): Promise<void> => {
   try {
+    logger.info("Creating deployment....");
     const userId = req.user?.uid;
     const { projectId } = req.params;
     const payload: CreateDeploymentPayload = req.body;
