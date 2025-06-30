@@ -149,6 +149,7 @@ export interface CreateDeploymentPayload {
   architectureComponents?: ArchitectureComponent[];
   mode?: 'beginner' | 'assistant' | 'template' | 'expert';
   architectureTemplate?: string;
+  projectId?: string;
   customArchitecture?: {
     name: string;
     components: {
@@ -180,6 +181,7 @@ export interface UpdateDeploymentPayload {
   };
   costEstimation?: CostEstimation;
   mode?: 'beginner' | 'assistant' | 'template' | 'expert';
+  projectId?: string;
 }
 
 // Form data interfaces

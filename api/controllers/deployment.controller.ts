@@ -22,7 +22,7 @@ export const CreateDeploymentController = async (
   try {
     logger.info("Creating deployment....");
     const userId = req.user?.uid;
-    const { projectId } = req.params;
+
     const payload: CreateDeploymentPayload = req.body;
 
     if (!userId) {
@@ -34,7 +34,7 @@ export const CreateDeploymentController = async (
     }
 
     logger.info(
-      `Creating deployment for userId: ${userId}, projectId: ${projectId}`
+      `Creating deployment for userId: ${userId}, projectId: ${payload.projectId}`
     );
 
     // Validate the payload
@@ -50,7 +50,7 @@ export const CreateDeploymentController = async (
 
     const deployment = await deploymentService.createDeployment(
       userId,
-      projectId,
+      payload.projectId!,
       payload
     );
 
