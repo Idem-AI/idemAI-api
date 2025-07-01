@@ -1,5 +1,11 @@
 import {
   DeploymentModel,
+  BaseDeploymentModel,
+  QuickDeploymentModel,
+  TemplateDeploymentModel,
+  AiAssistantDeploymentModel,
+  ExpertDeploymentModel,
+  DeploymentMode,
   GitRepository,
   EnvironmentVariable,
   ChatMessage,
@@ -57,12 +63,13 @@ export class DeploymentService {
         .toString(36)
         .substr(2, 9)}`;
 
-      const newDeployment: DeploymentModel = {
+      // Base deployment properties
+      const baseDeployment = {
         id: deploymentId,
         projectId,
         name: payload.name,
         environment: payload.environment,
-        status: "configuring",
+        status: "configuring" as const,
         gitRepository: payload.gitRepository as GitRepository,
         environmentVariables: payload.environmentVariables || [],
         pipeline: {
@@ -71,30 +78,77 @@ export class DeploymentService {
           startedAt: undefined,
           estimatedCompletionTime: undefined,
         },
-        chatMessages: [],
-        architectureTemplates: [],
-        cloudComponents: [],
-        architectureComponents: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
-      // Add architecture template if specified
-      if (payload.architectureTemplate) {
-        newDeployment.architectureTemplates = [
-          await this.getArchitectureTemplate(payload.architectureTemplate),
-        ];
-      }
+      // Create the appropriate deployment model based on mode
+      let newDeployment: DeploymentModel;
 
-      // Add custom architecture components if specified
-      if (payload.customArchitecture?.components) {
-        newDeployment.architectureComponents =
-          payload.customArchitecture.components.map((comp) => ({
-            ...this.getDefaultCloudComponent(),
-            instanceId: comp.instanceId,
-            type: comp.type,
-            configuration: comp.config,
-          }));
+      const mode = payload.mode || "beginner";
+
+      switch (mode) {
+        case "template":
+          const templateDeployment: TemplateDeploymentModel = {
+            ...baseDeployment,
+            mode: "template" as const,
+            templateId: payload.architectureTemplate || "",
+            templateName: payload.architectureTemplate
+              ? "Template Architecture"
+              : "",
+          };
+
+          newDeployment = templateDeployment;
+          break;
+
+        case "ai-assistant":
+          const aiDeployment: AiAssistantDeploymentModel = {
+            ...baseDeployment,
+            mode: "ai-assistant" as const,
+            chatMessages: [],
+            aiGeneratedArchitecture: !!payload.aiGeneratedConfig,
+            aiRecommendations: [],
+            generatedComponents: [],
+          };
+
+          newDeployment = aiDeployment;
+          break;
+
+        case "expert":
+          const expertDeployment: ExpertDeploymentModel = {
+            ...baseDeployment,
+            mode: "expert" as const,
+            cloudComponents: [],
+            architectureComponents: [],
+            customInfrastructureCode: false,
+          };
+
+          // Add custom architecture components if specified
+          if (payload.customArchitecture?.components) {
+            expertDeployment.architectureComponents =
+              payload.customArchitecture.components.map((comp) => ({
+                ...this.getDefaultCloudComponent(),
+                instanceId: comp.instanceId,
+                type: comp.type,
+                configuration: comp.config,
+              }));
+          }
+
+          newDeployment = expertDeployment;
+          break;
+
+        case "beginner":
+        default:
+          const quickDeployment: QuickDeploymentModel = {
+            ...baseDeployment,
+            mode: "beginner" as const,
+            frameworkType: "",
+            buildCommand: "",
+            startCommand: "",
+          };
+
+          newDeployment = quickDeployment;
+          break;
       }
 
       const createdDeployment = await this.repository.create(
@@ -120,12 +174,22 @@ export class DeploymentService {
   async generateDeployment(
     userId: string,
     projectId: string,
-    data: Pick<DeploymentModel, "name" | "environment">
+    data: {
+      name: string;
+      environment: "development" | "staging" | "production";
+    }
   ): Promise<DeploymentModel> {
+    logger.info(
+      `generateDeployment called for userId: ${userId}, projectId: ${projectId}, name: ${data.name}`
+    );
+
     const payload: CreateDeploymentPayload = {
       name: data.name,
       environment: data.environment,
+      mode: "beginner",
+      projectId: projectId,
     };
+
     return this.createDeployment(userId, projectId, payload);
   }
 
@@ -318,6 +382,11 @@ export class DeploymentService {
     );
 
     try {
+      const deployment = await this.getDeploymentById(userId, deploymentId);
+      if (!deployment) {
+        return null;
+      }
+
       const validationErrors =
         DeploymentValidators.validateArchitectureComponents(components);
       if (validationErrors.length > 0) {
@@ -328,9 +397,21 @@ export class DeploymentService {
         );
       }
 
-      return await this.updateDeployment(userId, deploymentId, {
-        architectureComponents: components,
-      });
+      // Update based on deployment mode
+      if (deployment.mode === "expert") {
+        return await this.updateDeployment(userId, deploymentId, {
+          architectureComponents: components,
+        } as Partial<ExpertDeploymentModel>);
+      } else if (deployment.mode === "ai-assistant") {
+        return await this.updateDeployment(userId, deploymentId, {
+          generatedComponents: components,
+        } as Partial<AiAssistantDeploymentModel>);
+      } else {
+        logger.warn(
+          `Cannot update architecture components for deployment mode: ${deployment.mode}`
+        );
+        return deployment;
+      }
     } catch (error: any) {
       logger.error(
         `Error updating architecture components for deployment ${deploymentId}: ${error.message}`,
@@ -346,7 +427,7 @@ export class DeploymentService {
     message: ChatMessage
   ): Promise<DeploymentModel | null> {
     logger.info(
-      `addChatMessage called for userId: ${userId}, deploymentId: ${deploymentId}, sender: ${message.sender}`
+      `addChatMessage called for userId: ${userId}, deploymentId: ${deploymentId}`
     );
 
     try {
@@ -355,10 +436,20 @@ export class DeploymentService {
         return null;
       }
 
-      const updatedMessages = [...(deployment.chatMessages || []), message];
+      // Only AI Assistant deployments have chat messages
+      if (deployment.mode !== "ai-assistant") {
+        logger.warn(
+          `Cannot add chat message to non-AI-assistant deployment: ${deploymentId}`
+        );
+        return deployment;
+      }
+
+      const aiDeployment = deployment as AiAssistantDeploymentModel;
+      const updatedMessages = [...aiDeployment.chatMessages, message];
+
       return await this.updateDeployment(userId, deploymentId, {
         chatMessages: updatedMessages,
-      });
+      } as Partial<AiAssistantDeploymentModel>);
     } catch (error: any) {
       logger.error(
         `Error adding chat message for deployment ${deploymentId}: ${error.message}`,
@@ -499,10 +590,19 @@ export class DeploymentService {
         return null;
       }
 
+      // Get architecture components based on deployment mode
+      let components: ArchitectureComponent[] = [];
+
+      if (deployment.mode === "expert") {
+        const expertDeployment = deployment as ExpertDeploymentModel;
+        components = expertDeployment.architectureComponents || [];
+      } else if (deployment.mode === "ai-assistant") {
+        const aiDeployment = deployment as AiAssistantDeploymentModel;
+        components = aiDeployment.generatedComponents || [];
+      }
+
       // Calculate cost based on architecture components
-      const costEstimation = this.calculateCostEstimation(
-        deployment.architectureComponents || []
-      );
+      const costEstimation = this.calculateCostEstimation(components);
 
       // Update deployment with new cost estimation
       await this.updateDeployment(userId, deploymentId, { costEstimation });
@@ -608,6 +708,44 @@ export class DeploymentService {
 
     if (deployment.status === "building" || deployment.status === "deploying") {
       errors.push("Deployment pipeline is already running");
+    }
+
+    // Mode-specific validations
+    switch (deployment.mode) {
+      case "beginner":
+        const quickDeployment = deployment as QuickDeploymentModel;
+        if (!quickDeployment.frameworkType) {
+          errors.push(
+            "Framework type is required for beginner mode deployments"
+          );
+        }
+        break;
+
+      case "template":
+        const templateDeployment = deployment as TemplateDeploymentModel;
+        if (!templateDeployment.templateId) {
+          errors.push("Template ID is required for template mode deployments");
+        }
+        break;
+
+      case "expert":
+        const expertDeployment = deployment as ExpertDeploymentModel;
+        if (
+          !expertDeployment.architectureComponents ||
+          expertDeployment.architectureComponents.length === 0
+        ) {
+          errors.push(
+            "At least one architecture component is required for expert mode deployments"
+          );
+        }
+        break;
+
+      case "ai-assistant":
+        // AI assistant mode might not need additional validations as it's guided
+        break;
+
+      default:
+        errors.push(`Unknown deployment mode: ${(deployment as any).mode}`);
     }
 
     return errors;

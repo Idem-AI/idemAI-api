@@ -4,6 +4,7 @@ import { IRepository } from './IRepository';
 import logger from '../config/logger';
 
 const db = admin.firestore();
+db.settings({ ignoreUndefinedProperties: true });
 
 /**
  * A generic Firestore repository implementation.
