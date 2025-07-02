@@ -1,11 +1,9 @@
 import {
   DeploymentModel,
-  BaseDeploymentModel,
   QuickDeploymentModel,
   TemplateDeploymentModel,
   AiAssistantDeploymentModel,
   ExpertDeploymentModel,
-  DeploymentMode,
   GitRepository,
   EnvironmentVariable,
   ChatMessage,
@@ -17,21 +15,15 @@ import {
   CreateDeploymentPayload,
   DeploymentFormData,
   DeploymentValidators,
-  DeploymentMapper,
 } from "../../models/deployment.model";
-import { IRepository } from "../../repository/IRepository";
-import { RepositoryFactory } from "../../repository/RepositoryFactory";
-import { TargetModelType } from "../../enums/targetModelType.enum";
 import logger from "../../config/logger";
+import { GenericService } from "../common/generic.service";
+import { PromptService } from "../prompt.service";
 
-export class DeploymentService {
-  private repository: IRepository<DeploymentModel>;
-
-  constructor() {
+export class DeploymentService extends GenericService {
+  constructor(promptService: PromptService) {
+    super(promptService);
     logger.info("DeploymentService initialized.");
-    this.repository = RepositoryFactory.getRepository<DeploymentModel>(
-      TargetModelType.DEPLOYMENT
-    );
   }
 
   async createDeployment(
@@ -44,6 +36,10 @@ export class DeploymentService {
     );
 
     try {
+      const project = await this.getProject(projectId, userId);
+      if (!project) {
+        throw new Error("Project not found");
+      }
       // Validate the payload
       const formData: DeploymentFormData = {
         mode: "beginner", // Default mode, can be overridden
@@ -70,7 +66,7 @@ export class DeploymentService {
         name: payload.name,
         environment: payload.environment,
         status: "configuring" as const,
-        gitRepository: payload.gitRepository as GitRepository,
+        gitRepository: payload.gitRepository,
         environmentVariables: payload.environmentVariables || [],
         pipeline: {
           currentStage: "Initial Configuration",
@@ -151,16 +147,22 @@ export class DeploymentService {
           break;
       }
 
-      const createdDeployment = await this.repository.create(
-        newDeployment,
+      const updatedProject = await this.projectRepository.update(
+        projectId,
+        {
+          deployments: [...(project.deployments || []), newDeployment],
+        },
         userId
       );
+      if (!updatedProject) {
+        throw new Error("Project not found");
+      }
 
       logger.info(
-        `Deployment created successfully - UserId: ${userId}, ProjectId: ${projectId}, DeploymentId: ${createdDeployment.id}`
+        `Deployment created successfully - UserId: ${userId}, ProjectId: ${projectId}, DeploymentId: ${newDeployment.id}`
       );
 
-      return createdDeployment;
+      return updatedProject.deployments[updatedProject.deployments.length - 1];
     } catch (error: any) {
       logger.error(
         `Error creating deployment for userId: ${userId}, projectId: ${projectId}. Error: ${error.message}`,
@@ -201,15 +203,16 @@ export class DeploymentService {
       `getDeploymentsByProject called for userId: ${userId}, projectId: ${projectId}`
     );
     try {
-      const deployments = await this.repository.findAll(userId);
-      const filteredDeployments = deployments.filter(
-        (deployment) => deployment.projectId === projectId
-      );
+      const project = await this.getProject(projectId, userId);
+      if (!project) {
+        throw new Error("Project not found");
+      }
+      const deployments = project.deployments || [];
 
       logger.info(
-        `Found ${filteredDeployments.length} deployments for userId: ${userId}, projectId: ${projectId}`
+        `Found ${deployments.length} deployments for userId: ${userId}, projectId: ${projectId}`
       );
-      return filteredDeployments;
+      return deployments;
     } catch (error: any) {
       logger.error(
         `Error getting deployments for userId: ${userId}, projectId: ${projectId}. Error: ${error.message}`,
@@ -227,7 +230,30 @@ export class DeploymentService {
       `getDeploymentById called for userId: ${userId}, deploymentId: ${deploymentId}`
     );
     try {
-      const deployment = await this.repository.findById(userId, deploymentId);
+      // First try to find the project directly by deploymentId (if deploymentId is actually a projectId)
+      let project = await this.getProject(deploymentId, userId);
+
+      // If not found, we need to search through all projects to find the one containing this deployment
+      if (!project) {
+        const allProjects = await this.projectRepository.findAll(userId);
+        for (const proj of allProjects) {
+          if (
+            proj.deployments &&
+            proj.deployments.some((d) => d.id === deploymentId)
+          ) {
+            project = proj;
+            break;
+          }
+        }
+
+        if (!project) {
+          throw new Error("Project containing deployment not found");
+        }
+      }
+
+      const deployment = (project.deployments || []).find(
+        (deployment) => deployment.id === deploymentId
+      );
       if (deployment) {
         logger.info(
           `Deployment found - UserId: ${userId}, DeploymentId: ${deploymentId}`
@@ -236,6 +262,7 @@ export class DeploymentService {
         logger.warn(
           `Deployment not found - UserId: ${userId}, DeploymentId: ${deploymentId}`
         );
+        throw new Error("Deployment not found");
       }
       return deployment;
     } catch (error: any) {
@@ -251,37 +278,87 @@ export class DeploymentService {
     userId: string,
     deploymentId: string,
     updateData: Partial<DeploymentModel>
-  ): Promise<DeploymentModel | null> {
+  ): Promise<DeploymentModel> {
     logger.info(
       `updateDeployment called for userId: ${userId}, deploymentId: ${deploymentId}`
     );
     try {
-      const existingDeployment = await this.repository.findById(
-        userId,
-        deploymentId
+      // First try to find the project directly by deploymentId (if deploymentId is actually a projectId)
+      let project = await this.getProject(deploymentId, userId);
+      let projectId = deploymentId;
+
+      // If not found, we need to search through all projects to find the one containing this deployment
+      if (!project) {
+        const allProjects = await this.projectRepository.findAll(userId);
+        for (const proj of allProjects) {
+          if (
+            proj.deployments &&
+            proj.deployments.some((d) => d.id === deploymentId)
+          ) {
+            project = proj;
+            projectId = proj.id!;
+            break;
+          }
+        }
+
+        if (!project) {
+          throw new Error("Project containing deployment not found");
+        }
+      }
+
+      const existingDeploymentIndex = (project.deployments || []).findIndex(
+        (deployment) => deployment.id === deploymentId
       );
-      if (!existingDeployment) {
+
+      if (existingDeploymentIndex === -1) {
         logger.warn(
           `Deployment not found for update - UserId: ${userId}, DeploymentId: ${deploymentId}`
         );
-        return null;
+        throw new Error("Deployment not found");
       }
 
-      const updatedData = {
+      const existingDeployment = project.deployments[existingDeploymentIndex];
+
+      // Create a type-safe updated deployment object
+      const updatedDeployment: DeploymentModel = {
+        ...existingDeployment,
         ...updateData,
         updatedAt: new Date(),
-      };
+        // Ensure required fields are present
+        id: existingDeployment.id,
+        projectId: existingDeployment.projectId,
+        name: existingDeployment.name,
+        environment: existingDeployment.environment,
+        status: existingDeployment.status || "configuring",
+        mode: existingDeployment.mode,
+        createdAt: existingDeployment.createdAt,
+      } as DeploymentModel;
 
-      const updatedDeployment = await this.repository.update(
-        deploymentId,
-        updatedData,
+      // Create a new deployments array with the updated deployment
+      const updatedDeployments = [...project.deployments];
+      updatedDeployments[existingDeploymentIndex] = updatedDeployment;
+
+      const updatedProject = await this.projectRepository.update(
+        projectId,
+        { deployments: updatedDeployments },
         userId
       );
+      if (!updatedProject) {
+        throw new Error("Project not found");
+      }
+
+      // Find the updated deployment in the updated project
+      const resultDeployment = updatedProject.deployments?.find(
+        (deployment) => deployment.id === deploymentId
+      );
+      if (!resultDeployment) {
+        throw new Error("Deployment not found");
+      }
 
       logger.info(
         `Deployment updated successfully - UserId: ${userId}, DeploymentId: ${deploymentId}`
       );
-      return updatedDeployment;
+      return resultDeployment;
     } catch (error: any) {
       logger.error(
         `Error updating deployment for userId: ${userId}, deploymentId: ${deploymentId}. Error: ${error.message}`,
@@ -299,17 +376,77 @@ export class DeploymentService {
       `deleteDeployment called for userId: ${userId}, deploymentId: ${deploymentId}`
     );
     try {
-      const success = await this.repository.delete(deploymentId, userId);
-      if (success) {
-        logger.info(
-          `Deployment deleted successfully - UserId: ${userId}, DeploymentId: ${deploymentId}`
-        );
-      } else {
+      // First try to find the project directly by deploymentId (if deploymentId is actually a projectId)
+      let project = await this.getProject(deploymentId, userId);
+      let projectId = deploymentId;
+
+      // If not found, we need to search through all projects to find the one containing this deployment
+      if (!project) {
+        const allProjects = await this.projectRepository.findAll(userId);
+        for (const proj of allProjects) {
+          if (
+            proj.deployments &&
+            proj.deployments.some((d) => d.id === deploymentId)
+          ) {
+            project = proj;
+            projectId = proj.id!;
+            break;
+          }
+        }
+
+        if (!project) {
+          logger.warn(
+            `Project containing deployment not found - UserId: ${userId}, DeploymentId: ${deploymentId}`
+          );
+          return false;
+        }
+      }
+
+      // If we found the project by deploymentId, it means the deploymentId is actually a projectId
+      // and we should delete the entire project
+      if (projectId === deploymentId) {
+        const success = await this.projectRepository.delete(projectId, userId);
+        if (success) {
+          logger.info(
+            `Project deleted successfully - UserId: ${userId}, ProjectId: ${projectId}`
+          );
+        } else {
+          logger.warn(
+            `Project not found for deletion - UserId: ${userId}, ProjectId: ${projectId}`
+          );
+        }
+        return success;
+      }
+
+      // Otherwise, we need to remove just the deployment from the project
+      const updatedDeployments = (project.deployments || []).filter(
+        (deployment) => deployment.id !== deploymentId
+      );
+
+      if (updatedDeployments.length === (project.deployments || []).length) {
         logger.warn(
           `Deployment not found for deletion - UserId: ${userId}, DeploymentId: ${deploymentId}`
         );
+        return false;
       }
-      return success;
+
+      const updatedProject = await this.projectRepository.update(
+        projectId,
+        { deployments: updatedDeployments },
+        userId
+      );
+
+      if (updatedProject) {
+        logger.info(
+          `Deployment deleted successfully - UserId: ${userId}, DeploymentId: ${deploymentId}`
+        );
+        return true;
+      } else {
+        logger.warn(
+          `Failed to update project after deployment deletion - UserId: ${userId}, DeploymentId: ${deploymentId}`
+        );
+        return false;
+      }
     } catch (error: any) {
       logger.error(
         `Error deleting deployment for userId: ${userId}, deploymentId: ${deploymentId}. Error: ${error.message}`,

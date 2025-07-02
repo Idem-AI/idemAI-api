@@ -1,4 +1,5 @@
-import { AnalysisResultModel } from './analysisResult.model';
+import { AnalysisResultModel } from "./analysisResult.model";
+import { DeploymentModel } from "./deployment.model";
 
 /**
  * @openapi
@@ -64,7 +65,7 @@ export interface ProjectModel {
   id?: string;
   name: string;
   description: string;
-  type: 'web' | 'mobile' | 'iot' | 'desktop';
+  type: "web" | "mobile" | "iot" | "desktop";
   constraints: string[];
   teamSize: string;
   scope: string;
@@ -75,4 +76,5 @@ export interface ProjectModel {
   userId: string;
   selectedPhases: string[];
   analysisResultModel: AnalysisResultModel;
+  deployments: DeploymentModel[];
 }

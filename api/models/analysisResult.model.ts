@@ -1,9 +1,10 @@
-import { ArchitectureModel } from './architecture.model';
-import { BrandIdentityModel } from './brand-identity.model';
-import { DiagramModel } from './diagram.model';
-import { LandingModel } from './landing.model';
-import { BusinessPlanModel } from './businessPlan.model';
-import { WebContainerModel } from './webcontainer.model';
+import { ArchitectureModel } from "./architecture.model";
+import { BrandIdentityModel } from "./brand-identity.model";
+import { DiagramModel } from "./diagram.model";
+import { LandingModel } from "./landing.model";
+import { BusinessPlanModel } from "./businessPlan.model";
+import { WebContainerModel } from "./webcontainer.model";
+import { DeploymentModel } from "./deployment.model";
 
 /**
  * @openapi
@@ -56,5 +57,12 @@ export interface AnalysisResultModel {
   branding: BrandIdentityModel;
   landing: LandingModel;
   testing: string;
+  generatedDeployment: [
+    {
+      name: string;
+      content: string;
+    }
+  ];
   createdAt: Date;
+  updatedAt: Date;
 }

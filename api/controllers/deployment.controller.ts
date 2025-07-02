@@ -11,8 +11,9 @@ import {
   ChatMessage,
   ArchitectureComponent,
 } from "../models/deployment.model";
+import { PromptService } from "../services/prompt.service";
 
-const deploymentService = new DeploymentService();
+const deploymentService = new DeploymentService(new PromptService());
 
 // Create a new deployment
 export const CreateDeploymentController = async (
