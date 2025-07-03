@@ -101,7 +101,7 @@ export class DeploymentService extends GenericService {
           const aiDeployment: AiAssistantDeploymentModel = {
             ...baseDeployment,
             mode: "ai-assistant" as const,
-            chatMessages: [],
+            chatMessages: project.activeChatMessages,
             aiGeneratedArchitecture: !!payload.aiGeneratedConfig,
             aiRecommendations: [],
             generatedComponents: [],
@@ -151,9 +151,11 @@ export class DeploymentService extends GenericService {
         projectId,
         {
           deployments: [...(project.deployments || []), newDeployment],
+          ...(mode === "ai-assistant" ? { activeChatMessages: [] } : {}),
         },
         userId
       );
+
       if (!updatedProject) {
         throw new Error("Project not found");
       }
@@ -560,114 +562,112 @@ export class DeploymentService extends GenericService {
 
   async addChatMessage(
     userId: string,
-    deploymentId: string,
     projectId: string,
     message: ChatMessage
-  ): Promise<DeploymentModel | null> {
+  ): Promise<ChatMessage | null> {
     logger.info(
-      `addChatMessage called for userId: ${userId}, deploymentId: ${deploymentId}, sender: ${message.sender}`
+      `addChatMessage called for userId: ${userId}, projectId: ${projectId}, sender: ${message.sender}`
     );
 
     try {
-      const deployment = await this.getDeploymentById(userId, deploymentId);
-      if (!deployment) {
-        logger.warn(`Deployment not found: ${deploymentId}`);
+      const project = await this.getProject(projectId, userId);
+      if (!project) {
+        logger.warn(`Project not found: ${projectId}`);
         return null;
       }
-
-      // Only AI Assistant deployments have chat messages
-      if (deployment.mode !== "ai-assistant") {
-        logger.warn(
-          `Cannot add chat message to non-AI-assistant deployment: ${deploymentId}`
-        );
-        return deployment;
-      }
-
-      const aiDeployment = deployment as AiAssistantDeploymentModel;
-      
-      // Add the user message to the chat history
-      const updatedMessages = [...aiDeployment.chatMessages, message];
-      
       // If the message is from a user, generate an AI response
       if (message.sender === "user") {
-        logger.info(`Generating AI response for user message in deployment ${deploymentId}`);
-        
+        logger.info(
+          `Generating AI response for user message in deployment ${projectId}`
+        );
+
         try {
           // Convert chat messages to the format expected by PromptService
-          const promptMessages = this.convertToPromptMessages(updatedMessages, deployment);
-          
+          const promptMessages = this.convertToPromptMessages(
+            project.activeChatMessages
+          );
+
           // Call the PromptService to generate a response
           const aiResponse = await this.promptService.runPrompt({
             provider: LLMProvider.GEMINI,
-            modelName: "gemini-pro",
+            modelName: "gemini-2.0-flash",
             messages: promptMessages,
             llmOptions: {
               temperature: 0.7,
-              maxOutputTokens: 1024
-            }
+              maxOutputTokens: 1024,
+            },
           });
-          
+          console.log("aiResponse", aiResponse);
+
           // Create an AI message from the response
           const aiMessage: ChatMessage = {
             sender: "ai",
             text: aiResponse,
-            timestamp: new Date()
+            timestamp: new Date(),
           };
-          
+
           // Add the AI message to the chat history
-          updatedMessages.push(aiMessage);
-          
-          logger.info(`AI response generated successfully for deployment ${deploymentId}`);
+          if (!project.activeChatMessages) {
+            project.activeChatMessages = [];
+          }
+          project.activeChatMessages.push(aiMessage);
         } catch (promptError: any) {
           logger.error(
-            `Error generating AI response for deployment ${deploymentId}: ${promptError.message}`,
+            `Error generating AI response for project ${projectId}: ${promptError.message}`,
             { error: promptError.stack }
           );
-          
+
           // Add a fallback AI message indicating the error
-          updatedMessages.push({
+          if (!project.activeChatMessages) {
+            project.activeChatMessages = [];
+          }
+          project.activeChatMessages.push({
             sender: "ai",
             text: "I'm sorry, I encountered an error while processing your request. Please try again later.",
-            timestamp: new Date()
+            timestamp: new Date(),
           });
         }
       }
-
+      await this.projectRepository.update(projectId, project, userId);
       // Update the deployment with the new messages
-      return await this.updateDeployment(userId, deploymentId, {
-        chatMessages: updatedMessages,
-      } as Partial<AiAssistantDeploymentModel>);
+      return project.activeChatMessages[project.activeChatMessages.length - 1];
     } catch (error: any) {
       logger.error(
-        `Error adding chat message for deployment ${deploymentId}: ${error.message}`,
+        `Error adding chat message for project ${projectId}: ${error.message}`,
         { error: error.stack }
       );
       throw error;
     }
   }
-  
+
   /**
    * Converts deployment chat messages to the format expected by PromptService
    */
-  private convertToPromptMessages(chatMessages: ChatMessage[], deployment: DeploymentModel): { role: "user" | "assistant" | "system"; content: string }[] {
+  private convertToPromptMessages(
+    chatMessages: ChatMessage[]
+  ): { role: "user" | "assistant" | "system"; content: string }[] {
     // Start with a system message that provides context about the deployment
-    const promptMessages: { role: "user" | "assistant" | "system"; content: string }[] = [
+    const promptMessages: {
+      role: "user" | "assistant" | "system";
+      content: string;
+    }[] = [
       {
         role: "system",
-        content: `You are an AI deployment assistant helping with a ${deployment.environment} deployment named "${deployment.name}". ${deployment.gitRepository ? `The deployment is connected to a ${deployment.gitRepository.provider} repository at ${deployment.gitRepository.url} (branch: ${deployment.gitRepository.branch}).` : "No Git repository is connected yet."} Your goal is to help the user configure and manage their deployment effectively.`
-      }
+        content: `You are an AI deployment assistant helping with a deployment named "Idem AI". Your goal is to help the user configure and manage their deployment effectively.`,
+      },
     ];
-    
-    // Add the conversation history (limited to last 10 messages to avoid token limits)
-    const recentMessages = chatMessages.slice(-10);
-    
-    recentMessages.forEach(msg => {
-      promptMessages.push({
-        role: msg.sender === "user" ? "user" : "assistant",
-        content: msg.text
+
+    // Add the conversation history (limited to last 5 messages to avoid token limits)
+    if (chatMessages.length > 5) {
+      const recentMessages = chatMessages.slice(-5);
+      recentMessages.forEach((msg) => {
+        promptMessages.push({
+          role: msg.sender === "user" ? "user" : "assistant",
+          content: msg.text,
+        });
       });
-    });
-    
+    }
+
     return promptMessages;
   }
 

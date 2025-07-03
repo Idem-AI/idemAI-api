@@ -460,9 +460,11 @@ export const AddChatMessageController = async (
 ): Promise<void> => {
   try {
     const userId = req.user?.uid;
-    
-    const { message, projectId, deploymentId } = req.body;
 
+    const { text } = req.body.message;
+    const { projectId } = req.body;
+    console.log("projectId", projectId);
+    console.log("text", text);
     if (!userId) {
       res.status(401).json({
         success: false,
@@ -470,8 +472,17 @@ export const AddChatMessageController = async (
       });
       return;
     }
+    if (!projectId) {
+      res.status(400).json({
+        success: false,
+        message: "Project ID is required",
+      });
+      return;
+    }
 
-    if (!message || typeof message !== "string") {
+    console.log("text", text);
+
+    if (!text || typeof text !== "string") {
       res.status(400).json({
         success: false,
         message: "Message is required and must be a string",
@@ -486,45 +497,27 @@ export const AddChatMessageController = async (
     // Create a chat message with timestamp
     const chatMessage: ChatMessage = {
       sender: "user",
-      text: message,
+      text: text,
       timestamp: new Date(),
     };
 
     // The enhanced addChatMessage method will automatically generate an AI response
     // when it receives a user message
-    const deployment = await deploymentService.addChatMessage(
+    const chatMessageResponse = await deploymentService.addChatMessage(
       userId,
-      deploymentId,
       projectId,
       chatMessage
     );
 
-    if (!deployment) {
+    if (!chatMessageResponse) {
       res.status(404).json({
         success: false,
-        message: "Deployment not found",
+        message: "Chat message not found",
       });
       return;
     }
 
-    // Get the AI's response from the updated deployment
-    const aiDeployment = deployment as AiAssistantDeploymentModel;
-    const messages = aiDeployment.chatMessages || [];
-    const aiResponse =
-      messages.length > 0
-        ? messages[messages.length - 1].sender === "ai"
-          ? messages[messages.length - 1]
-          : null
-        : null;
-
-    res.status(200).json({
-      success: true,
-      message: "Chat message processed successfully",
-      data: {
-        deployment,
-        aiResponse: aiResponse ? aiResponse.text : null,
-      },
-    });
+    res.status(200).json(chatMessageResponse);
   } catch (error: any) {
     logger.error(`Error processing chat message: ${error.message}`, {
       error: error.stack,

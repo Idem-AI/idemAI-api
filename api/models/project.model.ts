@@ -1,5 +1,5 @@
 import { AnalysisResultModel } from "./analysisResult.model";
-import { DeploymentModel } from "./deployment.model";
+import { ChatMessage, DeploymentModel } from "./deployment.model";
 
 /**
  * @openapi
@@ -77,4 +77,5 @@ export interface ProjectModel {
   selectedPhases: string[];
   analysisResultModel: AnalysisResultModel;
   deployments: DeploymentModel[];
+  activeChatMessages: ChatMessage[];
 }
