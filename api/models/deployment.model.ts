@@ -44,6 +44,9 @@ export interface ChatMessage {
   sender: "user" | "ai";
   text: string;
   timestamp?: Date;
+  isRequestingDetails?: boolean;
+  isProposingArchitecture?: boolean;
+  proposedComponents?: ArchitectureComponent[];
 }
 
 export interface ArchitectureTemplate {
