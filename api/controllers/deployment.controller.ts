@@ -10,6 +10,7 @@ import {
   DeploymentValidators,
   ChatMessage,
   ArchitectureComponent,
+  AiAssistantDeploymentModel,
 } from "../models/deployment.model";
 import { PromptService } from "../services/prompt.service";
 
@@ -452,15 +453,15 @@ export const UpdateArchitectureComponentsController = async (
   }
 };
 
-// Add chat message
+// Add chat message and get AI response
 export const AddChatMessageController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
   try {
     const userId = req.user?.uid;
-    const { deploymentId } = req.params;
-    const { message } = req.body;
+    
+    const { message, projectId, deploymentId } = req.body;
 
     if (!userId) {
       res.status(401).json({
@@ -479,17 +480,22 @@ export const AddChatMessageController = async (
     }
 
     logger.info(
-      `Adding chat message for userId: ${userId}, deploymentId: ${deploymentId}`
+      `Adding chat message for userId: ${userId}, projectId: ${projectId}`
     );
 
+    // Create a chat message with timestamp
     const chatMessage: ChatMessage = {
       sender: "user",
       text: message,
+      timestamp: new Date(),
     };
 
+    // The enhanced addChatMessage method will automatically generate an AI response
+    // when it receives a user message
     const deployment = await deploymentService.addChatMessage(
       userId,
       deploymentId,
+      projectId,
       chatMessage
     );
 
@@ -501,13 +507,26 @@ export const AddChatMessageController = async (
       return;
     }
 
+    // Get the AI's response from the updated deployment
+    const aiDeployment = deployment as AiAssistantDeploymentModel;
+    const messages = aiDeployment.chatMessages || [];
+    const aiResponse =
+      messages.length > 0
+        ? messages[messages.length - 1].sender === "ai"
+          ? messages[messages.length - 1]
+          : null
+        : null;
+
     res.status(200).json({
       success: true,
-      message: "Chat message added successfully",
-      data: deployment,
+      message: "Chat message processed successfully",
+      data: {
+        deployment,
+        aiResponse: aiResponse ? aiResponse.text : null,
+      },
     });
   } catch (error: any) {
-    logger.error(`Error adding chat message: ${error.message}`, {
+    logger.error(`Error processing chat message: ${error.message}`, {
       error: error.stack,
     });
     res.status(500).json({

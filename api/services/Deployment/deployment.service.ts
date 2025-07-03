@@ -18,7 +18,7 @@ import {
 } from "../../models/deployment.model";
 import logger from "../../config/logger";
 import { GenericService } from "../common/generic.service";
-import { PromptService } from "../prompt.service";
+import { PromptService, LLMProvider } from "../prompt.service";
 
 export class DeploymentService extends GenericService {
   constructor(promptService: PromptService) {
@@ -561,15 +561,17 @@ export class DeploymentService extends GenericService {
   async addChatMessage(
     userId: string,
     deploymentId: string,
+    projectId: string,
     message: ChatMessage
   ): Promise<DeploymentModel | null> {
     logger.info(
-      `addChatMessage called for userId: ${userId}, deploymentId: ${deploymentId}`
+      `addChatMessage called for userId: ${userId}, deploymentId: ${deploymentId}, sender: ${message.sender}`
     );
 
     try {
       const deployment = await this.getDeploymentById(userId, deploymentId);
       if (!deployment) {
+        logger.warn(`Deployment not found: ${deploymentId}`);
         return null;
       }
 
@@ -582,8 +584,56 @@ export class DeploymentService extends GenericService {
       }
 
       const aiDeployment = deployment as AiAssistantDeploymentModel;
+      
+      // Add the user message to the chat history
       const updatedMessages = [...aiDeployment.chatMessages, message];
+      
+      // If the message is from a user, generate an AI response
+      if (message.sender === "user") {
+        logger.info(`Generating AI response for user message in deployment ${deploymentId}`);
+        
+        try {
+          // Convert chat messages to the format expected by PromptService
+          const promptMessages = this.convertToPromptMessages(updatedMessages, deployment);
+          
+          // Call the PromptService to generate a response
+          const aiResponse = await this.promptService.runPrompt({
+            provider: LLMProvider.GEMINI,
+            modelName: "gemini-pro",
+            messages: promptMessages,
+            llmOptions: {
+              temperature: 0.7,
+              maxOutputTokens: 1024
+            }
+          });
+          
+          // Create an AI message from the response
+          const aiMessage: ChatMessage = {
+            sender: "ai",
+            text: aiResponse,
+            timestamp: new Date()
+          };
+          
+          // Add the AI message to the chat history
+          updatedMessages.push(aiMessage);
+          
+          logger.info(`AI response generated successfully for deployment ${deploymentId}`);
+        } catch (promptError: any) {
+          logger.error(
+            `Error generating AI response for deployment ${deploymentId}: ${promptError.message}`,
+            { error: promptError.stack }
+          );
+          
+          // Add a fallback AI message indicating the error
+          updatedMessages.push({
+            sender: "ai",
+            text: "I'm sorry, I encountered an error while processing your request. Please try again later.",
+            timestamp: new Date()
+          });
+        }
+      }
 
+      // Update the deployment with the new messages
       return await this.updateDeployment(userId, deploymentId, {
         chatMessages: updatedMessages,
       } as Partial<AiAssistantDeploymentModel>);
@@ -594,6 +644,31 @@ export class DeploymentService extends GenericService {
       );
       throw error;
     }
+  }
+  
+  /**
+   * Converts deployment chat messages to the format expected by PromptService
+   */
+  private convertToPromptMessages(chatMessages: ChatMessage[], deployment: DeploymentModel): { role: "user" | "assistant" | "system"; content: string }[] {
+    // Start with a system message that provides context about the deployment
+    const promptMessages: { role: "user" | "assistant" | "system"; content: string }[] = [
+      {
+        role: "system",
+        content: `You are an AI deployment assistant helping with a ${deployment.environment} deployment named "${deployment.name}". ${deployment.gitRepository ? `The deployment is connected to a ${deployment.gitRepository.provider} repository at ${deployment.gitRepository.url} (branch: ${deployment.gitRepository.branch}).` : "No Git repository is connected yet."} Your goal is to help the user configure and manage their deployment effectively.`
+      }
+    ];
+    
+    // Add the conversation history (limited to last 10 messages to avoid token limits)
+    const recentMessages = chatMessages.slice(-10);
+    
+    recentMessages.forEach(msg => {
+      promptMessages.push({
+        role: msg.sender === "user" ? "user" : "assistant",
+        content: msg.text
+      });
+    });
+    
+    return promptMessages;
   }
 
   // Pipeline Management Methods

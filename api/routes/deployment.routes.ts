@@ -344,12 +344,12 @@ deploymentRoutes.put(
 
 /**
  * @openapi
- * /deployments/updateChatMessages/{deploymentId}:
- *   put:
+ * /deployments/{deploymentId}/chat:
+ *   post:
  *     tags:
- *       - Deployments Configuration
- *     summary: Update chat messages
- *     description: Updates the chat messages for a specific deployment
+ *       - Deployments AI Assistant
+ *     summary: Send a message to the AI assistant
+ *     description: Adds a user message to the deployment's chat history and generates an AI response
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -358,36 +358,54 @@ deploymentRoutes.put(
  *         required: true
  *         schema:
  *           type: string
- *         description: The ID of the deployment to update
+ *         description: The ID of the deployment to interact with
  *         example: "deployment_123456789"
  *     requestBody:
+ *       description: User message to send to the AI assistant
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/UpdateChatMessagesDto'
+ *             type: object
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: The user's message text
+ *                 example: "How do I deploy this application?"
  *     responses:
  *       200:
- *         description: Chat messages updated successfully
+ *         description: Message processed successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/BaseResponseDto'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Chat message processed successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deployment:
+ *                       $ref: '#/components/schemas/DeploymentDto'
+ *                     aiResponse:
+ *                       type: string
+ *                       description: The AI assistant's response
+ *                       example: "To deploy your application, you'll need to configure your Git repository and environment variables first. Would you like me to guide you through the process?"
  *       400:
- *         description: Bad request - validation error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/BaseResponseDto'
+ *         description: Bad request - invalid message format
  *       401:
  *         description: Unauthorized
  *       404:
- *         description: Deployment not found
+ *         description: Deployment not found or not in AI assistant mode
  *       500:
  *         description: Internal server error
  */
-deploymentRoutes.put(
-  `${resourceName}/updateChatMessages/:deploymentId`,
+deploymentRoutes.post(
+  `${resourceName}/chat`,
   authenticate,
   AddChatMessageController
 );
