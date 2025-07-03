@@ -19,6 +19,8 @@ import {
 import logger from "../../config/logger";
 import { GenericService } from "../common/generic.service";
 import { PromptService, LLMProvider } from "../prompt.service";
+import { ProjectModel } from "../../models/project.model";
+import { AI_CHAT_INITIAL_PROMPT } from "./prompts/ai-chat.prompt";
 
 export class DeploymentService extends GenericService {
   constructor(promptService: PromptService) {
@@ -583,8 +585,10 @@ export class DeploymentService extends GenericService {
 
         try {
           // Convert chat messages to the format expected by PromptService
+          project.activeChatMessages.push(message);
           const promptMessages = this.convertToPromptMessages(
-            project.activeChatMessages
+            project.activeChatMessages,
+            project
           );
 
           // Call the PromptService to generate a response
@@ -644,8 +648,43 @@ export class DeploymentService extends GenericService {
    * Converts deployment chat messages to the format expected by PromptService
    */
   private convertToPromptMessages(
-    chatMessages: ChatMessage[]
+    chatMessages: ChatMessage[],
+    project: ProjectModel
   ): { role: "user" | "assistant" | "system"; content: string }[] {
+    logger.info(`Converting prompt messages for project: ${project.id}, deployment chat`);
+    
+    // Extract deployment information from project
+    const deploymentInfo = project.deployments && project.deployments.length > 0 
+      ? project.deployments[project.deployments.length - 1] 
+      : null;
+    
+    // Create project context string
+    let projectContext = `
+      Project Name: ${project.name}
+      Project ID: ${project.id}
+      Description: ${project.description}
+      Type: ${project.type}
+      Constraints: ${project.constraints}
+      Team Size: ${project.teamSize}
+      Scope: ${project.scope}
+      Budget: ${project.budgetIntervals || "Not specified"}
+      Targets: ${project.targets}
+    `;
+
+    // Add deployment specific context if available
+    if (deploymentInfo) {
+      projectContext += `
+        Current Deployment Information:
+        - Name: ${deploymentInfo.name}
+        - Status: ${deploymentInfo.status}
+        - Environment: ${deploymentInfo.environment}
+        - Mode: ${deploymentInfo.mode}
+        ${deploymentInfo.gitRepository ? `- Git Repository: ${deploymentInfo.gitRepository.provider} (${deploymentInfo.gitRepository.url})` : ''}
+        ${deploymentInfo.url ? `- Deployed URL: ${deploymentInfo.url}` : ''}
+        ${deploymentInfo.pipeline ? `- Current Pipeline Stage: ${deploymentInfo.pipeline.currentStage}` : ''}
+      `;
+    }
+    
     // Start with a system message that provides context about the deployment
     const promptMessages: {
       role: "user" | "assistant" | "system";
@@ -653,20 +692,19 @@ export class DeploymentService extends GenericService {
     }[] = [
       {
         role: "system",
-        content: `You are an AI deployment assistant helping with a deployment named "Idem AI". Your goal is to help the user configure and manage their deployment effectively.`,
+        content: `${AI_CHAT_INITIAL_PROMPT}\n\n${projectContext}`,
       },
     ];
 
-    // Add the conversation history (limited to last 5 messages to avoid token limits)
-    if (chatMessages.length > 5) {
-      const recentMessages = chatMessages.slice(-5);
-      recentMessages.forEach((msg) => {
-        promptMessages.push({
-          role: msg.sender === "user" ? "user" : "assistant",
-          content: msg.text,
-        });
+    // Add all conversation history if less than 5 messages, otherwise limit to last 5
+    const messagesToInclude = chatMessages.length <= 5 ? chatMessages : chatMessages.slice(-5);
+    
+    messagesToInclude.forEach((msg) => {
+      promptMessages.push({
+        role: msg.sender === "user" ? "user" : "assistant",
+        content: msg.text,
       });
-    }
+    });
 
     return promptMessages;
   }
