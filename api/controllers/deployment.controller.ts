@@ -494,11 +494,14 @@ export const AddChatMessageController = async (
       `Adding chat message for userId: ${userId}, projectId: ${projectId}`
     );
 
-    // Create a chat message with timestamp
+    // Create a chat message with timestamp and initialize structured response fields
     const chatMessage: ChatMessage = {
       sender: "user",
       text: text,
       timestamp: new Date(),
+      // User messages don't need these fields, but initialize them for consistency
+      isRequestingDetails: false,
+      isProposingArchitecture: false,
     };
 
     // The enhanced addChatMessage method will automatically generate an AI response

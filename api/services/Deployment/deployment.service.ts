@@ -603,12 +603,48 @@ export class DeploymentService extends GenericService {
           });
           console.log("aiResponse", aiResponse);
 
-          // Create an AI message from the response
-          const aiMessage: ChatMessage = {
-            sender: "ai",
-            text: aiResponse,
-            timestamp: new Date(),
-          };
+          // Create an AI message and parse the response as JSON if possible
+          let aiMessage: ChatMessage;
+
+          try {
+            // Try to extract JSON from the response (it might be wrapped in markdown code blocks)
+            const jsonMatch = aiResponse.match(
+              /```(?:json)?\s*([\s\S]*?)\s*```/
+            ) || [null, aiResponse];
+            const jsonContent = jsonMatch[1].trim();
+            const parsedResponse = JSON.parse(jsonContent);
+
+            // Create an AI message from the structured response
+            aiMessage = {
+              sender: "ai",
+              text: parsedResponse.message || aiResponse, // Fallback to raw response if message field missing
+              timestamp: new Date(),
+              isRequestingDetails: parsedResponse.isRequestingDetails || false,
+              isProposingArchitecture:
+                parsedResponse.isProposingArchitecture || false,
+              proposedComponents: parsedResponse.proposedComponents || [],
+            };
+
+            logger.info(
+              `Successfully parsed AI response as structured JSON for project ${projectId}`
+            );
+          } catch (error: unknown) {
+            // Type guard for error.message
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            logger.warn(
+              `Failed to parse AI response as JSON for project ${projectId}: ${errorMessage}`
+            );
+
+            // Fallback to treating the response as plain text
+            aiMessage = {
+              sender: "ai",
+              text: aiResponse,
+              timestamp: new Date(),
+              isRequestingDetails: false,
+              isProposingArchitecture: false,
+            };
+          }
 
           // Add the AI message to the chat history
           if (!project.activeChatMessages) {
@@ -629,6 +665,8 @@ export class DeploymentService extends GenericService {
             sender: "ai",
             text: "I'm sorry, I encountered an error while processing your request. Please try again later.",
             timestamp: new Date(),
+            isRequestingDetails: false,
+            isProposingArchitecture: false,
           });
         }
       }
@@ -651,13 +689,16 @@ export class DeploymentService extends GenericService {
     chatMessages: ChatMessage[],
     project: ProjectModel
   ): { role: "user" | "assistant" | "system"; content: string }[] {
-    logger.info(`Converting prompt messages for project: ${project.id}, deployment chat`);
-    
+    logger.info(
+      `Converting prompt messages for project: ${project.id}, deployment chat`
+    );
+
     // Extract deployment information from project
-    const deploymentInfo = project.deployments && project.deployments.length > 0 
-      ? project.deployments[project.deployments.length - 1] 
-      : null;
-    
+    const deploymentInfo =
+      project.deployments && project.deployments.length > 0
+        ? project.deployments[project.deployments.length - 1]
+        : null;
+
     // Create project context string
     let projectContext = `
       Project Name: ${project.name}
@@ -679,12 +720,20 @@ export class DeploymentService extends GenericService {
         - Status: ${deploymentInfo.status}
         - Environment: ${deploymentInfo.environment}
         - Mode: ${deploymentInfo.mode}
-        ${deploymentInfo.gitRepository ? `- Git Repository: ${deploymentInfo.gitRepository.provider} (${deploymentInfo.gitRepository.url})` : ''}
-        ${deploymentInfo.url ? `- Deployed URL: ${deploymentInfo.url}` : ''}
-        ${deploymentInfo.pipeline ? `- Current Pipeline Stage: ${deploymentInfo.pipeline.currentStage}` : ''}
+        ${
+          deploymentInfo.gitRepository
+            ? `- Git Repository: ${deploymentInfo.gitRepository.provider} (${deploymentInfo.gitRepository.url})`
+            : ""
+        }
+        ${deploymentInfo.url ? `- Deployed URL: ${deploymentInfo.url}` : ""}
+        ${
+          deploymentInfo.pipeline
+            ? `- Current Pipeline Stage: ${deploymentInfo.pipeline.currentStage}`
+            : ""
+        }
       `;
     }
-    
+
     // Start with a system message that provides context about the deployment
     const promptMessages: {
       role: "user" | "assistant" | "system";
@@ -697,8 +746,9 @@ export class DeploymentService extends GenericService {
     ];
 
     // Add all conversation history if less than 5 messages, otherwise limit to last 5
-    const messagesToInclude = chatMessages.length <= 5 ? chatMessages : chatMessages.slice(-5);
-    
+    const messagesToInclude =
+      chatMessages.length <= 5 ? chatMessages : chatMessages.slice(-5);
+
     messagesToInclude.forEach((msg) => {
       promptMessages.push({
         role: msg.sender === "user" ? "user" : "assistant",
