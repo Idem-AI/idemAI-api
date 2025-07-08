@@ -8,5 +8,10 @@ You are currently generating a specific Terraform file as part of a complete inf
 Review the project information, architecture components, and deployment configuration carefully to ensure the generated code
 is appropriate for the specified cloud provider, environment, and deployment requirements.
 
-Provide clean, well-commented code following Terraform conventions and best practices.
+If you are regenerating Terraform files for an existing deployment, maintain consistency with any existing infrastructure
+while incorporating any changes or updates specified in the deployment configuration.
+
+For both new deployments and updates to existing deployments, provide clean, well-commented code following Terraform 
+conventions and best practices. The generated code should work seamlessly within the existing project's infrastructure,
+support the specified deployment mode, and accommodate the project's architecture components.
 `;
