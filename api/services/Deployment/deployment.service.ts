@@ -21,6 +21,10 @@ import { GenericService } from "../common/generic.service";
 import { PromptService, LLMProvider } from "../prompt.service";
 import { ProjectModel } from "../../models/project.model";
 import { AI_CHAT_INITIAL_PROMPT } from "./prompts/ai-chat.prompt";
+import {
+  TERRAFORM_GENERATION_PROMPT,
+  TERRAFORM_SYSTEM_PROMPT,
+} from "./prompts/terraform.prompt";
 
 export class DeploymentService extends GenericService {
   constructor(promptService: PromptService) {
@@ -179,24 +183,203 @@ export class DeploymentService extends GenericService {
   // Legacy method for backward compatibility
   async generateDeployment(
     userId: string,
-    projectId: string,
-    data: {
-      name: string;
-      environment: "development" | "staging" | "production";
-    }
+    projectId: string
   ): Promise<DeploymentModel> {
     logger.info(
-      `generateDeployment called for userId: ${userId}, projectId: ${projectId}, name: ${data.name}`
+      `generateDeployment called for userId: ${userId}, projectId: ${projectId}`
     );
 
-    const payload: CreateDeploymentPayload = {
-      name: data.name,
-      environment: data.environment,
-      mode: "beginner",
-      projectId: projectId,
-    };
+    try {
+      // Get project information
+      const project = await this.getProject(projectId, userId);
+      if (!project) {
+        throw new Error("Project not found");
+      }
 
-    return this.createDeployment(userId, projectId, payload);
+      // Create a basic deployment configuration
+      const deploymentId = `dep_${Date.now()}`;
+      const deployment: DeploymentModel = {
+        id: deploymentId,
+        projectId,
+        name: `${project.name} Deployment`,
+        mode: "beginner", // Default mode
+        environment: "development", // Default environment
+        status: "configuring", // Initial status
+        pipeline: {
+          currentStage: "initialization",
+          steps: this.initializePipelineSteps(),
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Generate Terraform files based on the deployment configuration
+      const generatedFiles = await this.generateTerraformFiles(
+        deployment,
+        project
+      );
+      if (generatedFiles && generatedFiles.length > 0) {
+        deployment.generatedTerraformFiles = generatedFiles;
+      }
+
+      // Add the deployment to the project
+      if (!project.deployments) {
+        project.deployments = [];
+      }
+      project.deployments.push(deployment);
+
+      // Update the project with the new deployment
+      await this.projectRepository.update(projectId, project, userId);
+
+      logger.info(
+        `Successfully generated deployment for userId: ${userId}, projectId: ${projectId}, deploymentId: ${deploymentId}`
+      );
+      return deployment;
+    } catch (error: any) {
+      logger.error(
+        `Error generating deployment for userId: ${userId}, projectId: ${projectId}. Error: ${error.message}`,
+        { error: error.stack }
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Generates Terraform files based on deployment configuration
+   * @param deployment The deployment model
+   * @param project The project model
+   * @returns Array of generated Terraform files
+   */
+  private async generateTerraformFiles(
+    deployment: DeploymentModel,
+    project: ProjectModel
+  ): Promise<{ name: string; content: string }[]> {
+    logger.info(
+      `Generating Terraform files for deployment: ${deployment.id}, project: ${project.id}`
+    );
+
+    try {
+      // Prepare the components for the prompt
+      const architectureComponents = JSON.stringify(
+        deployment.mode === "expert"
+          ? (deployment as ExpertDeploymentModel).architectureComponents || []
+          : deployment.mode === "ai-assistant"
+          ? (deployment as AiAssistantDeploymentModel).generatedComponents || []
+          : []
+      );
+
+      // Prepare environment variables
+      const envVars = JSON.stringify(deployment.environmentVariables || []);
+
+      // Prepare git repository info
+      const gitRepo = JSON.stringify(deployment.gitRepository || {});
+
+      // Prepare project info
+      const projectInfo = JSON.stringify({
+        name: project.name,
+        description: project.description,
+        type: project.type,
+      });
+
+      // Populate the prompt template with data
+      const prompt = TERRAFORM_GENERATION_PROMPT.replace(
+        "{{architecture_components}}",
+        architectureComponents
+      )
+        .replace("{{environment_variables}}", envVars)
+        .replace("{{git_repository}}", gitRepo)
+        .replace("{{deployment_mode}}", deployment.mode)
+        .replace("{{environment}}", deployment.environment)
+        .replace("{{project_info}}", projectInfo);
+
+      // Call the LLM to generate Terraform code
+      const response = await this.promptService.runPrompt({
+        provider: LLMProvider.GEMINI,
+        modelName: "gemini-2.0-flash", // Using the latest model
+        messages: [
+          { role: "system", content: TERRAFORM_SYSTEM_PROMPT },
+          { role: "user", content: prompt },
+        ],
+        llmOptions: {
+          temperature: 0.2, // Lower temperature for more deterministic output
+          maxOutputTokens: 8192, // Allow for longer response for multiple files
+        },
+      });
+
+      if (!response) {
+        logger.warn(
+          `No response from LLM for Terraform generation, deploymentId: ${deployment.id}`
+        );
+        return [];
+      }
+
+      // Parse the response to extract the files
+      try {
+        // Clean the response in case it's wrapped in Markdown code blocks
+        let cleanResponse = response;
+        
+        // First attempt: Check if response is wrapped in Markdown code blocks
+        const jsonCodeBlockRegex = /```(?:json)?\s*([\s\S]*?)\s*```/g;
+        const match = jsonCodeBlockRegex.exec(response);
+        if (match && match[1]) {
+          cleanResponse = match[1].trim();
+          logger.info(`Found JSON in Markdown code block, extracted for parsing`);
+        }
+
+        // Second attempt: Check if the response starts with a common markdown artifact
+        if (cleanResponse.startsWith('```json') || cleanResponse.startsWith('```')) {
+          // Try to find the closing code block
+          const closingIndex = cleanResponse.lastIndexOf('```');
+          if (closingIndex > 3) { // Must be after the opening ```
+            cleanResponse = cleanResponse.substring(cleanResponse.indexOf('\n') + 1, closingIndex).trim();
+            logger.info(`Extracted content between markdown code blocks`);
+          }
+        }
+        
+        // Remove any lingering triple backticks
+        cleanResponse = cleanResponse.replace(/```/g, '').trim();
+        
+        // Log the cleaned response for debugging
+        logger.debug(`Cleaned response for parsing: ${cleanResponse.substring(0, 100)}...`);
+
+        const parsedResponse = JSON.parse(cleanResponse);
+        if (parsedResponse.files && Array.isArray(parsedResponse.files)) {
+          logger.info(
+            `Successfully parsed Terraform files response for deploymentId: ${deployment.id}. Generated ${parsedResponse.files.length} files`
+          );
+          return parsedResponse.files;
+        } else {
+          logger.warn(
+            `Response for Terraform generation has unexpected format, deploymentId: ${deployment.id}. Missing or invalid 'files' array`
+          );
+          return [];
+        }
+      } catch (parseError: unknown) {
+        const errorMessage =
+          parseError instanceof Error ? parseError.message : String(parseError);
+        const errorStack =
+          parseError instanceof Error ? parseError.stack : undefined;
+
+        logger.error(
+          `Error parsing LLM response for Terraform generation, deploymentId: ${deployment.id}. Error: ${errorMessage}`,
+          { error: errorStack, response }
+        );
+
+        // Attempt to salvage the response by creating a single file
+        return [
+          {
+            name: "main.tf",
+            content: response,
+          },
+        ];
+      }
+    } catch (error: any) {
+      logger.error(
+        `Error generating Terraform files for deploymentId: ${deployment.id}. Error: ${error.message}`,
+        { error: error.stack }
+      );
+      return [];
+    }
   }
 
   async getDeploymentsByProject(

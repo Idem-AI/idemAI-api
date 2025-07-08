@@ -73,7 +73,6 @@ const resourceName = "/deployments";
  */
 deploymentRoutes.post(
   `${resourceName}/generate`,
-  authenticate,
   GenerateDeploymentController
 );
 

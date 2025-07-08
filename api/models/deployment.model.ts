@@ -149,6 +149,10 @@ export interface BaseDeploymentModel {
   rollbackVersions?: string[]; // Previous versions for rollback
   lastSuccessfulDeployment?: string; // ID of the last successful deployment
 
+  generatedTerraformFiles?: { name: string; content: string }[];
+  generatedK8sFiles?: { name: string; content: string }[];
+  generatedDockerFiles?: { name: string; content: string }[];
+
   // Standard timestamps
   createdAt: Date;
   updatedAt: Date;

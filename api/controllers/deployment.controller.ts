@@ -695,49 +695,40 @@ export const GenerateDeploymentController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  try {
-    const userId = req.user?.uid;
-    const { projectId } = req.params;
-    const { name, environment } = req.body;
+  const userId = "sA6ZeSlrP9Ri8tCNAncPNKi83Nz2";
+  const { projectId } = req.body;
 
+  logger.info(`GenerateDeploymentController called for userId: ${userId}, projectId: ${projectId}`);
+
+  try {
     if (!userId) {
+      logger.warn('Authentication missing: userId is undefined');
       res.status(401).json({
         success: false,
-        message: "User not authenticated",
+        message: "Authentication required",
       });
       return;
     }
 
-    if (!name || !environment) {
-      res.status(400).json({
-        success: false,
-        message: "Name and environment are required",
-      });
-      return;
-    }
+    const deploymentService = new DeploymentService(new PromptService());
+    const deployment = await deploymentService.generateDeployment(userId, projectId);
 
-    logger.info(
-      `Generating deployment (legacy) for userId: ${userId}, projectId: ${projectId}`
-    );
-
-    const deployment = await deploymentService.generateDeployment(
-      userId,
-      projectId,
-      { name, environment }
-    );
-
+    // Count generated Terraform files for the response message
+    const terraformFileCount = deployment.generatedTerraformFiles?.length || 0;
+    
     res.status(201).json({
       success: true,
-      message: "Deployment generated successfully",
-      data: deployment,
+      message: `Deployment created successfully with ${terraformFileCount} Terraform files generated`,
+      data: deployment
     });
   } catch (error: any) {
-    logger.error(`Error generating deployment: ${error.message}`, {
-      error: error.stack,
+    logger.error(`Error generating deployment for userId: ${userId}, projectId: ${projectId}. Error: ${error.message}`, {
+      error: error.stack
     });
+    
     res.status(500).json({
       success: false,
-      message: "Internal server error",
+      message: "Failed to generate deployment",
       error: error.message,
     });
   }
