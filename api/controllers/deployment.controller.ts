@@ -696,36 +696,82 @@ export const GenerateDeploymentController = async (
   res: Response
 ): Promise<void> => {
   const userId = "sA6ZeSlrP9Ri8tCNAncPNKi83Nz2";
-  const { projectId } = req.body;
+  const { projectId, deploymentId } = req.body;
 
-  logger.info(`GenerateDeploymentController called for userId: ${userId}, projectId: ${projectId}`);
+  logger.info(
+    `GenerateDeploymentController called with projectId: ${projectId}, deploymentId: ${deploymentId}`
+  );
 
   try {
     if (!userId) {
-      logger.warn('Authentication missing: userId is undefined');
+      logger.warn("Authentication missing: userId is undefined");
       res.status(401).json({
         success: false,
         message: "Authentication required",
       });
       return;
     }
+    if (!projectId && !deploymentId) {
+      logger.warn(
+        "Missing required parameters: either projectId or deploymentId must be provided"
+      );
+      res.status(400).json({
+        success: false,
+        message: "Either Project ID or Deployment ID is required",
+      });
+      return;
+    }
 
-    const deploymentService = new DeploymentService(new PromptService());
-    const deployment = await deploymentService.generateDeployment(userId, projectId);
+    let deployment;
+
+    deployment = await deploymentService.generateDeployment(
+      userId,
+      projectId,
+      deploymentId
+    );
 
     // Count generated Terraform files for the response message
-    const terraformFileCount = deployment.generatedTerraformFiles?.length || 0;
-    
+    const hasGeneratedFiles =
+      deployment.generatedTerraformFiles &&
+      (deployment.generatedTerraformFiles.main ||
+        deployment.generatedTerraformFiles.variables ||
+        deployment.generatedTerraformFiles.outputs ||
+        deployment.generatedTerraformFiles.providers);
+
+    // Count non-empty files
+    let fileCount = 0;
+    if (deployment.generatedTerraformFiles) {
+      if (deployment.generatedTerraformFiles.main) fileCount++;
+      if (deployment.generatedTerraformFiles.variables) fileCount++;
+      if (deployment.generatedTerraformFiles.outputs) fileCount++;
+      if (deployment.generatedTerraformFiles.providers) fileCount++;
+    }
+
+    // Customize the message based on whether we generated for an existing deployment or created a new one
+    let message;
+    if (deploymentId) {
+      message = hasGeneratedFiles
+        ? `Generated ${fileCount} Terraform files for existing deployment ${deploymentId}`
+        : `No Terraform files generated for deployment ${deploymentId}`;
+    } else {
+      message = hasGeneratedFiles
+        ? `New deployment created successfully with ${fileCount} Terraform files generated`
+        : "New deployment created successfully";
+    }
+
     res.status(201).json({
       success: true,
-      message: `Deployment created successfully with ${terraformFileCount} Terraform files generated`,
-      data: deployment
+      message,
+      data: deployment,
     });
   } catch (error: any) {
-    logger.error(`Error generating deployment for userId: ${userId}, projectId: ${projectId}. Error: ${error.message}`, {
-      error: error.stack
-    });
-    
+    logger.error(
+      `Error generating deployment for projectId: ${projectId}. Error: ${error.message}`,
+      {
+        error: error.stack,
+      }
+    );
+
     res.status(500).json({
       success: false,
       message: "Failed to generate deployment",

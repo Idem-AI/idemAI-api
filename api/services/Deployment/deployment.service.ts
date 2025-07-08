@@ -20,13 +20,24 @@ import logger from "../../config/logger";
 import { GenericService } from "../common/generic.service";
 import { PromptService, LLMProvider } from "../prompt.service";
 import { ProjectModel } from "../../models/project.model";
+import { IRepository } from "../../repository/IRepository";
 import { AI_CHAT_INITIAL_PROMPT } from "./prompts/ai-chat.prompt";
 import {
-  TERRAFORM_GENERATION_PROMPT,
+  MAIN_TF_PROMPT,
+  VARIABLES_TF_PROMPT,
+  OUTPUTS_TF_PROMPT,
+  PROVIDERS_TF_PROMPT,
   TERRAFORM_SYSTEM_PROMPT,
-} from "./prompts/terraform.prompt";
+  TerraformFile,
+  TerraformFilesMap,
+} from "./prompts/terraform/index";
+import * as fs from "fs-extra";
+import * as path from "path";
+import * as os from "os";
 
 export class DeploymentService extends GenericService {
+  private contextFilePath?: string;
+
   constructor(promptService: PromptService) {
     super(promptService);
     logger.info("DeploymentService initialized.");
@@ -183,7 +194,8 @@ export class DeploymentService extends GenericService {
   // Legacy method for backward compatibility
   async generateDeployment(
     userId: string,
-    projectId: string
+    projectId: string,
+    deploymentId: string
   ): Promise<DeploymentModel> {
     logger.info(
       `generateDeployment called for userId: ${userId}, projectId: ${projectId}`
@@ -197,29 +209,36 @@ export class DeploymentService extends GenericService {
       }
 
       // Create a basic deployment configuration
-      const deploymentId = `dep_${Date.now()}`;
-      const deployment: DeploymentModel = {
-        id: deploymentId,
-        projectId,
-        name: `${project.name} Deployment`,
-        mode: "beginner", // Default mode
-        environment: "development", // Default environment
-        status: "configuring", // Initial status
-        pipeline: {
-          currentStage: "initialization",
-          steps: this.initializePipelineSteps(),
-        },
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      const deployment = project.deployments.find(
+        (deployment) => deployment.id === deploymentId
+      );
+      if (!deployment) {
+        throw new Error("Deployment not found");
+      }
 
       // Generate Terraform files based on the deployment configuration
-      const generatedFiles = await this.generateTerraformFiles(
-        deployment,
-        project
-      );
+      const generatedFiles = await this.generateTerraformFiles(deployment);
       if (generatedFiles && generatedFiles.length > 0) {
-        deployment.generatedTerraformFiles = generatedFiles;
+        // Convert array of TerraformFile objects to the expected format in DeploymentModel
+        const terraformFilesMap: TerraformFilesMap = {
+          main: "",
+          variables: "",
+          outputs: "",
+          providers: "",
+        };
+
+        // Map the array items to the expected object structure
+        generatedFiles.forEach((file) => {
+          if (file.name === "main.tf") terraformFilesMap.main = file.content;
+          else if (file.name === "variables.tf")
+            terraformFilesMap.variables = file.content;
+          else if (file.name === "outputs.tf")
+            terraformFilesMap.outputs = file.content;
+          else if (file.name === "providers.tf")
+            terraformFilesMap.providers = file.content;
+        });
+
+        deployment.generatedTerraformFiles = terraformFilesMap;
       }
 
       // Add the deployment to the project
@@ -245,140 +264,284 @@ export class DeploymentService extends GenericService {
   }
 
   /**
-   * Generates Terraform files based on deployment configuration
-   * @param deployment The deployment model
-   * @param project The project model
-   * @returns Array of generated Terraform files
+   * Generate Terraform files for a deployment
+   * @param deployment Deployment model
+   * @returns Array of file contents with name and content
    */
   private async generateTerraformFiles(
-    deployment: DeploymentModel,
-    project: ProjectModel
-  ): Promise<{ name: string; content: string }[]> {
+    deployment: DeploymentModel
+  ): Promise<TerraformFile[]> {
     logger.info(
-      `Generating Terraform files for deployment: ${deployment.id}, project: ${project.id}`
+      `Generating Terraform files for deploymentId: ${deployment.id}`
     );
 
+    // Temporary file path for context accumulation
+    this.contextFilePath = undefined;
+
     try {
-      // Prepare the components for the prompt
-      const architectureComponents = JSON.stringify(
-        deployment.mode === "expert"
-          ? (deployment as ExpertDeploymentModel).architectureComponents || []
-          : deployment.mode === "ai-assistant"
-          ? (deployment as AiAssistantDeploymentModel).generatedComponents || []
-          : []
+      // Get the project for this deployment
+      if (!deployment.projectId) {
+        logger.error(`No projectId found for deployment: ${deployment.id}`);
+        return [];
+      }
+
+      const project = await this.getProject(
+        deployment.projectId,
+        deployment.projectId.split("_")[0] // Extract userId from projectId format user_projectname
       );
 
-      // Prepare environment variables
-      const envVars = JSON.stringify(deployment.environmentVariables || []);
+      if (!project) {
+        logger.error(`Project not found for deploymentId: ${deployment.id}`);
+        return [];
+      }
 
-      // Prepare git repository info
-      const gitRepo = JSON.stringify(deployment.gitRepository || {});
+      // Initialize temporary file for context
+      this.contextFilePath = path.join(
+        os.tmpdir(),
+        `terraform_context_${deployment.id}_${Date.now()}.txt`
+      );
+      logger.debug(`Created temporary context file: ${this.contextFilePath}`);
 
-      // Prepare project info
-      const projectInfo = JSON.stringify({
+      // Initialize context with initial data
+      const contextData = this.prepareContextData(deployment, project);
+      await fs.writeFile(
+        this.contextFilePath,
+        JSON.stringify(contextData, null, 2),
+        "utf-8"
+      );
+
+      // Generate Terraform files sequentially
+      const terraformFiles: TerraformFile[] = [];
+
+      // Generate main.tf
+      logger.info(`Generating main.tf for deployment ${deployment.id}`);
+      const mainTfContent = await this.generateTerraformFileContent(
+        MAIN_TF_PROMPT,
+        "main.tf",
+        contextData
+      );
+      if (mainTfContent) {
+        terraformFiles.push({ name: "main.tf", content: mainTfContent });
+        await this.addToContextFile("Generated main.tf:", mainTfContent);
+      }
+
+      // Generate variables.tf
+      logger.info(`Generating variables.tf for deployment ${deployment.id}`);
+      const variablesTfContent = await this.generateTerraformFileContent(
+        VARIABLES_TF_PROMPT,
+        "variables.tf",
+        contextData
+      );
+      if (variablesTfContent) {
+        terraformFiles.push({
+          name: "variables.tf",
+          content: variablesTfContent,
+        });
+        await this.addToContextFile(
+          "Generated variables.tf:",
+          variablesTfContent
+        );
+      }
+
+      // Generate outputs.tf
+      logger.info(`Generating outputs.tf for deployment ${deployment.id}`);
+      const outputsTfContent = await this.generateTerraformFileContent(
+        OUTPUTS_TF_PROMPT,
+        "outputs.tf",
+        contextData
+      );
+      if (outputsTfContent) {
+        terraformFiles.push({ name: "outputs.tf", content: outputsTfContent });
+        await this.addToContextFile("Generated outputs.tf:", outputsTfContent);
+      }
+
+      // Generate providers.tf
+      logger.info(`Generating providers.tf for deployment ${deployment.id}`);
+      const providersTfContent = await this.generateTerraformFileContent(
+        PROVIDERS_TF_PROMPT,
+        "providers.tf",
+        contextData
+      );
+      if (providersTfContent) {
+        terraformFiles.push({
+          name: "providers.tf",
+          content: providersTfContent,
+        });
+        await this.addToContextFile(
+          "Generated providers.tf:",
+          providersTfContent
+        );
+      }
+
+      // Clean up temp file
+      try {
+        await fs.unlink(this.contextFilePath);
+        logger.debug(`Removed temporary context file: ${this.contextFilePath}`);
+        this.contextFilePath = undefined;
+      } catch (cleanupError) {
+        logger.warn(`Failed to clean up temporary file: ${cleanupError}`);
+      }
+
+      logger.info(
+        `Generated ${terraformFiles.length} Terraform files for deploymentId: ${deployment.id}`
+      );
+
+      return terraformFiles;
+    } catch (error) {
+      logger.error(
+        `Error in Terraform file generation process for deployment ${deployment.id}:`,
+        error
+      );
+      // Clean up temp file in case of error
+      if (this.contextFilePath) {
+        try {
+          await fs.unlink(this.contextFilePath);
+          logger.debug(
+            `Cleaned up temp file after error: ${this.contextFilePath}`
+          );
+        } catch (cleanupError) {
+          logger.warn(`Failed to clean up temporary file: ${cleanupError}`);
+        }
+        this.contextFilePath = undefined;
+      }
+      return [];
+    }
+  }
+
+  /**
+   * Prepare context data for Terraform generation
+   * @param deployment The deployment model
+   * @param project The project model
+   * @returns Context data object
+   */
+  private prepareContextData(
+    deployment: DeploymentModel,
+    project: ProjectModel
+  ): any {
+    // Prepare the components for the prompt
+    let architectureComponents: any[] = [];
+
+    // Extract components based on deployment mode
+    if (
+      deployment.mode === "expert" &&
+      "architectureComponents" in deployment
+    ) {
+      architectureComponents = (deployment as any).architectureComponents || [];
+    } else if (
+      deployment.mode === "ai-assistant" &&
+      "generatedComponents" in deployment
+    ) {
+      architectureComponents = (deployment as any).generatedComponents || [];
+    }
+
+    return {
+      projectInfo: {
         name: project.name,
         description: project.description,
         type: project.type,
-      });
+      },
+      deploymentInfo: {
+        id: deployment.id,
+        name: deployment.name,
+        mode: deployment.mode,
+        environment: deployment.environment,
+        status: deployment.status,
+      },
+      architectureComponents,
+      environmentVariables: deployment.environmentVariables || [],
+      gitRepository: deployment.gitRepository || {},
+    };
+  }
 
-      // Populate the prompt template with data
-      const prompt = TERRAFORM_GENERATION_PROMPT.replace(
-        "{{architecture_components}}",
-        architectureComponents
-      )
-        .replace("{{environment_variables}}", envVars)
-        .replace("{{git_repository}}", gitRepo)
-        .replace("{{deployment_mode}}", deployment.mode)
-        .replace("{{environment}}", deployment.environment)
-        .replace("{{project_info}}", projectInfo);
+  /**
+   * Adds content to the context file for Terraform generation
+   * @param header Header text to add
+   * @param content Content to add
+   */
+  private async addToContextFile(
+    header: string,
+    content: string
+  ): Promise<void> {
+    if (!this.contextFilePath) {
+      logger.warn("Context file path not initialized for adding content");
+      return;
+    }
 
-      // Call the LLM to generate Terraform code
+    try {
+      await fs.appendFile(
+        this.contextFilePath,
+        `\n\n${header}\n${content}\n\n---\n`,
+        "utf-8"
+      );
+      logger.debug(`Added content to context file: ${this.contextFilePath}`);
+    } catch (error) {
+      logger.error(`Error adding to context file: ${error}`);
+    }
+  }
+
+  /**
+   * Generates content for a specific Terraform file
+   * @param promptConstant The prompt template for the file type
+   * @param stepName Name of the file being generated
+   * @param contextData Context data for generation
+   * @returns Generated file content
+   */
+  private async generateTerraformFileContent(
+    promptConstant: string,
+    stepName: string,
+    contextData: any
+  ): Promise<string> {
+    logger.info(`Generating Terraform content for ${stepName}`);
+
+    const userPrompt =
+      `You are generating a specific Terraform file: ${stepName}\n\n` +
+      promptConstant +
+      "\n\n" +
+      "Use the project information and other details to create appropriate, well-commented Terraform code.";
+
+    try {
       const response = await this.promptService.runPrompt({
         provider: LLMProvider.GEMINI,
-        modelName: "gemini-2.0-flash", // Using the latest model
+        modelName: "gemini-2.0-flash",
         messages: [
           { role: "system", content: TERRAFORM_SYSTEM_PROMPT },
-          { role: "user", content: prompt },
+          { role: "user", content: userPrompt },
         ],
+        file: this.contextFilePath
+          ? { localPath: this.contextFilePath, mimeType: "text/plain" }
+          : undefined,
         llmOptions: {
-          temperature: 0.2, // Lower temperature for more deterministic output
-          maxOutputTokens: 8192, // Allow for longer response for multiple files
+          temperature: 0.2,
+          maxOutputTokens: 4096,
         },
       });
 
       if (!response) {
-        logger.warn(
-          `No response from LLM for Terraform generation, deploymentId: ${deployment.id}`
-        );
-        return [];
+        logger.warn(`No response from LLM for ${stepName} generation`);
+        return "";
       }
 
-      // Parse the response to extract the files
-      try {
-        // Clean the response in case it's wrapped in Markdown code blocks
-        let cleanResponse = response;
-        
-        // First attempt: Check if response is wrapped in Markdown code blocks
-        const jsonCodeBlockRegex = /```(?:json)?\s*([\s\S]*?)\s*```/g;
-        const match = jsonCodeBlockRegex.exec(response);
-        if (match && match[1]) {
-          cleanResponse = match[1].trim();
-          logger.info(`Found JSON in Markdown code block, extracted for parsing`);
-        }
+      // Clean response - extract code from code blocks if present
+      let fileContent = response;
 
-        // Second attempt: Check if the response starts with a common markdown artifact
-        if (cleanResponse.startsWith('```json') || cleanResponse.startsWith('```')) {
-          // Try to find the closing code block
-          const closingIndex = cleanResponse.lastIndexOf('```');
-          if (closingIndex > 3) { // Must be after the opening ```
-            cleanResponse = cleanResponse.substring(cleanResponse.indexOf('\n') + 1, closingIndex).trim();
-            logger.info(`Extracted content between markdown code blocks`);
-          }
-        }
-        
-        // Remove any lingering triple backticks
-        cleanResponse = cleanResponse.replace(/```/g, '').trim();
-        
-        // Log the cleaned response for debugging
-        logger.debug(`Cleaned response for parsing: ${cleanResponse.substring(0, 100)}...`);
-
-        const parsedResponse = JSON.parse(cleanResponse);
-        if (parsedResponse.files && Array.isArray(parsedResponse.files)) {
-          logger.info(
-            `Successfully parsed Terraform files response for deploymentId: ${deployment.id}. Generated ${parsedResponse.files.length} files`
-          );
-          return parsedResponse.files;
-        } else {
-          logger.warn(
-            `Response for Terraform generation has unexpected format, deploymentId: ${deployment.id}. Missing or invalid 'files' array`
-          );
-          return [];
-        }
-      } catch (parseError: unknown) {
-        const errorMessage =
-          parseError instanceof Error ? parseError.message : String(parseError);
-        const errorStack =
-          parseError instanceof Error ? parseError.stack : undefined;
-
-        logger.error(
-          `Error parsing LLM response for Terraform generation, deploymentId: ${deployment.id}. Error: ${errorMessage}`,
-          { error: errorStack, response }
-        );
-
-        // Attempt to salvage the response by creating a single file
-        return [
-          {
-            name: "main.tf",
-            content: response,
-          },
-        ];
+      // Look for HCL/Terraform code blocks
+      const codeBlockRegex = /```(?:hcl|terraform)?\s*([\s\S]*?)\s*```/g;
+      const match = codeBlockRegex.exec(response);
+      if (match && match[1]) {
+        fileContent = match[1].trim();
+        logger.info(`Extracted code block from ${stepName} response`);
       }
-    } catch (error: any) {
-      logger.error(
-        `Error generating Terraform files for deploymentId: ${deployment.id}. Error: ${error.message}`,
-        { error: error.stack }
+
+      logger.debug(
+        `Generated ${stepName} content (first 100 chars): ${fileContent.substring(
+          0,
+          100
+        )}...`
       );
-      return [];
+      return fileContent;
+    } catch (error) {
+      logger.error(`Error generating ${stepName}: ${error}`);
+      return "";
     }
   }
 

@@ -149,7 +149,12 @@ export interface BaseDeploymentModel {
   rollbackVersions?: string[]; // Previous versions for rollback
   lastSuccessfulDeployment?: string; // ID of the last successful deployment
 
-  generatedTerraformFiles?: { name: string; content: string }[];
+  generatedTerraformFiles?: {
+    main: string;
+    variables: string;
+    outputs: string;
+    providers: string;
+  };
   generatedK8sFiles?: { name: string; content: string }[];
   generatedDockerFiles?: { name: string; content: string }[];
 
