@@ -615,7 +615,7 @@ export const GetPipelineStatusController = async (
       message: "Pipeline status retrieved successfully",
       data: {
         status: deployment.status,
-        pipeline: deployment.pipeline,
+        pipelines: deployment.pipelines,
         costEstimation: deployment.costEstimation,
       },
     });

@@ -124,12 +124,12 @@ export interface BaseDeploymentModel {
   environmentVariables?: EnvironmentVariable[];
 
   // Monitoring of the pipeline
-  pipeline?: {
+  pipelines?: {
     currentStage: string;
     steps: PipelineStep[];
     startedAt?: Date;
     estimatedCompletionTime?: Date;
-  };
+  }[];
 
   // Security and analysis
   staticCodeAnalysis?: {
@@ -261,12 +261,12 @@ export interface UpdateDeploymentPayload {
   environmentVariables?: EnvironmentVariable[];
   architectureComponents?: ArchitectureComponent[];
   chatMessages?: ChatMessage[];
-  pipeline?: {
+  pipelines?: {
     currentStage: string;
     steps: PipelineStep[];
     startedAt?: Date;
     estimatedCompletionTime?: Date;
-  };
+  }[];
   costEstimation?: CostEstimation;
   mode?: DeploymentMode;
   projectId?: string;

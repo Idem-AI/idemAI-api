@@ -220,7 +220,7 @@ export class DeploymentService extends GenericService {
         deployment,
         userId
       );
-      
+
       if (generatedFiles && generatedFiles.length > 0) {
         // Convert array of TerraformFile objects to the expected format in DeploymentModel
         const terraformFilesMap: TerraformFilesMap = {
@@ -338,20 +338,25 @@ export class DeploymentService extends GenericService {
       }
 
       // Generate variables.map.tf (a map of all environment variables)
-      logger.info(`Generating variables.map.tf for deployment ${deployment.id}`);
-      
+      logger.info(
+        `Generating variables.map.tf for deployment ${deployment.id}`
+      );
+
       const variablesMapContent = await this.generateTerraformFileContent(
         VARIABLES_MAP_TF_PROMPT,
         "variables.map.tf",
         contextData
       );
-      
+
       if (variablesMapContent) {
-        terraformFiles.push({ 
-          name: "variables.map.tf", 
-          content: variablesMapContent 
+        terraformFiles.push({
+          name: "variables.map.tf",
+          content: variablesMapContent,
         });
-        await this.addToContextFile("Generated variables.map.tf:", variablesMapContent);
+        await this.addToContextFile(
+          "Generated variables.map.tf:",
+          variablesMapContent
+        );
       }
 
       // Clean up temp file
@@ -1054,8 +1059,8 @@ export class DeploymentService extends GenericService {
         }
         ${deploymentInfo.url ? `- Deployed URL: ${deploymentInfo.url}` : ""}
         ${
-          deploymentInfo.pipeline
-            ? `- Current Pipeline Stage: ${deploymentInfo.pipeline.currentStage}`
+          deploymentInfo.pipelines && deploymentInfo.pipelines.length > 0
+            ? `- Current Pipeline Stage: ${deploymentInfo.pipelines[deploymentInfo.pipelines.length - 1].currentStage}`
             : ""
         }
       `;
@@ -1128,7 +1133,7 @@ export class DeploymentService extends GenericService {
         deploymentId,
         {
           status: "building",
-          pipeline: updatedPipeline,
+          pipelines: [updatedPipeline],
         }
       );
 
@@ -1149,6 +1154,7 @@ export class DeploymentService extends GenericService {
     userId: string,
     deploymentId: string,
     stepName: string,
+    pipelineIndex: number,
     stepUpdate: Partial<PipelineStep>
   ): Promise<DeploymentModel | null> {
     logger.info(
@@ -1157,18 +1163,23 @@ export class DeploymentService extends GenericService {
 
     try {
       const deployment = await this.getDeploymentById(userId, deploymentId);
-      if (!deployment || !deployment.pipeline) {
+      if (!deployment || !deployment.pipelines) {
         return null;
       }
 
-      const updatedSteps = deployment.pipeline.steps.map((step) =>
-        step.name === stepName ? { ...step, ...stepUpdate } : step
+      const updatedSteps = deployment.pipelines.map((pipeline) =>
+        pipeline.steps.map((step) =>
+          step.name === stepName ? { ...step, ...stepUpdate } : step
+        )
       );
 
       return await this.updateDeployment(userId, deploymentId, {
-        pipeline: {
-          ...deployment.pipeline,
-          steps: updatedSteps,
+        pipelines: {
+          ...deployment.pipelines,
+          [pipelineIndex]: {
+            ...deployment.pipelines[pipelineIndex],
+            steps: updatedSteps[pipelineIndex],
+          },
         },
       });
     } catch (error: any) {
@@ -1482,7 +1493,7 @@ export class DeploymentService extends GenericService {
       const stepName = steps[i];
 
       // Start step
-      await this.updatePipelineStep(userId, deploymentId, stepName, {
+      await this.updatePipelineStep(userId, deploymentId, stepName, 0, {
         status: "in-progress",
         startedAt: new Date(),
       });
@@ -1491,7 +1502,7 @@ export class DeploymentService extends GenericService {
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Complete step
-      await this.updatePipelineStep(userId, deploymentId, stepName, {
+      await this.updatePipelineStep(userId, deploymentId, stepName, 0, {
         status: "succeeded",
         finishedAt: new Date(),
         logs: `Step ${stepName} completed successfully`,
