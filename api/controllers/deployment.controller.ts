@@ -27,6 +27,7 @@ export const CreateDeploymentController = async (
 
     const payload: CreateDeploymentPayload = req.body;
 
+
     if (!userId) {
       res.status(401).json({
         success: false,
@@ -735,16 +736,14 @@ export const GenerateDeploymentController = async (
       deployment.generatedTerraformFiles &&
       (deployment.generatedTerraformFiles.main ||
         deployment.generatedTerraformFiles.variables ||
-        deployment.generatedTerraformFiles.outputs ||
-        deployment.generatedTerraformFiles.providers);
+        deployment.generatedTerraformFiles.variablesMap);
 
     // Count non-empty files
     let fileCount = 0;
     if (deployment.generatedTerraformFiles) {
       if (deployment.generatedTerraformFiles.main) fileCount++;
       if (deployment.generatedTerraformFiles.variables) fileCount++;
-      if (deployment.generatedTerraformFiles.outputs) fileCount++;
-      if (deployment.generatedTerraformFiles.providers) fileCount++;
+      if (deployment.generatedTerraformFiles.variablesMap) fileCount++;
     }
 
     // Customize the message based on whether we generated for an existing deployment or created a new one

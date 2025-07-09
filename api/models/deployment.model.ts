@@ -152,8 +152,7 @@ export interface BaseDeploymentModel {
   generatedTerraformFiles?: {
     main: string;
     variables: string;
-    outputs: string;
-    providers: string;
+    variablesMap: string;
   };
   generatedK8sFiles?: { name: string; content: string }[];
   generatedDockerFiles?: { name: string; content: string }[];

@@ -25,8 +25,7 @@ import { AI_CHAT_INITIAL_PROMPT } from "./prompts/ai-chat.prompt";
 import {
   MAIN_TF_PROMPT,
   VARIABLES_TF_PROMPT,
-  OUTPUTS_TF_PROMPT,
-  PROVIDERS_TF_PROMPT,
+  VARIABLES_MAP_TF_PROMPT,
   TERRAFORM_SYSTEM_PROMPT,
   TerraformFile,
   TerraformFilesMap,
@@ -132,7 +131,7 @@ export class DeploymentService extends GenericService {
             ...baseDeployment,
             mode: "expert" as const,
             cloudComponents: [],
-            architectureComponents: [],
+            architectureComponents: payload.architectureComponents!,
             customInfrastructureCode: false,
           };
 
@@ -217,25 +216,28 @@ export class DeploymentService extends GenericService {
       }
 
       // Generate Terraform files based on the deployment configuration
-      const generatedFiles = await this.generateTerraformFiles(deployment);
+      const generatedFiles = await this.generateTerraformFiles(
+        deployment,
+        userId
+      );
+      
       if (generatedFiles && generatedFiles.length > 0) {
         // Convert array of TerraformFile objects to the expected format in DeploymentModel
         const terraformFilesMap: TerraformFilesMap = {
           main: "",
           variables: "",
-          outputs: "",
-          providers: "",
+          variablesMap: "",
         };
 
         // Map the array items to the expected object structure
         generatedFiles.forEach((file) => {
-          if (file.name === "main.tf") terraformFilesMap.main = file.content;
-          else if (file.name === "variables.tf")
+          if (file.name === "main.tf") {
+            terraformFilesMap.main = file.content;
+          } else if (file.name === "variables.tf") {
             terraformFilesMap.variables = file.content;
-          else if (file.name === "outputs.tf")
-            terraformFilesMap.outputs = file.content;
-          else if (file.name === "providers.tf")
-            terraformFilesMap.providers = file.content;
+          } else if (file.name === "variables.map.tf") {
+            terraformFilesMap.variablesMap = file.content;
+          }
         });
 
         deployment.generatedTerraformFiles = terraformFilesMap;
@@ -269,7 +271,8 @@ export class DeploymentService extends GenericService {
    * @returns Array of file contents with name and content
    */
   private async generateTerraformFiles(
-    deployment: DeploymentModel
+    deployment: DeploymentModel,
+    userId: string
   ): Promise<TerraformFile[]> {
     logger.info(
       `Generating Terraform files for deploymentId: ${deployment.id}`
@@ -279,19 +282,10 @@ export class DeploymentService extends GenericService {
     this.contextFilePath = undefined;
 
     try {
-      // Get the project for this deployment
-      if (!deployment.projectId) {
-        logger.error(`No projectId found for deployment: ${deployment.id}`);
-        return [];
-      }
-
-      const project = await this.getProject(
-        deployment.projectId,
-        deployment.projectId.split("_")[0] // Extract userId from projectId format user_projectname
-      );
+      const project = await this.getProject(deployment.projectId, userId);
 
       if (!project) {
-        logger.error(`Project not found for deploymentId: ${deployment.id}`);
+        logger.error(`Project ${deployment.projectId} not found `);
         return [];
       }
 
@@ -343,34 +337,21 @@ export class DeploymentService extends GenericService {
         );
       }
 
-      // Generate outputs.tf
-      logger.info(`Generating outputs.tf for deployment ${deployment.id}`);
-      const outputsTfContent = await this.generateTerraformFileContent(
-        OUTPUTS_TF_PROMPT,
-        "outputs.tf",
+      // Generate variables.map.tf (a map of all environment variables)
+      logger.info(`Generating variables.map.tf for deployment ${deployment.id}`);
+      
+      const variablesMapContent = await this.generateTerraformFileContent(
+        VARIABLES_MAP_TF_PROMPT,
+        "variables.map.tf",
         contextData
       );
-      if (outputsTfContent) {
-        terraformFiles.push({ name: "outputs.tf", content: outputsTfContent });
-        await this.addToContextFile("Generated outputs.tf:", outputsTfContent);
-      }
-
-      // Generate providers.tf
-      logger.info(`Generating providers.tf for deployment ${deployment.id}`);
-      const providersTfContent = await this.generateTerraformFileContent(
-        PROVIDERS_TF_PROMPT,
-        "providers.tf",
-        contextData
-      );
-      if (providersTfContent) {
-        terraformFiles.push({
-          name: "providers.tf",
-          content: providersTfContent,
+      
+      if (variablesMapContent) {
+        terraformFiles.push({ 
+          name: "variables.map.tf", 
+          content: variablesMapContent 
         });
-        await this.addToContextFile(
-          "Generated providers.tf:",
-          providersTfContent
-        );
+        await this.addToContextFile("Generated variables.map.tf:", variablesMapContent);
       }
 
       // Clean up temp file
