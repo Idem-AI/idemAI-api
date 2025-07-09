@@ -109,7 +109,7 @@ deploymentRoutes.post(
  *         description: Internal server error
  */
 deploymentRoutes.get(
-  `${resourceName}/getByProject/:projectId`,
+  `${resourceName}/:projectId`,
   authenticate,
   GetDeploymentsByProjectController
 );
@@ -147,7 +147,7 @@ deploymentRoutes.get(
  *         description: Internal server error
  */
 deploymentRoutes.get(
-  `${resourceName}/get/:deploymentId`,
+  `${resourceName}/:projectId/:deploymentId`,
   authenticate,
   GetDeploymentByIdController
 );

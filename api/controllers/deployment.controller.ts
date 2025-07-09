@@ -10,7 +10,6 @@ import {
   DeploymentValidators,
   ChatMessage,
   ArchitectureComponent,
-  AiAssistantDeploymentModel,
 } from "../models/deployment.model";
 import { PromptService } from "../services/prompt.service";
 
@@ -100,11 +99,7 @@ export const GetDeploymentsByProjectController = async (
       projectId
     );
 
-    res.status(200).json({
-      success: true,
-      message: "Deployments retrieved successfully",
-      data: deployments,
-    });
+    res.status(200).json(deployments);
   } catch (error: any) {
     logger.error(`Error getting deployments: ${error.message}`, {
       error: error.stack,
@@ -151,11 +146,7 @@ export const GetDeploymentByIdController = async (
       return;
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Deployment retrieved successfully",
-      data: deployment,
-    });
+    res.status(200).json(deployment);
   } catch (error: any) {
     logger.error(`Error getting deployment: ${error.message}`, {
       error: error.stack,
