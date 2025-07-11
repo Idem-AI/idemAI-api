@@ -120,7 +120,7 @@ export class DeploymentService extends GenericService {
             chatMessages: project.activeChatMessages,
             aiGeneratedArchitecture: !!payload.aiGeneratedConfig,
             aiRecommendations: [],
-            generatedComponents: [],
+            generatedComponents: payload.generatedComponents!,
           };
 
           newDeployment = aiDeployment;
@@ -1060,7 +1060,10 @@ export class DeploymentService extends GenericService {
         ${deploymentInfo.url ? `- Deployed URL: ${deploymentInfo.url}` : ""}
         ${
           deploymentInfo.pipelines && deploymentInfo.pipelines.length > 0
-            ? `- Current Pipeline Stage: ${deploymentInfo.pipelines[deploymentInfo.pipelines.length - 1].currentStage}`
+            ? `- Current Pipeline Stage: ${
+                deploymentInfo.pipelines[deploymentInfo.pipelines.length - 1]
+                  .currentStage
+              }`
             : ""
         }
       `;

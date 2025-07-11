@@ -226,6 +226,7 @@ export interface CreateDeploymentPayload {
   gitRepository?: GitRepository;
   environmentVariables?: EnvironmentVariable[];
   architectureComponents?: ArchitectureComponent[];
+  generatedComponents?: ArchitectureComponent[];
   mode?: DeploymentMode;
   architectureTemplate?: string;
   projectId?: string;
