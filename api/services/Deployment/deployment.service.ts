@@ -1269,102 +1269,6 @@ export class DeploymentService extends GenericService {
     }
   }
 
-  async estimateDeploymentCost(
-    userId: string,
-    deploymentId: string
-  ): Promise<CostEstimation | null> {
-    logger.info(
-      `estimateDeploymentCost called for userId: ${userId}, deploymentId: ${deploymentId}`
-    );
-
-    try {
-      const deployment = await this.getDeploymentById(userId, deploymentId);
-      if (!deployment) {
-        return null;
-      }
-
-      // Get architecture components based on deployment mode
-      let components: ArchitectureComponent[] = [];
-
-      if (deployment.mode === "expert") {
-        const expertDeployment = deployment as ExpertDeploymentModel;
-        components = expertDeployment.architectureComponents || [];
-      } else if (deployment.mode === "ai-assistant") {
-        const aiDeployment = deployment as AiAssistantDeploymentModel;
-        components = aiDeployment.generatedComponents || [];
-      }
-
-      // Calculate cost based on architecture components
-      const costEstimation = this.calculateCostEstimation(components);
-
-      // Update deployment with new cost estimation
-      await this.updateDeployment(userId, deploymentId, { costEstimation });
-
-      return costEstimation;
-    } catch (error: any) {
-      logger.error(
-        `Error estimating deployment cost for deployment ${deploymentId}: ${error.message}`,
-        { error: error.stack }
-      );
-      throw error;
-    }
-  }
-
-  private calculateCostEstimation(
-    components: ArchitectureComponent[]
-  ): CostEstimation {
-    let monthlyCost = 0;
-    let hourlyCost = 0;
-    let oneTimeCost = 0;
-
-    components.forEach((component) => {
-      switch (component.type) {
-        case "lambda":
-        case "function":
-          monthlyCost += 10; // Base Lambda cost
-          hourlyCost += 0.01;
-          break;
-        case "database":
-          monthlyCost += 25; // Database cost
-          hourlyCost += 0.04;
-          break;
-        case "storage":
-          monthlyCost += 5; // Storage cost
-          hourlyCost += 0.007;
-          break;
-        case "cdn":
-          monthlyCost += 15; // CDN cost
-          hourlyCost += 0.02;
-          break;
-        case "load-balancer":
-          monthlyCost += 20; // Load balancer cost
-          hourlyCost += 0.03;
-          break;
-        default:
-          monthlyCost += 5; // Default component cost
-          hourlyCost += 0.007;
-      }
-    });
-
-    // Add base infrastructure cost
-    monthlyCost += 10;
-    hourlyCost += 0.014;
-
-    return {
-      monthlyCost,
-      hourlyCost,
-      oneTimeCost,
-      currency: "USD",
-      estimatedAt: new Date(),
-      breakdown: components.map((component) => ({
-        componentId: component.id,
-        componentName: component.name,
-        cost: 10, // Simplified cost per component
-        description: `Cost for ${component.type} component`,
-      })),
-    };
-  }
-
   // Validation Methods
   private validateDeploymentData(formData: DeploymentFormData): string[] {
     const errors: string[] = [];
@@ -1487,36 +1391,7 @@ export class DeploymentService extends GenericService {
     };
   }
 
-  private calculateComponentCost(component: ArchitectureComponent): number {
-    // Basic cost calculation - would be more sophisticated in real implementation
-    const baseCosts: Record<string, number> = {
-      database: 25,
-      compute: 50,
-      storage: 10,
-      "load-balancer": 15,
-    };
-
-    return baseCosts[component.type] || 20;
-  }
-
   private async executePipeline(
-    userId: string,
-    deploymentId: string,
-    pipelineId: string
-  ): Promise<void> {
-    // Asynchronous pipeline execution simulation
-    setTimeout(async () => {
-      try {
-        await this.simulatePipelineExecution(userId, deploymentId, pipelineId);
-      } catch (error: any) {
-        logger.error(
-          `Pipeline execution failed for deployment ${deploymentId}, pipelineId: ${pipelineId}: ${error.message}`
-        );
-      }
-    }, 1000);
-  }
-
-  private async simulatePipelineExecution(
     userId: string,
     deploymentId: string,
     pipelineId: string
@@ -1688,5 +1563,101 @@ export class DeploymentService extends GenericService {
     });
 
     logger.info(`Pipeline execution completed for deployment ${deploymentId}`);
+  }
+
+  async estimateDeploymentCost(
+    userId: string,
+    deploymentId: string
+  ): Promise<CostEstimation | null> {
+    logger.info(
+      `estimateDeploymentCost called for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+
+    try {
+      const deployment = await this.getDeploymentById(userId, deploymentId);
+      if (!deployment) {
+        return null;
+      }
+
+      // Get architecture components based on deployment mode
+      let components: ArchitectureComponent[] = [];
+
+      if (deployment.mode === "expert") {
+        const expertDeployment = deployment as ExpertDeploymentModel;
+        components = expertDeployment.architectureComponents || [];
+      } else if (deployment.mode === "ai-assistant") {
+        const aiDeployment = deployment as AiAssistantDeploymentModel;
+        components = aiDeployment.generatedComponents || [];
+      }
+
+      // Calculate cost based on architecture components
+      const costEstimation = this.calculateCostEstimation(components);
+
+      // Update deployment with new cost estimation
+      await this.updateDeployment(userId, deploymentId, { costEstimation });
+
+      return costEstimation;
+    } catch (error: any) {
+      logger.error(
+        `Error estimating deployment cost for deployment ${deploymentId}: ${error.message}`,
+        { error: error.stack }
+      );
+      throw error;
+    }
+  }
+
+  private calculateCostEstimation(
+    components: ArchitectureComponent[]
+  ): CostEstimation {
+    let monthlyCost = 0;
+    let hourlyCost = 0;
+    let oneTimeCost = 0;
+
+    components.forEach((component) => {
+      switch (component.type) {
+        case "lambda":
+        case "function":
+          monthlyCost += 10; // Base Lambda cost
+          hourlyCost += 0.01;
+          break;
+        case "database":
+          monthlyCost += 25; // Database cost
+          hourlyCost += 0.04;
+          break;
+        case "storage":
+          monthlyCost += 5; // Storage cost
+          hourlyCost += 0.007;
+          break;
+        case "cdn":
+          monthlyCost += 15; // CDN cost
+          hourlyCost += 0.02;
+          break;
+        case "load-balancer":
+          monthlyCost += 20; // Load balancer cost
+          hourlyCost += 0.03;
+          break;
+        default:
+          monthlyCost += 5; // Default component cost
+          hourlyCost += 0.007;
+      }
+    });
+
+    // Add base infrastructure cost
+    monthlyCost += 10;
+    hourlyCost += 0.014;
+
+    return {
+      monthlyCost,
+      hourlyCost,
+      oneTimeCost,
+      currency: "USD",
+      estimatedAt: new Date(),
+      breakdown: components.map((component) => ({
+        componentId: component.id,
+        componentName: component.name,
+        cost: 10, // Simplified cost per component
+        description: `Cost for ${component.type} component`,
+      })),
+    };
   }
 }
