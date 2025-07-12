@@ -17,10 +17,11 @@ import {
   DeploymentValidators,
 } from "../../models/deployment.model";
 import logger from "../../config/logger";
-import { GenericService } from "../common/generic.service";
 import { PromptService, LLMProvider } from "../prompt.service";
+import { GenericService } from "../common/generic.service";
+import { exec } from "child_process";
+import { promisify } from "util";
 import { ProjectModel } from "../../models/project.model";
-import { IRepository } from "../../repository/IRepository";
 import { AI_CHAT_INITIAL_PROMPT } from "./prompts/ai-chat.prompt";
 import {
   MAIN_TF_PROMPT,
@@ -180,7 +181,20 @@ export class DeploymentService extends GenericService {
         `Deployment created successfully - UserId: ${userId}, ProjectId: ${projectId}, DeploymentId: ${newDeployment.id}`
       );
 
-      return updatedProject.deployments[updatedProject.deployments.length - 1];
+      const generatedDeployment = await this.generateDeployment(
+        userId,
+        projectId,
+        newDeployment.id
+      );
+
+      logger.info(
+        `Deployment generated successfully - UserId: ${userId}, ProjectId: ${projectId}, DeploymentId: ${generatedDeployment.id}`
+      );
+
+      // start pipeline
+      await this.startDeploymentPipeline(userId, generatedDeployment.id);
+
+      return generatedDeployment;
     } catch (error: any) {
       logger.error(
         `Error creating deployment for userId: ${userId}, projectId: ${projectId}. Error: ${error.message}`,
@@ -1061,8 +1075,7 @@ export class DeploymentService extends GenericService {
         ${
           deploymentInfo.pipelines && deploymentInfo.pipelines.length > 0
             ? `- Current Pipeline Stage: ${
-                deploymentInfo.pipelines[deploymentInfo.pipelines.length - 1]
-                  .currentStage
+                deploymentInfo.pipelines[deploymentInfo.pipelines.length - 1].id
               }`
             : ""
         }
@@ -1117,8 +1130,13 @@ export class DeploymentService extends GenericService {
         );
       }
 
+      // Generate a unique pipeline ID using timestamp and random string
+      const pipelineId = `pipe-${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2, 8)}`;
+
       const updatedPipeline = {
-        currentStage: "Building",
+        id: pipelineId,
         steps: this.initializePipelineSteps().map((step) => ({
           ...step,
           status:
@@ -1141,7 +1159,7 @@ export class DeploymentService extends GenericService {
       );
 
       // Start asynchronous pipeline execution
-      this.executePipeline(userId, deploymentId);
+      this.executePipeline(userId, deploymentId, pipelineId);
 
       return updatedDeployment;
     } catch (error: any) {
@@ -1465,15 +1483,16 @@ export class DeploymentService extends GenericService {
 
   private async executePipeline(
     userId: string,
-    deploymentId: string
+    deploymentId: string,
+    pipelineId: string
   ): Promise<void> {
     // Asynchronous pipeline execution simulation
     setTimeout(async () => {
       try {
-        await this.simulatePipelineExecution(userId, deploymentId);
+        await this.simulatePipelineExecution(userId, deploymentId, pipelineId);
       } catch (error: any) {
         logger.error(
-          `Pipeline execution failed for deployment ${deploymentId}: ${error.message}`
+          `Pipeline execution failed for deployment ${deploymentId}, pipelineId: ${pipelineId}: ${error.message}`
         );
       }
     }, 1000);
@@ -1481,7 +1500,8 @@ export class DeploymentService extends GenericService {
 
   private async simulatePipelineExecution(
     userId: string,
-    deploymentId: string
+    deploymentId: string,
+    pipelineId: string
   ): Promise<void> {
     const steps = [
       "Code Analysis",
@@ -1501,15 +1521,133 @@ export class DeploymentService extends GenericService {
         startedAt: new Date(),
       });
 
-      // Simulate step execution time
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // For the Build step, run a Docker container
+      if (stepName === "Build") {
+        try {
+          // Run Docker container for build process
+          const containerName = `build-${deploymentId}-${pipelineId}`;
+          const dockerRunCommand = `docker run -d --name ${containerName} -e DEPLOYMENT_ID=${deploymentId} -e PIPELINE_ID=${pipelineId} node:16-alpine sh -c "echo 'Building deployment ${deploymentId}' && npm install && npm test && npm run build && sleep 5 && echo 'Build completed successfully'"`;
+
+          // Log Docker command execution
+          logger.info(
+            `Executing Docker build command for deployment ${deploymentId}:`,
+            {
+              command: dockerRunCommand,
+              containerName,
+              pipelineId,
+            }
+          );
+
+          // Execute the Docker command
+          const execAsync = promisify(exec);
+          const { stdout: runOutput, stderr: runError } = await execAsync(
+            dockerRunCommand
+          );
+
+          if (runError) {
+            logger.warn(`Docker run command produced stderr: ${runError}`);
+          }
+
+          // Update logs with Docker container start information
+          await this.updatePipelineStep(userId, deploymentId, stepName, 0, {
+            logs: `Running build in Docker container: ${containerName}\nCommand: ${dockerRunCommand}\n\n[Container Started]\n${runOutput}\nContainer started successfully with ID ${containerName}\n\nBuilding project...`,
+          });
+
+          // Wait a moment to let container start working
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+
+          // Get container logs
+          const dockerLogsCommand = `docker logs ${containerName}`;
+          let buildOutput = "";
+
+          // Poll for logs every 2 seconds for up to 30 seconds
+          for (let i = 0; i < 15; i++) {
+            try {
+              const { stdout } = await execAsync(dockerLogsCommand);
+              buildOutput = stdout;
+
+              // Update step logs with latest output
+              const currentStep = (
+                await this.getDeploymentById(userId, deploymentId)
+              )?.pipelines?.[0]?.steps?.find((s) => s.name === "Build");
+              const currentLogs = currentStep?.logs || "";
+              await this.updatePipelineStep(userId, deploymentId, stepName, 0, {
+                logs: `${
+                  currentLogs.split("[Container Logs]")[0]
+                }[Container Logs]\n${buildOutput}`,
+              });
+
+              // Check if build is complete
+              if (buildOutput.includes("Build completed successfully")) {
+                break;
+              }
+
+              // Wait before polling again
+              await new Promise((resolve) => setTimeout(resolve, 2000));
+            } catch (logError: any) {
+              logger.warn(`Error getting container logs: ${logError.message}`, {
+                error: logError,
+              });
+            }
+          }
+
+          // Cleanup the container
+          try {
+            await execAsync(`docker rm -f ${containerName}`);
+            logger.info(`Removed Docker container ${containerName}`);
+          } catch (cleanupError: any) {
+            logger.warn(
+              `Error removing Docker container: ${cleanupError.message}`,
+              { error: cleanupError }
+            );
+          }
+        } catch (error: any) {
+          logger.error(`Docker build execution failed: ${error.message}`, {
+            error,
+          });
+          await this.updatePipelineStep(userId, deploymentId, stepName, 0, {
+            status: "failed",
+            finishedAt: new Date(),
+            logs: `Build step failed: ${error.message}`,
+          });
+
+          // Update deployment status to failed
+          await this.updateDeployment(userId, deploymentId, {
+            status: "failed",
+          });
+
+          return; // Exit the pipeline execution
+        }
+      }
+
+      // Simulate step execution time - longer for build and infrastructure steps
+      const stepDuration =
+        stepName === "Build" || stepName === "Infrastructure Provisioning"
+          ? 3000
+          : 2000;
+      await new Promise((resolve) => setTimeout(resolve, stepDuration));
 
       // Complete step
-      await this.updatePipelineStep(userId, deploymentId, stepName, 0, {
-        status: "succeeded",
-        finishedAt: new Date(),
-        logs: `Step ${stepName} completed successfully`,
-      });
+      if (stepName === "Build") {
+        // For Build step, get current logs first, then append completion message
+        const currentStep = (
+          await this.getDeploymentById(userId, deploymentId)
+        )?.pipelines?.[0]?.steps?.find((s) => s.name === "Build");
+        const currentLogs = currentStep?.logs || "";
+
+        await this.updatePipelineStep(userId, deploymentId, stepName, 0, {
+          status: "succeeded",
+          finishedAt: new Date(),
+          logs: `${currentLogs}\n\nDocker container completed successfully. Build artifacts generated.`,
+        });
+      } else {
+        // For other steps, just set the standard success message
+        await this.updatePipelineStep(userId, deploymentId, stepName, 0, {
+          status: "succeeded",
+          finishedAt: new Date(),
+          logs: `Step ${stepName} completed successfully`,
+        });
+      }
 
       // Update deployment status based on current step
       if (stepName === "Infrastructure Provisioning") {

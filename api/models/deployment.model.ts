@@ -21,9 +21,9 @@ export interface PipelineStep {
   status: "pending" | "in-progress" | "succeeded" | "failed" | "skipped";
   startedAt?: Date;
   finishedAt?: Date;
-  logs?: string; // URL of the logs or snippet
-  errorMessage?: string; // Error message if failed
-  aiRecommendation?: string; // AI recommendations if failed
+  logs?: string; 
+  errorMessage?: string; 
+  aiRecommendation?: string;
 }
 
 export interface CostEstimation {
@@ -125,7 +125,7 @@ export interface BaseDeploymentModel {
 
   // Monitoring of the pipeline
   pipelines?: {
-    currentStage: string;
+    id: string;
     steps: PipelineStep[];
     startedAt?: Date;
     estimatedCompletionTime?: Date;
@@ -263,7 +263,7 @@ export interface UpdateDeploymentPayload {
   architectureComponents?: ArchitectureComponent[];
   chatMessages?: ChatMessage[];
   pipelines?: {
-    currentStage: string;
+    id: string;
     steps: PipelineStep[];
     startedAt?: Date;
     estimatedCompletionTime?: Date;
