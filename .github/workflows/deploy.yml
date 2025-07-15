@@ -98,4 +98,4 @@ jobs:
             sed -i "s|image: ghcr.io/.*/idem-api:.*|image: $IMAGE_NAME|" "$COMPOSE_FILE"
 
             echo "♻️ Restarting docker-compose using $COMPOSE_FILE with $IMAGE_NAME image"
-            docker-compose -f "$COMPOSE_FILE" up -d idem-api
+            docker-compose -f "$COMPOSE_FILE" up -d idem-api-dev
