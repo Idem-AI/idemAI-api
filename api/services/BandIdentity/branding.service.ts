@@ -49,19 +49,20 @@ export class BrandingService extends GenericService {
       // Define branding steps
       const steps: IPromptStep[] = [
         {
-          promptConstant: USAGE_GUIDELINES_SECTION_PROMPT,
-          stepName: "Usage Guidelines",
+          promptConstant: LOGO_GENERATION_PROMPT,
+          stepName: "Logo System",
         },
-        // color palette
         {
           promptConstant: COLOR_PALETTE_SECTION_PROMPT,
           stepName: "Color Palette",
         },
-        // typography
-
         {
           promptConstant: TYPOGRAPHY_SECTION_PROMPT,
           stepName: "Typography",
+        },
+        {
+          promptConstant: USAGE_GUIDELINES_SECTION_PROMPT,
+          stepName: "Usage Guidelines",
         },
         {
           promptConstant: VISUAL_EXAMPLES_SECTION_PROMPT,
