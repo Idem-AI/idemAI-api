@@ -225,6 +225,7 @@ export class BrandingService extends GenericService {
       return null;
     }
     logger.info(`Successfully fetched branding for projectId: ${projectId}`);
+
     return project.analysisResultModel.branding;
   }
 
