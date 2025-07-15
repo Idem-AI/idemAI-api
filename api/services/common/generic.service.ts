@@ -158,7 +158,7 @@ ${promptConstant}
 
     const response = await this.promptService.runPrompt({
       provider: LLMProvider.GEMINI,
-      modelName: "gemini-2.0-flash-exp",
+      modelName: "gemini-2.5-flash",
       messages: [
         {
           role: "user",

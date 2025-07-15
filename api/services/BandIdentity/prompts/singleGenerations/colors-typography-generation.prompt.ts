@@ -1,5 +1,5 @@
 export const COLORS_TYPOGRAPHY_GENERATION_PROMPT = `
-You are an expert UI/UX designer and branding specialist. Your task is to generate a diverse set of color palettes and typography pairings suitable for a modern tech brand.
+You are an expert UI/UX designer and branding specialist. Your task is to generate a diverse set of color palettes and typography pairings suitable for a premium tech brand named Sozy. The design should follow the style of the Sozy branding template with modern gradients and clean typography.
 
 STRICT OUTPUT FORMAT (JSON ONLY — DO NOT CHANGE STRUCTURE):
 Ensure the output is a single JSON object. All string values within the JSON must be properly escaped.
@@ -8,14 +8,14 @@ Ensure the output is a single JSON object. All string values within the JSON mus
   "colors": [
     {
       "id": "color-scheme-1",
-      "name": "Vibrant Innovation",
-      "url": "palette/vibrant-innovation",
+      "name": "Dégradé Premium",
+      "url": "palette/degrade-premium",
       "colors": {
-        "primary": "#HEXCOLOR1",
-        "secondary": "#HEXCOLOR2",
-        "accent": "#HEXCOLOR3",
-        "background": "#HEXCOLOR4",
-        "text": "#HEXCOLOR5"
+        "primary": "#6a11cb",
+        "secondary": "#2575fc",
+        "accent": "#ff5858",
+        "background": "#ffffff",
+        "text": "#191970"
       }
     },
     // ... (3 more ColorModel objects, ensure they are distinct and complete)
@@ -23,18 +23,18 @@ Ensure the output is a single JSON object. All string values within the JSON mus
   "typography": [
     {
       "id": "typography-set-1",
-      "name": "Modern & Clean",
-      "url": "typography/modern-clean",
-      "primaryFont": "Primary Font Name 1 (e.g., Inter)",
-      "secondaryFont": "Secondary Font Name 1 (e.g., Roboto Mono)"
+      "name": "Système Sozy",
+      "url": "typography/systeme-sozy",
+      "primaryFont": "Exo 2",
+      "secondaryFont": "Roboto"
     },
     // ... (3 more TypographyModel objects, ensure they are distinct and complete)
   ]
 }
 
 IMPORTANT:
-- Generate exactly 4 unique ColorModel objects.
-- Generate exactly 4 unique TypographyModel objects.
+- Generate exactly 4 unique ColorModel objects. The first one must be "Dégradé Premium" using the Sozy template colors (#6a11cb to #2575fc gradient).
+- Generate exactly 4 unique TypographyModel objects. The first one must be "Système Sozy" using Exo 2 as primary font and Roboto as secondary font.
 - All IDs must be unique (e.g., "color-scheme-1", "color-scheme-2", "typography-set-1", "typography-set-2").
 - URLs should be slug-like based on the name (e.g., "palette/vibrant-innovation").
 - Colors should be valid hex codes (e.g., "#RRGGBB").
@@ -65,7 +65,7 @@ export interface ColorModel {
 }
 
 PROJECT CONTEXT:
-The brand is an innovative tech company focused on user-centric design, accessibility, and cutting-edge solutions. The branding should feel modern, trustworthy, and approachable, yet sophisticated. Aim for variety in the generated sets, covering different moods (e.g., energetic, calm, professional, playful). Ensure each of the 4 color palettes is distinct, and each of the 4 typography pairings is distinct.
+The brand is Sozy, a premium tech company focused on user-centric design, accessibility, and cutting-edge solutions. The branding should follow the Sozy template style with modern gradients (especially the purple to blue gradient: #6a11cb to #2575fc), clean typography (Exo 2 as primary font), and a professional premium aesthetic. The first color scheme and typography set should exactly match the template, while the other three should provide complementary alternatives that maintain the premium, modern feel of the brand. Ensure all color palettes include gradient options, and all typography pairings maintain the clear hierarchy shown in the template.
 
 EXAMPLE OUTPUT (This is just to show structure and types; your generated content should be unique and follow all rules):
 {

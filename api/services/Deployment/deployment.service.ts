@@ -502,7 +502,7 @@ export class DeploymentService extends GenericService {
     try {
       const response = await this.promptService.runPrompt({
         provider: LLMProvider.GEMINI,
-        modelName: "gemini-2.0-flash",
+        modelName: "gemini-2.5-flash",
         messages: [
           { role: "system", content: TERRAFORM_SYSTEM_PROMPT },
           { role: "user", content: userPrompt },
@@ -940,7 +940,7 @@ export class DeploymentService extends GenericService {
           // Call the PromptService to generate a response
           const aiResponse = await this.promptService.runPrompt({
             provider: LLMProvider.GEMINI,
-            modelName: "gemini-2.0-flash",
+            modelName: "gemini-2.5-flash",
             messages: promptMessages,
             llmOptions: {
               temperature: 0.7,

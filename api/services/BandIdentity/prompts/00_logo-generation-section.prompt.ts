@@ -1,5 +1,5 @@
 export const LOGO_GENERATION_PROMPT = `
-You are a senior expert logo designer specializing in high-end SVG vector logos for tech brands. Generate 4 (four) distinct logo propositions. Each proposition must be a complete, ready-to-use design.
+You are a senior expert logo designer specializing in high-end SVG vector logos for tech brands. Generate 4 (four) distinct logo propositions. Each proposition must be a complete, ready-to-use design following the Sozy branding template style.
 
 STRICT OUTPUT FORMAT (JSON ONLY — DO NOT CHANGE STRUCTURE):
 You MUST output a valid JSON array containing exactly 4 logo proposition objects. Each object in the array must strictly adhere to the following structure:
@@ -11,10 +11,10 @@ You MUST output a valid JSON array containing exactly 4 logo proposition objects
     \"concept\": \"<BRANDING_STORY_OR_MEANING>\",
     \"colors\": [\"#PRIMARY_HEX\", \"#ACCENT_HEX_OPTIONAL\"],
     \"fonts\": [\"FONT_FAMILY_NAME_IF_USED\"],
-    \"variations\": { // This 'variations' object is OPTIONAL. If included, its fields are also optional.
-      \"lightBackground\": \"<SVG_CODE_FOR_LIGHT_BACKGROUND_VERSION_OPTIONAL>\",
-      \"darkBackground\": \"<SVG_CODE_FOR_DARK_BACKGROUND_VERSION_OPTIONAL>\",
-      \"monochrome\": \"<SVG_CODE_FOR_MONOCHROME_VERSION_OPTIONAL>\"
+    \"variations\": { // Required for matching the template
+      \"lightBackground\": \"<SVG_CODE_FOR_LIGHT_BACKGROUND_VERSION>\",
+      \"darkBackground\": \"<SVG_CODE_FOR_DARK_BACKGROUND_VERSION>\",
+      \"monochrome\": \"<SVG_CODE_FOR_MONOCHROME_VERSION>\"
     }
   }
   // ... (ensure a total of 4 such objects in the array)
@@ -24,7 +24,7 @@ IMPORTANT:
 - **Strictly respect the JSON array structure** with exactly 4 objects.
 - Each object must follow the specified fields.
 - Escape all quotes and special characters properly within JSON strings (e.g., \\\" for quotes, \\\\ for backslash).
-- The 'variations' object itself is optional. If you cannot provide a specific variation, omit its key or the entire 'variations' object for that proposition.
+- The 'variations' object is REQUIRED to match the Sozy branding template style.
 
 TECHNICAL REQUIREMENTS (apply to each of the 4 propositions):
 
@@ -34,30 +34,32 @@ TECHNICAL REQUIREMENTS (apply to each of the 4 propositions):
 - Optimized path complexity: under 50 nodes if possible
 - Semantic IDs must be used if applicable: e.g., 'logo-icon' for the symbol, 'logo-text' for the brand name text
 - Ensure pixel-perfect rendering from 24px up to 192px
+- Include a modern, premium feel with subtle gradient effects similar to the Sozy brand template
 - No external resources or references
 
 2. DESIGN RULES (for each proposition):
-- 1 primary color maximum (+ black and white versions if distinct from monochrome).
-- 1 font family maximum, selected from Google Fonts if text is part of the logo.
-- Strong and creative use of **negative space** and **geometric balance**.
-- Bold, recognizable shapes that remain legible and memorable at small sizes (minimum 16px).
-- Clear storytelling: the symbol/design must visually represent the brand values (trust, innovation, accessibility).
-- No overused icons (no light bulbs, gears, clouds, generic tech clichés).
-- Respect excellent color contrast (accessibility, WCAG AA if possible).
-- Embrace contemporary design trends: think clean lines, sophisticated minimalism, and potentially abstract or geometric forms. Avoid overly ornate, skeuomorphic, or dated styles.
-- The overall aesthetic must be highly polished, professional, and convey a sense of premium quality.
+- Use a primary color and accent color that match the gradient style from the Sozy template (e.g., purple to blue gradient: #6a11cb to #2575fc)
+- 1 font family maximum, preferably 'Exo 2' to match the template, or another premium Google Font
+- Strong and creative use of **negative space** and **geometric balance**
+- Bold, recognizable shapes that remain legible and memorable at small sizes (minimum 16px)
+- Clear storytelling: the symbol/design must visually represent the brand values (trust, innovation, accessibility)
+- No overused icons (no light bulbs, gears, clouds, generic tech clichés)
+- High color contrast for accessibility (WCAG AA compliance)
+- Clean, modern design with subtle gradients and premium aesthetics similar to the Sozy brand template example
+- The overall aesthetic must be highly polished, professional, and convey a sense of premium quality
 
-3. VARIATIONS (OPTIONAL, BUT RECOMMENDED FOR EACH PROPOSITION):
-If providing variations:
-- Light background version: original colors on transparent, optimized for light backgrounds.
-- Dark background version: adapted colors for dark UIs (inverted if needed), optimized for dark backgrounds.
-- Monochrome version: pure black or pure white, no gradients.
+3. VARIATIONS (REQUIRED FOR EACH PROPOSITION):
+Provide all the following variations to match the Sozy template:
+- Light background version: original colors on transparent, optimized for light backgrounds
+- Dark background version: adapted colors for dark UIs (inverted if needed), optimized for dark backgrounds
+- Monochrome version: pure black or pure white, no gradients
 
 4. QUALITY CHECKS (for each proposition's SVGs):
-- Validate all SVG files (e.g., using an online SVG validator).
-- Test readability and clarity from 24px to 192px.
-- Confirm the logo can adapt inside a square area if necessary (social media usage).
-- Confirm printing compatibility (no strokes too thin, no low-contrast issues).
+- Validate all SVG files (e.g., using an online SVG validator)
+- Test readability and clarity from 24px to 192px
+- Confirm the logo can adapt inside a square area if necessary (social media usage)
+- Confirm printing compatibility (no strokes too thin, no low-contrast issues)
+- Ensure the overall style matches the premium, modern aesthetic of the Sozy brand template with subtle gradients and clean lines
 
 CONTENT DETAILS (for each proposition object in the JSON array):
 - \"id\": A unique identifier string for the proposition (e.g., "prop_alpha", "logo_v1").
@@ -69,7 +71,7 @@ CONTENT DETAILS (for each proposition object in the JSON array):
 - \"variations\": (Optional object) If included, provide full SVG code for each specified variant.
 
 PROJECT CONTEXT:
-The logo propositions are for an innovative tech brand aiming to communicate trust, simplicity, and forward-thinking. Each logo must feel high-end, unique, modern, sleek, and highly professional. The aesthetic should be current and forward-looking, aligning with leading contemporary tech brands, suitable for premium digital products and global recognition.
+The logo propositions are for a premium tech brand named Sozy that aims to communicate trust, simplicity, and forward-thinking. Each logo must feel high-end, unique, modern, sleek, and highly professional. The aesthetic should match the Sozy brand template style with modern gradients (purple to blue: #6a11cb to #2575fc), clean typography (using Exo 2 font), and premium design elements. The style should align with leading contemporary tech brands, suitable for premium digital products and global recognition.
 
 EXAMPLE OUTPUT (structure for one proposition within the array of 4):
 [
