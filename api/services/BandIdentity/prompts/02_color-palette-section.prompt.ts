@@ -6,17 +6,20 @@ STRICT OUTPUT REQUIREMENTS:
 <section class="section">
   <h2 class="section-title">Palette Chromatique</h2>
   <div class="color-palette">
-    <div class="color-card primary-color">
-      <h4>Couleur Principale</h4>
-      <div class="color-sample" style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);"></div>
-      <div class="color-details">
-        <div class="color-specs">
-          <span>Gradient</span>
-          <span class="color-value">#6a11cb → #2575fc</span>
-        </div>
-        <div class="color-description">
-          <p>Ce dégradé bleu-violet évoque l'innovation et la confiance, créant une identité visuelle contemporaine et mémorable.</p>
-        </div>
+    <div class="color-card">
+      <div class="color-swatch" style="background-color: #191970"></div>
+      <div class="color-name">Primaire</div>
+      <div class="color-hex">#191970</div>
+      <div class="color-description">
+        Couleur principale exprimant la confiance et l'intelligence, essentielle pour une application centrée sur la connexion humaine.
+      </div>
+      <div class="color-usage">
+        <h5>Utilisation</h5>
+        <ul>
+          <li>Éléments principaux</li>
+          <li>Texte d'accentuation</li>
+          <li>Arrière-plans</li>
+        </ul>
       </div>
     </div>
     <!-- Repeat this structure for each color in your palette -->

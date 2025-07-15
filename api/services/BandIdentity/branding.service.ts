@@ -5,13 +5,15 @@ import {
   ColorModel,
   TypographyModel,
 } from "../../models/brand-identity.model";
-import { LOGO_GENERATION_PROMPT } from "./prompts/00_logo-generation-section.prompt";
+import { LOGO_GENERATION_PROMPT } from "./prompts/singleGenerations/00_logo-generation-section.prompt";
+import { BRAND_HEADER_SECTION_PROMPT } from "./prompts/00_brand-header-section.prompt";
+import { LOGO_SYSTEM_SECTION_PROMPT } from "./prompts/01_logo-system-section.prompt";
 import { COLOR_PALETTE_SECTION_PROMPT } from "./prompts/02_color-palette-section.prompt";
 import { TYPOGRAPHY_SECTION_PROMPT } from "./prompts/03_typography-section.prompt";
 import { USAGE_GUIDELINES_SECTION_PROMPT } from "./prompts/04_usage-guidelines-section.prompt";
 import { VISUAL_EXAMPLES_SECTION_PROMPT } from "./prompts/05_visual-examples-section.prompt";
 import { GLOBAL_CSS_PROMPT } from "./prompts/06_global-css-section.prompt";
-import { VISUAL_IDENTITY_SYNTHESIZER_PROMPT } from "./prompts/07_visual-identity-synthesizer-section.prompt";
+import { BRAND_FOOTER_SECTION_PROMPT } from "./prompts/07_brand-footer-section.prompt";
 import logger from "../../config/logger";
 import { SectionModel } from "../../models/section.model";
 import { GenericService, IPromptStep } from "../common/generic.service";
@@ -43,13 +45,35 @@ export class BrandingService extends GenericService {
 
     // Extract and add project description to context
     const projectDescription = this.extractProjectDescription(project);
-    await this.addDescriptionToContext(projectDescription);
+    await this.addDescriptionToContext(
+      "Here is the project description: " + projectDescription
+    );
+    await this.addDescriptionToContext(
+      "Here is the project branding: " +
+        JSON.stringify(project.analysisResultModel.branding)
+    );
+    await this.addDescriptionToContext(
+      "Here is the project branding colors: " +
+        JSON.stringify(project.analysisResultModel.branding.colors)
+    );
+    await this.addDescriptionToContext(
+      "Here is the project branding typography: " +
+        JSON.stringify(project.analysisResultModel.branding.typography)
+    );
+    await this.addDescriptionToContext(
+      "Here is the project branding logo: " +
+        JSON.stringify(project.analysisResultModel.branding.logo)
+    );
 
     try {
       // Define branding steps
       const steps: IPromptStep[] = [
         {
-          promptConstant: LOGO_GENERATION_PROMPT,
+          promptConstant: BRAND_HEADER_SECTION_PROMPT,
+          stepName: "Brand Header",
+        },
+        {
+          promptConstant: LOGO_SYSTEM_SECTION_PROMPT,
           stepName: "Logo System",
         },
         {
@@ -69,12 +93,12 @@ export class BrandingService extends GenericService {
           stepName: "Visual Examples",
         },
         {
-          promptConstant: GLOBAL_CSS_PROMPT,
-          stepName: "Global CSS",
+          promptConstant: BRAND_FOOTER_SECTION_PROMPT,
+          stepName: "Brand Footer",
         },
         {
-          promptConstant: VISUAL_IDENTITY_SYNTHESIZER_PROMPT,
-          stepName: "Visual Identity Synthesis",
+          promptConstant: GLOBAL_CSS_PROMPT,
+          stepName: "Global CSS",
         },
       ];
 

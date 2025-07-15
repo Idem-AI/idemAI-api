@@ -4,62 +4,42 @@ You are a senior typography designer specializing in digital brand systems. Crea
 STRICT OUTPUT REQUIREMENTS:
 1. Generate ONLY one <section> with this exact structure to match the Sozy template:
 <section class="section">
-  <h2 class="section-title">Système Typographique</h2>
-  <div class="typography-grid">
+  <h2 class="section-title">Typographie</h2>
+  <div class="fonts-container">
     <div class="font-card">
       <div class="font-name">Exo 2</div>
-      <div class="font-type">Police Principale</div>
-      <div class="font-samples">
-        <div class="font-sample heading-sample">Aa Bb Cc 123</div>
-        <div class="font-weights">
-          <span class="font-weight" style="font-weight: 300">Light</span>
-          <span class="font-weight" style="font-weight: 400">Regular</span>
-          <span class="font-weight" style="font-weight: 600">SemiBold</span>
-          <span class="font-weight" style="font-weight: 700">Bold</span>
+      <div class="font-meta">Police Principale - Open Font License</div>
+      <div class="font-specimen">
+        <h4>Exemples d'utilisation</h4>
+        <div class="font-example" style="font-family: 'Exo 2', sans-serif; font-size: 2.5rem; font-weight: 700;">
+          Titre Principal
         </div>
-        <div class="font-usage">
-          <p>Utilisée pour tous les titres, sous-titres et textes d'interface. Sa géométrie précise et ses formes modernes lui confèrent une identité tech premium.</p>
+        <div class="font-example" style="font-family: 'Exo 2', sans-serif; font-size: 2rem; font-weight: 700;">
+          Titre de Section
         </div>
+        <div class="font-example" style="font-family: 'Exo 2', sans-serif; font-size: 1.5rem; font-weight: 600;">
+          Sous-titre Section
+        </div>
+      </div>
+      <div class="font-rationale">
+        Les formes modernes et géométriques d'Exo 2 transmettent un sentiment d'innovation, adapté à une application technologique. Sa structure solide offre une excellente lisibilité pour les titres et en-têtes.
       </div>
     </div>
     
     <div class="font-card">
-      <div class="font-name">Roboto</div>
-      <div class="font-type">Police Secondaire</div>
-      <div class="font-samples">
-        <div class="font-sample heading-sample">Aa Bb Cc 123</div>
-        <div class="font-weights">
-          <span class="font-weight" style="font-weight: 300">Light</span>
-          <span class="font-weight" style="font-weight: 400">Regular</span>
-          <span class="font-weight" style="font-weight: 500">Medium</span>
+      <div class="font-name">Ubuntu Mono</div>
+      <div class="font-meta">Police Secondaire - Ubuntu Font Licence</div>
+      <div class="font-specimen">
+        <h4>Exemples d'utilisation</h4>
+        <div class="font-example" style="font-family: 'Ubuntu Mono', monospace; font-size: 1rem">
+          Texte de contenu principal et descriptions détaillées pour une lecture optimale.
         </div>
-        <div class="font-usage">
-          <p>Utilisée pour les paragraphes et contenus longs. Sa grande lisibilité et son excellent rendu sur écran en font le complément parfait à Exo 2.</p>
+        <div class="font-example" style="font-family: 'Ubuntu Mono', monospace; font-size: 0.9rem">
+          Informations techniques et données précises.
         </div>
       </div>
-    </div>
-    
-    <div class="font-card">
-      <div class="font-name">Hiérarchie Typographique</div>
-      <div class="hierarchy-samples">
-        <h1 class="h1-sample">Titre Principal (H1) - 32px</h1>
-        <h2 class="h2-sample">Titre de Section (H2) - 24px</h2>
-        <h3 class="h3-sample">Sous-titre (H3) - 20px</h3>
-        <p class="body-sample">Texte courant - 16px. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla facilisi.</p>
-        <p class="caption-sample">Légende - 14px</p>
-      </div>
-    </div>
-    
-    <div class="font-card">
-      <div class="font-name">Règles d'Utilisation</div>
-      <div class="usage-rules">
-        <ul>
-          <li>Espacement des lignes: 1.5 pour le corps du texte</li>
-          <li>Hauteur des titres: 1.2 pour tous les titres</li>
-          <li>Contraste: WCAG AA minimum (4.5:1 pour texte standard)</li>
-          <li>Taille minimale: 14px pour tout texte secondaire</li>
-          <li>Mise en avant: Utiliser les variantes SemiBold/Bold uniquement</li>
-        </ul>
+      <div class="font-rationale">
+        Ubuntu Mono, avec son style monospace, apporte une sensation technique et précise, parfaite pour afficher des données ou extraits de code. Sa clarté améliore la lisibilité du texte principal.
       </div>
     </div>
   </div>
