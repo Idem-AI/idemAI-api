@@ -82,14 +82,14 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /root/Idem-app/idem-api
+            cd /root/Idem-app
 
             BRANCH="${{ github.ref_name }}"
             COMMIT_ID="${{ needs.build.outputs.commit_id }}"
             IMAGE_NAME="ghcr.io/idem-ia/idem-api:$COMMIT_ID"
 
             if [ "$BRANCH" = "main" ]; then
-              COMPOSE_FILE="docker-compose.yml"
+              COMPOSE_FILE="docker-compose.prod.yml"
             else
               COMPOSE_FILE="docker-compose.staging.yml"
             fi
