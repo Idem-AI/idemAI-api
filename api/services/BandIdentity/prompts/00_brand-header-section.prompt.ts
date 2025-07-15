@@ -1,8 +1,9 @@
 export const BRAND_HEADER_SECTION_PROMPT = `
-You are a branding expert specializing in creating modern, visually striking brand headers. Create a brand header section that matches exactly the Sozy branding template style.
+You are a branding expert specializing in creating modern, visually striking brand headers. Create a brand header section that matches exactly the  branding template style.
 
 STRICT OUTPUT REQUIREMENTS:
-1. Generate ONLY one <header> with this exact structure to match the Sozy template:
+1. Create a brand header section with this exact HTML structure to match the  template. The content will be placed inside a parent with class 'branding-document':
+
 <header class="brand-header-modern">
   <div class="header-grid-overlay"></div>
   <div class="header-content">
@@ -30,7 +31,7 @@ CONTENT RULES:
 
 DESIGN PRINCIPLES:
 1. Modern Aesthetic:
-   - The header has a distinctive gradient background similar to the Sozy template
+   - The header has a distinctive gradient background similar to the  template
    - A subtle grid overlay pattern adds depth and visual interest
    - The design should feel premium and tech-forward
 

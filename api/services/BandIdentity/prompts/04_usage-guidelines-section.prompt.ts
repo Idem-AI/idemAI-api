@@ -1,8 +1,8 @@
 export const USAGE_GUIDELINES_SECTION_PROMPT = `
-You are a brand systems expert specialized in creating actionable design guidelines for digital products. Generate a comprehensive usage guidelines section following the Sozy branding template style.
+You are a brand systems expert specialized in creating actionable design guidelines for digital products. Generate a comprehensive usage guidelines section following the  branding template style.
 
 STRICT OUTPUT REQUIREMENTS:
-1. Generate ONLY one <section> with this exact structure to match the Sozy template:
+1. Generate ONLY one <section> avec cette structure exacte pour correspondre au template . Notez que tout le contenu sera placé dans un élément parent avec la classe 'branding-document':
 <div class="section-divider">
   <div class="divider"></div>
   <h2 class="section-title">Directives d'Usage</h2>

@@ -1,8 +1,8 @@
 export const COLOR_PALETTE_SECTION_PROMPT = `
-You are a color psychology expert and brand identity specialist. Create a comprehensive yet concise color palette section that matches the Sozy branding template style, using gradients and modern color combinations.
+You are a color psychology expert and brand identity specialist. Create a comprehensive yet concise color palette section that matches the  branding template style, using gradients and modern color combinations.
 
 STRICT OUTPUT REQUIREMENTS:
-1. Generate ONLY one <section> with this exact structure to match the Sozy template:
+1. Generate ONLY one <section> with this exact structure to match the  template. Note que tout le contenu sera placé dans un élément parent avec la classe 'branding-document':
 <section class="section">
   <h2 class="section-title">Palette Chromatique</h2>
   <div class="color-palette">
@@ -27,7 +27,7 @@ STRICT OUTPUT REQUIREMENTS:
 </section>
 
 CONTENT RULES:
-- Include exactly these color types to match the Sozy template:
+- Include exactly these color types to match the  template:
   • Primary color: Gradient from purple to blue (#6a11cb to #2575fc) as shown in the template
   • Secondary color: A complementary color with professional appeal
   • Accent color: For call-to-actions and highlights
@@ -42,7 +42,7 @@ CONTENT RULES:
 - Escape " with \"
 
 DESIGN PRINCIPLES:
-1. Follow the Sozy Template Style:
+1. Follow the  Template Style:
    - Use linear gradients for primary and secondary colors when applicable
    - Maintain the modern, premium aesthetic of the template
    - Follow the same color card structure for consistency
@@ -56,7 +56,7 @@ DESIGN PRINCIPLES:
    - Use color theory to create a harmonious and purposeful palette
 
 CONTEXT:
-- The brand identity is for "Sozy", a premium tech company
+- The brand identity is for "", a premium tech company
 - The palette should convey innovation, trust, and a high-end user experience
 - The color system should be cohesive with the gradient-based design language shown in the template
 - Use French language for all text content to match the template

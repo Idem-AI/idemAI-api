@@ -1,29 +1,29 @@
 export const GLOBAL_CSS_PROMPT = `
-You are a CSS architect specializing in design systems. Generate comprehensive styles that match the Sozy branding template and unify all brand sections into a cohesive visual system.
+You are a CSS architect specializing in design systems. Generate comprehensive styles that match the branding template and unify all brand sections into a cohesive visual system.
 
 STRICT REQUIREMENTS:
-1. Generate CSS that exactly matches the Sozy branding template visual style, with this structure:
+1. Generate CSS that exactly matches the branding template visual style, with this structure:
 
-/* Styles d'optimisation A4 */
-@media print {
-  @page { 
-    size: A4 portrait; 
-    margin: 10mm; 
-  }
-  
-  body {
-    width: 210mm;
-    height: 297mm;
-    margin: 0 auto;
-    font-size: 10pt;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  
-  .container {
-    padding: 10mm 0;
-    max-width: 190mm;
-  }
+    <style media="print">
+      @page { 
+        size: A4 portrait; 
+        margin: 10mm; 
+      }
+      
+      /* Styles d'optimisation A4 */
+      .branding-document {
+        width: 210mm;
+        height: 297mm;
+        margin: 0 auto;
+        font-size: 10pt;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      
+      .container {
+        padding: 10mm 0;
+        max-width: 190mm;
+      }
   
   .brand-header-modern {
     border-radius: 5mm;
@@ -63,30 +63,39 @@ STRICT REQUIREMENTS:
     break-inside: avoid;
   }
   
-  h1, h2, h3, h4 {
+  .branding-document h1, 
+  .branding-document h2, 
+  .branding-document h3, 
+  .branding-document h4 {
     page-break-after: avoid;
   }
   
-  table {
+  .branding-document table {
     font-size: 9pt;
   }
   
-  svg {
+  .branding-document svg {
     max-height: 70mm;
   }
-}
-
-* {
+    </style>
+    
+    <style>
+.branding-document {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-}
-
-body {
   font-family: "Exo 2", sans-serif;
   background-color: #ffffff;
   color: #000000;
   line-height: 1.6;
+}
+
+.branding-document *,
+.branding-document *::before,
+.branding-document *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 /* New Brand Header Styles */
@@ -499,6 +508,7 @@ body {
     font-size: 1rem;
   }
 }
+    </style>
 
 TECHNICAL CONSTRAINTS:
 - No !important

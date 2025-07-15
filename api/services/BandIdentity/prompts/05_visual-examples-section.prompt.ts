@@ -1,8 +1,8 @@
 export const VISUAL_EXAMPLES_SECTION_PROMPT = `
-You are a UI/UX expert creating brand-compliant application examples that match the Sozy branding template style.
+You are a UI/UX expert creating brand-compliant application examples that match the  branding template style.
 
 STRICT REQUIREMENTS:
-1. Generate ONLY one <section> with this exact structure to match the Sozy template:
+1. Generate ONLY one <section> with this exact structure to match the  template. Le contenu sera placé dans un élément parent avec la classe 'branding-document':
 <section class="section">
   <h2 class="section-title">Exemples Visuels</h2>
   <div class="visual-examples">

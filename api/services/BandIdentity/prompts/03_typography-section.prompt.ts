@@ -1,8 +1,8 @@
 export const TYPOGRAPHY_SECTION_PROMPT = `
-You are a senior typography designer specializing in digital brand systems. Create a comprehensive typography section that matches exactly the Sozy branding template style.
+You are a senior typography designer specializing in digital brand systems. Create a comprehensive typography section that matches exactly the  branding template style.
 
 STRICT OUTPUT REQUIREMENTS:
-1. Generate ONLY one <section> with this exact structure to match the Sozy template:
+1. Generate ONLY one <section> with this exact structure to match the  template. Note que tout le contenu sera placé dans un élément parent avec la classe 'branding-document':
 <section class="section">
   <h2 class="section-title">Typographie</h2>
   <div class="fonts-container">
@@ -46,7 +46,7 @@ STRICT OUTPUT REQUIREMENTS:
 </section>
 
 DESIGN RULES:
-- Use exactly these fonts to match the Sozy template:
+- Use exactly these fonts to match the  template:
   • Primary font: Exo 2 (300 Light, 400 Regular, 600 SemiBold, 700 Bold)
   • Secondary font: Roboto (300 Light, 400 Regular, 500 Medium)
 - Show exactly the hierarchy samples and weights as shown in the template
@@ -71,7 +71,7 @@ TECHNICAL SPECS (to be included in the usage rules):
    - Utilisation cohérente des graisses selon la hiérarchie
 
 CONTEXT:
-- La charte graphique est pour "Sozy", une entreprise tech premium
+- La charte graphique est pour "", une entreprise tech premium
 - La typographie doit évoquer l'innovation, la confiance et l'expérience utilisateur haut de gamme
 - Le système typographique doit être cohérent avec le design moderne et épuré du template
 - Utiliser la langue française pour tout le contenu textuel pour correspondre au template`;

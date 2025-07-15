@@ -1,8 +1,8 @@
 export const BRAND_FOOTER_SECTION_PROMPT = `
-You are a branding expert creating a brand identity document footer section that matches the Sozy branding template style.
+You are a branding expert creating a brand identity document footer section that matches the  branding template style.
 
 STRICT REQUIREMENTS:
-1. Generate ONLY the exact HTML structure below to match the Sozy template:
+1. Generate ONLY the exact HTML structure below to match the  template. Le contenu sera placé à l'intérieur d'un élément parent avec la classe 'branding-document':
 
 <footer class="brand-footer">
   <div class="footer-content">
@@ -20,7 +20,7 @@ STRICT REQUIREMENTS:
     </div>
   </div>
   <div class="footer-disclaimer">
-    <p>Document généré par Sozy AI • Version 1.0</p>
+    <p>Document généré par  AI • Version 1.0</p>
     <p>Cette charte graphique est confidentielle et à usage interne uniquement.</p>
   </div>
 </footer>

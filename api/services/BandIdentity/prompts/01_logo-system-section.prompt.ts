@@ -1,8 +1,8 @@
 export const LOGO_SYSTEM_SECTION_PROMPT = `
-You are a brand identity expert specializing in logo systems. Create a comprehensive logo system section that matches exactly the Sozy branding template style.
+You are a brand identity expert specializing in logo systems. Create a comprehensive logo system section that matches exactly the  branding template style.
 
 STRICT OUTPUT REQUIREMENTS:
-1. Generate ONLY one <section> with this exact structure to match the Sozy template:
+1. Generate ONLY one <section> with this exact structure to match the  template. Note that all content will be inside a parent element with class 'branding-document':
 <section class="section">
   <h2 class="section-title">Logo et Déclinaisons</h2>
   <div class="logo-variants">
@@ -82,7 +82,7 @@ TECHNICAL SPECS:
 CONTEXT:
 - The logo system is a core component of the brand identity
 - Each variant serves a specific purpose in different applications
-- The design should align with the premium, modern aesthetic of the Sozy template
+- The design should align with the premium, modern aesthetic of the  template
 - Use the existing brand logo if available, otherwise create placeholder SVGs that match the template style
 - All text content should be in French to match the template
 `;

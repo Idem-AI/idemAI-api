@@ -12,7 +12,7 @@
       }
       
       /* Styles d'optimisation A4 */
-      body {
+      .branding-document {
         width: 210mm;
         height: 297mm;
         margin: 0 auto;
@@ -64,30 +64,38 @@
         break-inside: avoid;
       }
       
-      h1, h2, h3, h4 {
+      .branding-document h1, 
+      .branding-document h2, 
+      .branding-document h3, 
+      .branding-document h4 {
         page-break-after: avoid;
       }
       
-      table {
+      .branding-document table {
         font-size: 9pt;
       }
       
-      svg {
+      .branding-document svg {
         max-height: 70mm;
       }
     </style>
     <style>
-      * {
+      .branding-document {
         box-sizing: border-box;
         margin: 0;
         padding: 0;
-      }
-
-      body {
         font-family: "Exo 2", sans-serif;
         background-color: #ffffff;
         color: #000000;
         line-height: 1.6;
+      }
+      
+      .branding-document *,
+      .branding-document *::before,
+      .branding-document *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
       
       /* New Brand Header Styles */
@@ -1747,7 +1755,7 @@
       }
     </style>
   </head>
-  <body>
+  <body class="branding-document">
     <div class="container">
       <!-- Brand Header with Grid Pattern -->
       <div class="brand-header-modern">
