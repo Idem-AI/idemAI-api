@@ -191,8 +191,6 @@ export class DeploymentService extends GenericService {
         `Deployment generated successfully - UserId: ${userId}, ProjectId: ${projectId}, DeploymentId: ${generatedDeployment.id}`
       );
 
-      // start pipeline
-      await this.startDeploymentPipeline(userId, generatedDeployment.id);
 
       return generatedDeployment;
     } catch (error: any) {
