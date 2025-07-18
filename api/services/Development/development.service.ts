@@ -122,11 +122,22 @@ export class DevelopmentService extends GenericService {
 
       // Initialize analysisResultModel.development if it doesn't exist
       if (!project.analysisResultModel.development) {
-        project.analysisResultModel.development = [];
+        project.analysisResultModel.development = {
+          configs: {
+            backendStack: "",
+            frontendStack: "",
+            databaseStack: "",
+            additionalStacks: [],
+            constraints: [],
+          },
+          generatedValues: [],
+        };
       }
 
       // Add the WebContainer to the project's development section
-      project.analysisResultModel.development.push(webContainerData);
+      project.analysisResultModel.development.generatedValues.push(
+        webContainerData
+      );
 
       // Update the project
       const updatedProject = await this.projectRepository.update(
@@ -340,7 +351,9 @@ export class DevelopmentService extends GenericService {
 
       for (const project of projects) {
         if (project.analysisResultModel?.development) {
-          allWebContainers.push(...project.analysisResultModel.development);
+          allWebContainers.push(
+            ...project.analysisResultModel.development.generatedValues
+          );
         }
       }
 
@@ -375,7 +388,8 @@ export class DevelopmentService extends GenericService {
         return [];
       }
 
-      const webContainers = project.analysisResultModel?.development || [];
+      const webContainers =
+        project.analysisResultModel?.development.generatedValues || [];
 
       logger.info(
         `Retrieved ${webContainers.length} webcontainers for projectId: ${projectId}, userId: ${userId}`
@@ -671,9 +685,10 @@ export class DevelopmentService extends GenericService {
 
     for (const project of projects) {
       if (project.analysisResultModel?.development) {
-        const webContainer = project.analysisResultModel.development.find(
-          (container: WebContainerModel) => container.id === webContainerId
-        );
+        const webContainer =
+          project.analysisResultModel.development.generatedValues.find(
+            (container: WebContainerModel) => container.id === webContainerId
+          );
         if (webContainer) {
           return project;
         }

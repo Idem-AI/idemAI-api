@@ -4,7 +4,7 @@ import { DiagramModel } from "./diagram.model";
 import { LandingModel } from "./landing.model";
 import { BusinessPlanModel } from "./businessPlan.model";
 import { WebContainerModel } from "./webcontainer.model";
-import { DeploymentModel } from "./deployment.model";
+import { DevelopmentConfigsModel } from "./development.model";
 
 /**
  * @openapi
@@ -53,7 +53,10 @@ export interface AnalysisResultModel {
   architectures: ArchitectureModel[];
   businessPlan?: BusinessPlanModel;
   design: DiagramModel;
-  development: WebContainerModel[];
+  development: {
+    configs: DevelopmentConfigsModel;
+    generatedValues: WebContainerModel[];
+  };
   branding: BrandIdentityModel;
   landing: LandingModel;
   testing: string;
