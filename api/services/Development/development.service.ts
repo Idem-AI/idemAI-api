@@ -7,6 +7,8 @@ import logger from "../../config/logger";
 import { GenericService } from "../common/generic.service";
 import { PromptService } from "../prompt.service";
 import { Octokit } from "@octokit/rest";
+import { DevelopmentConfigsModel } from "../../models/development.model";
+import { ProjectModel } from "../../models/project.model";
 
 export interface PushToGitHubRequest {
   token: string;
@@ -124,11 +126,38 @@ export class DevelopmentService extends GenericService {
       if (!project.analysisResultModel.development) {
         project.analysisResultModel.development = {
           configs: {
-            backendStack: "",
-            frontendStack: "",
-            databaseStack: "",
-            additionalStacks: [],
             constraints: [],
+            frontend: {
+              framework: "",
+              version: "",
+              styling: "",
+              stateManagement: "",
+              features: [],
+            },
+            backend: {
+              framework: "",
+              version: "",
+              apiType: "",
+              orm: "",
+              ormVersion: "",
+              features: [],
+            },
+            database: {
+              type: "",
+              provider: "",
+              features: [],
+            },
+            projectConfig: {
+              seoEnabled: false,
+              contactFormEnabled: false,
+              analyticsEnabled: false,
+              i18nEnabled: false,
+              performanceOptimized: false,
+              authentication: false,
+              authorization: false,
+              paymentIntegration: false,
+              customOptions: {},
+            },
           },
           generatedValues: [],
         };
@@ -696,5 +725,48 @@ export class DevelopmentService extends GenericService {
     }
 
     return null;
+  }
+
+  /**
+   * Generate development context for a project
+   */
+  async saveDevelopmentConfigs(
+    userId: string,
+    projectId: string,
+    developmentConfigs: DevelopmentConfigsModel
+  ): Promise<ProjectModel> {
+    logger.info(
+      `Saving development configs for projectId: ${projectId}, userId: ${userId}`
+    );
+
+    const project = await this.getProject(projectId, userId);
+    if (!project) {
+      logger.warn(
+        `Project not found with ID: ${projectId} for user: ${userId}`
+      );
+      throw new Error("Project not found");
+    }
+
+    if (!project.analysisResultModel.development) {
+      logger.info(
+        `Creating new development section for projectId: ${projectId}`
+      );
+      project.analysisResultModel.development = {
+        configs: developmentConfigs,
+        generatedValues: [],
+      };
+    } else {
+      logger.info(
+        `Updating existing development section for projectId: ${projectId}`
+      );
+    }
+
+    project.analysisResultModel.development.configs = developmentConfigs;
+
+    await this.projectRepository.update(projectId, project, userId);
+    logger.info(
+      `Successfully saved development configs for projectId: ${projectId}`
+    );
+    return project;
   }
 }
