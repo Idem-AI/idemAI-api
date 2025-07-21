@@ -80,6 +80,64 @@ export const saveDevelopmentConfigsController = async (
 };
 
 /**
+ * Get development configurations for a project
+ */
+export const getDevelopmentConfigsController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const projectId = req.query.projectId as string;
+
+  logger.info(
+    `getDevelopmentConfigsController called - UserId: ${userId}, ProjectId: ${projectId}`
+  );
+
+  try {
+    if (!userId) {
+      logger.warn("User not authenticated for getDevelopmentConfigsController");
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    if (!projectId) {
+      logger.warn("Project ID is required for getDevelopmentConfigsController");
+      res.status(400).json({ message: "Project ID is required" });
+      return;
+    }
+
+    const result = await developmentService.getDevelopmentConfigs(
+      userId,
+      projectId
+    );
+
+    if (result) {
+      logger.info(
+        `Successfully retrieved development configs for projectId: ${projectId}`
+      );
+      res.status(200).json(result);
+    } else {
+      logger.error(
+        `Failed to retrieve development configs for projectId: ${projectId}`
+      );
+      res
+        .status(400)
+        .json({ message: "Failed to retrieve development configs" });
+    }
+    return;
+  } catch (error) {
+    logger.error("Error in getDevelopmentConfigsController:", {
+      userId,
+      projectId,
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    res.status(500).json({ message: "Failed to retrieve development configs" });
+    return;
+  }
+};
+
+/**
  * Create a new WebContainer
  */
 export const createWebContainerController = async (

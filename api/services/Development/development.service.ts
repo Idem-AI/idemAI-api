@@ -769,4 +769,23 @@ export class DevelopmentService extends GenericService {
     );
     return project;
   }
+
+  async getDevelopmentConfigs(
+    userId: string,
+    projectId: string
+  ): Promise<DevelopmentConfigsModel | null> {
+    logger.info(
+      `Fetching development configs for projectId: ${projectId}, userId: ${userId}`
+    );
+
+    const project = await this.getProject(projectId, userId);
+    if (!project) {
+      logger.warn(
+        `Project not found with ID: ${projectId} for user: ${userId}`
+      );
+      return null;
+    }
+
+    return project.analysisResultModel.development.configs;
+  }
 }

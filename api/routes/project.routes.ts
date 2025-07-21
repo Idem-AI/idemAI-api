@@ -50,6 +50,7 @@ projectRoutes.post("/create", authenticate, projectController.createProject);
 
 
 
+
 // Get all projects for the authenticated user
 /**
  * @openapi
