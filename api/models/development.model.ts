@@ -1,26 +1,68 @@
+/**
+ * Model for development configurations that will be sent to the backend
+ */
 export interface DevelopmentConfigsModel {
   constraints: string[];
   frontend: {
     framework: string;
-    version?: string;
-    styling: string;
+    frameworkVersion?: string;
+    frameworkIconUrl?: string;
+    styling: string[] | string;
     stateManagement?: string;
-    features: string[];
+    features:
+      | {
+          routing?: boolean;
+          componentLibrary?: boolean;
+          testing?: boolean;
+          pwa?: boolean;
+          seo?: boolean;
+          [key: string]: boolean | undefined;
+        }
+      | string[];
   };
 
   backend: {
+    language?: string;
+    languageVersion?: string;
+    languageIconUrl?: string;
     framework: string;
-    version?: string;
+    frameworkVersion?: string;
+    frameworkIconUrl?: string;
     apiType: string;
+    apiVersion?: string;
+    apiIconUrl?: string;
     orm?: string;
     ormVersion?: string;
-    features: string[];
+    ormIconUrl?: string;
+    features:
+      | {
+          authentication?: boolean;
+          authorization?: boolean;
+          documentation?: boolean;
+          testing?: boolean;
+          logging?: boolean;
+          [key: string]: boolean | undefined;
+        }
+      | string[];
   };
 
   database: {
-    type: string;
+    type?: string;
     provider: string;
-    features: string[];
+    version?: string;
+    providerIconUrl?: string;
+    orm?: string;
+    ormVersion?: string;
+    ormIconUrl?: string;
+    features:
+      | {
+          migrations?: boolean;
+          seeders?: boolean;
+          caching?: boolean;
+          replication?: boolean;
+          [key: string]: boolean | undefined;
+        }
+      | string[];
   };
 
   projectConfig: {
