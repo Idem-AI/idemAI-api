@@ -799,6 +799,13 @@ export class DevelopmentService extends GenericService {
       return null;
     }
 
+    if (!project.analysisResultModel.development) {
+      logger.info(
+        `Development section not found for projectId: ${projectId}`
+      );
+      return null;
+    }
+
     return project.analysisResultModel.development.configs;
   }
 }

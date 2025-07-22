@@ -121,8 +121,8 @@ export const getDevelopmentConfigsController = async (
         `Failed to retrieve development configs for projectId: ${projectId}`
       );
       res
-        .status(400)
-        .json({ message: "Failed to retrieve development configs" });
+        .status(404)
+        .json({ message: "Development configs not found for projectId" });
     }
     return;
   } catch (error) {
