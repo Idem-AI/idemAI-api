@@ -167,7 +167,7 @@ developmentRoutes.post(
  *         description: Internal server error
  */
 developmentRoutes.get(
-  `/${primaryResourceName}/configs`,
+  `/${primaryResourceName}/configs/:projectId`,
   authenticate,
   getDevelopmentConfigsController
 );
