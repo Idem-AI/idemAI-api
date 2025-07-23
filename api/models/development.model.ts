@@ -1,6 +1,4 @@
-/**
- * Model for development configurations that will be sent to the backend
- */
+
 export interface DevelopmentConfigsModel {
   constraints: string[];
   frontend: {

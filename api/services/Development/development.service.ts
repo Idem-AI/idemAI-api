@@ -240,7 +240,7 @@ export class DevelopmentService extends GenericService {
 
       // Find and update the WebContainer
       const webContainerIndex =
-        project.analysisResultModel.development?.findIndex(
+        project.analysisResultModel.development?.generatedValues.findIndex(
           (container: WebContainerModel) => container.id === webContainerId
         ) ?? -1;
 
@@ -252,7 +252,9 @@ export class DevelopmentService extends GenericService {
       }
 
       const existingContainer =
-        project.analysisResultModel.development![webContainerIndex];
+        project.analysisResultModel.development!.generatedValues[
+          webContainerIndex
+        ];
 
       // Apply updates
       if (updates.status !== undefined) {
@@ -354,9 +356,10 @@ export class DevelopmentService extends GenericService {
         return null;
       }
 
-      const webContainer = project.analysisResultModel.development?.find(
-        (container: WebContainerModel) => container.id === webContainerId
-      );
+      const webContainer =
+        project.analysisResultModel.development?.generatedValues.find(
+          (container: WebContainerModel) => container.id === webContainerId
+        );
 
       if (!webContainer) {
         logger.warn(
@@ -474,7 +477,7 @@ export class DevelopmentService extends GenericService {
 
       // Remove the WebContainer from the project
       const webContainerIndex =
-        project.analysisResultModel.development?.findIndex(
+        project.analysisResultModel.development?.generatedValues.findIndex(
           (container: WebContainerModel) => container.id === webContainerId
         ) ?? -1;
 
@@ -485,7 +488,10 @@ export class DevelopmentService extends GenericService {
         return false;
       }
 
-      project.analysisResultModel.development!.splice(webContainerIndex, 1);
+      project.analysisResultModel.development!.generatedValues.splice(
+        webContainerIndex,
+        1
+      );
 
       // Update the project
       const updatedProject = await this.projectRepository.update(
@@ -592,9 +598,10 @@ export class DevelopmentService extends GenericService {
         throw new Error("WebContainer not found");
       }
 
-      const webContainer = project.analysisResultModel.development.find(
-        (container: WebContainerModel) => container.id === webContainerId
-      );
+      const webContainer =
+        project.analysisResultModel.development.generatedValues.find(
+          (container: WebContainerModel) => container.id === webContainerId
+        );
 
       if (!webContainer) {
         throw new Error("WebContainer not found in project");
@@ -722,7 +729,7 @@ export class DevelopmentService extends GenericService {
   private async findProjectByWebContainerId(
     webContainerId: string,
     userId: string
-  ): Promise<any | null> {
+  ): Promise<ProjectModel | null> {
     const projects = await this.projectRepository.findAll(userId);
 
     for (const project of projects) {
@@ -800,9 +807,7 @@ export class DevelopmentService extends GenericService {
     }
 
     if (!project.analysisResultModel.development) {
-      logger.info(
-        `Development section not found for projectId: ${projectId}`
-      );
+      logger.info(`Development section not found for projectId: ${projectId}`);
       return null;
     }
 
