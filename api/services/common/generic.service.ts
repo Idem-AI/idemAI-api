@@ -32,7 +32,8 @@ export class GenericService {
   constructor(protected promptService: PromptService) {
     logger.info("GenericService initialized");
     this.projectRepository = RepositoryFactory.getRepository<ProjectModel>(
-      TargetModelType.PROJECT
+      TargetModelType.PROJECT,
+      true
     );
   }
 

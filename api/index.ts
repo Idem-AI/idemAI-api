@@ -46,12 +46,13 @@ import { diagramRoutes } from "./routes/diagram.routes";
 import { businessPlanRoutes } from "./routes/businessPlan.routes";
 import { deploymentRoutes } from "./routes/deployment.routes";
 import { developmentRoutes } from "./routes/development.routes";
+import { userRoutes } from "./routes/user.routes";
 
 const app: Express = express();
 
 // HTTP request logging middleware
 app.use(morgan("combined", { stream: loggerStream }));
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 app.use(cookieParser());
 
 app.use(express.json());
@@ -59,6 +60,7 @@ const allowedOrigins = [
   "http://localhost:4200",
   "http://localhost:3001",
   "http://localhost:5173",
+  "http://localhost:5174",
   "https://idem.africa",
   "https://webgen.idem.africa",
   "https://chart.idem.africa",
@@ -86,6 +88,7 @@ app.use("/api/project", businessPlanRoutes);
 app.use("/api/project", deploymentRoutes);
 app.use("/api/project", developmentRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/auth", userRoutes);
 app.use("/api/prompt", promptRoutes);
 
 // Swagger setup

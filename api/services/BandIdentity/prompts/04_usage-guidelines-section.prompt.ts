@@ -2,18 +2,18 @@ export const USAGE_GUIDELINES_SECTION_PROMPT = `
 You are a brand systems expert specialized in creating actionable design guidelines for digital products. Generate a comprehensive usage guidelines section following the  branding template style.
 
 STRICT OUTPUT REQUIREMENTS:
-1. Generate ONLY one <section> avec cette structure exacte pour correspondre au template . Notez que tout le contenu sera placé dans un élément parent avec la classe 'branding-document':
+1. Generate ONLY one <section> with this exact structure to match the  template. Note that all content will be inside a parent element with class 'branding-document':
 <div class="section-divider">
   <div class="divider"></div>
-  <h2 class="section-title">Directives d'Usage</h2>
+  <h2 class="section-title">Usage Guidelines</h2>
   <div class="divider"></div>
 </div>
 
 <section class="directives-section">
   <div class="directives-header">
     <p class="directives-intro">
-      Pour préserver l'identité visuelle de la marque, il est essentiel de respecter ces directives d'usage. 
-      Elles garantissent une cohérence et une reconnaissance optimales dans toutes les applications.
+      To preserve the brand's visual identity, it is essential to follow these usage guidelines. 
+      They ensure optimal consistency and recognition across all applications.
     </p>
   </div>
   
@@ -24,23 +24,23 @@ STRICT OUTPUT REQUIREMENTS:
         <span class="section-icon">■</span>
         <h3 class="guideline-section-title">Logo</h3>
       </div>
-      <p class="section-description">Directives pour l'utilisation correcte du logo dans tous les supports de communication.</p>
+      <p class="section-description">Directives for the correct use of the logo in all communication supports.</p>
     </div>
     
     <div class="guidelines-grid">
       <div class="guidelines-row">
-        <!-- Principes fondamentaux -->
+        <!-- Principles fundamentals -->
         <div class="guidelines-col guidelines-principles">
-          <h4 class="guidelines-subtitle">Principes fondamentaux</h4>
+          <h4 class="guidelines-subtitle">Principles fundamentals</h4>
           <ul class="guidelines-list">
-            <li>Respectez toujours l'intégrité du logo en maintenant ses proportions d'origine.</li>
-            <li>Assurez-vous que le logo soit toujours clairement visible et lisible sur tous les supports.</li>
-            <li>Maintenez une zone de protection équivalente à la hauteur de la lettre 'L' tout autour du logo.</li>
-            <li>Utilisez uniquement les versions officielles du logo fournies dans ce guide.</li>
+            <li>Always respect the integrity of the logo by maintaining its original proportions.</li>
+            <li>Ensure that the logo is always clearly visible and readable on all supports.</li>
+            <li>Maintain a protection zone equivalent to the height of the letter 'L' all around the logo.</li>
+            <li>Use only the official versions of the logo provided in this guide.</li>
           </ul>
         </div>
         
-        <!-- Visuel -->
+        <!-- Visual -->
         <div class="guidelines-col">
           <div style="text-align: center; padding: 0 5mm;">
             <svg width="100%" height="90mm" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
@@ -57,15 +57,15 @@ STRICT OUTPUT REQUIREMENTS:
         </div>
       </div>
       
-      <!-- À faire / À éviter -->
+      <!-- To do / To avoid -->
       <div class="guidelines-row guidelines-dodont">
         <div class="guidelines-col">
-          <h4 class="guidelines-subtitle">À faire</h4>
+          <h4 class="guidelines-subtitle">To do</h4>
           <ul class="guidelines-list good-practices">
-            <li>Utiliser le logo sur des fonds clairs ou sombres qui offrent un bon contraste</li>
-            <li>Conserver l'espace de protection autour du logo</li>
-            <li>Utiliser la version négative sur les fonds foncés</li>
-            <li>Mettre en valeur le logo dans sa forme complète quand l'espace le permet</li>
+            <li>Use the logo on light or dark backgrounds that offer good contrast</li>
+            <li>Conserve the protection zone around the logo</li>
+            <li>Use the negative version on dark backgrounds</li>
+            <li>Highlight the logo in its complete form when space permits</li>
           </ul>
           <div class="example-visual do-example">
             <svg width="100%" height="80mm" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
@@ -80,12 +80,12 @@ STRICT OUTPUT REQUIREMENTS:
         </div>
 
         <div class="guidelines-col">
-          <h4 class="guidelines-subtitle">À éviter</h4>
+          <h4 class="guidelines-subtitle">To avoid</h4>
           <ul class="guidelines-list bad-practices">
-            <li>Déformer ou redimensionner le logo de manière disproportionnée</li>
-            <li>Ajouter des effets (ombres, contours, lueurs) non approuvés</li>
-            <li>Placer le logo sur des fonds au contraste insuffisant</li>
-            <li>Utiliser le logo à une taille inférieure à la taille minimale recommandée</li>
+            <li>Distort or resize the logo disproportionally</li>
+            <li>Add unauthorized effects (shadows, contours, highlights)</li>
+            <li>Place the logo on backgrounds with insufficient contrast</li>
+            <li>Use the logo at a size smaller than the recommended minimum size</li>
           </ul>
           <div class="example-visual dont-example">
             <svg width="100%" height="80mm" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
@@ -110,8 +110,8 @@ STRICT OUTPUT REQUIREMENTS:
       <hr class="divider-line">
     </div>
     <div class="guideline-header">
-      <h3 class="guideline-title">Règles Typographiques</h3>
-      <p class="guideline-intro">Maintenez une hiérarchie visuelle cohérente en respectant ces règles typographiques pour assurer l'accessibilité et l'identité visuelle.</p>
+      <h3 class="guideline-title">Typography Rules</h3>
+      <p class="guideline-intro">Maintain a consistent visual hierarchy by adhering to these typography rules to ensure accessibility and visual identity.</p>
     </div>
 
     <div class="table-container">
@@ -170,19 +170,19 @@ STRICT OUTPUT REQUIREMENTS:
     <div class="guidelines-section" id="color-guidelines">
       <div class="section-divider">
         <span class="divider-icon"></span>
-        <h2 class="divider-title">Directives Chromatiques</h2>
+        <h2 class="divider-title">Color Guidelines</h2>
         <hr class="divider-line">
       </div>
       
       <div class="guidelines-grid">
         <div class="guidelines-row">
           <div class="guidelines-col">
-            <h4 class="guidelines-subtitle">À faire</h4>
+            <h4 class="guidelines-subtitle">To do</h4>
             <ul class="guidelines-list good-practices">
-              <li>Utiliser les couleurs selon leur signification fonctionnelle</li>
-              <li>Maintenir un contraste suffisant pour l'accessibilité</li>
-              <li>Respecter les proportions recommandées dans la palette</li>
-              <li>Utiliser la couleur primaire pour les éléments principaux</li>
+              <li>Use colors according to their functional meaning</li>
+              <li>Maintain sufficient contrast for accessibility</li>
+              <li>Follow recommended proportions in the palette</li>
+              <li>Use the primary color for main elements</li>
             </ul>
             <div class="visual-example good-example">
               <svg width="100%" height="70mm" viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
@@ -198,12 +198,12 @@ STRICT OUTPUT REQUIREMENTS:
           </div>
 
           <div class="guidelines-col">
-            <h4 class="guidelines-subtitle">À éviter</h4>
+            <h4 class="guidelines-subtitle">To avoid</h4>
             <ul class="guidelines-list bad-practices">
-              <li>Ne pas utiliser du texte clair sur fond clair</li>
-              <li>Éviter des combinaisons avec contraste insuffisant</li>
-              <li>Ne pas mélanger plus de 3 couleurs dans une section</li>
-              <li>Ne pas créer de nouvelles nuances sans validation</li>
+              <li>Do not use light text on a light background</li>
+              <li>Avoid combinations with insufficient contrast</li>
+              <li>Do not mix more than 3 colors in a section</li>
+              <li>Do not create new nuances without validation</li>
             </ul>
             <div class="visual-example bad-example">
               <svg width="100%" height="70mm" viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">

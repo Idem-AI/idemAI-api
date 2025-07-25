@@ -8,17 +8,17 @@ STRICT OUTPUT REQUIREMENTS:
   <div class="color-palette">
     <div class="color-card">
       <div class="color-swatch" style="background-color: #191970"></div>
-      <div class="color-name">Primaire</div>
+      <div class="color-name">Primary</div>
       <div class="color-hex">#191970</div>
       <div class="color-description">
-        Couleur principale exprimant la confiance et l'intelligence, essentielle pour une application centrée sur la connexion humaine.
+        Primary color expressing confidence and intelligence, essential for a human-centered application.
       </div>
       <div class="color-usage">
-        <h5>Utilisation</h5>
+        <h5>Usage</h5>
         <ul>
-          <li>Éléments principaux</li>
-          <li>Texte d'accentuation</li>
-          <li>Arrière-plans</li>
+          <li>Primary elements</li>
+          <li>Accent text</li>
+          <li>Backgrounds</li>
         </ul>
       </div>
     </div>

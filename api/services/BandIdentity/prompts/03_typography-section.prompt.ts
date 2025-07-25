@@ -8,38 +8,38 @@ STRICT OUTPUT REQUIREMENTS:
   <div class="fonts-container">
     <div class="font-card">
       <div class="font-name">Exo 2</div>
-      <div class="font-meta">Police Principale - Open Font License</div>
+      <div class="font-meta">Primary font - Open Font License</div>
       <div class="font-specimen">
-        <h4>Exemples d'utilisation</h4>
+        <h4>Usage examples</h4>
         <div class="font-example" style="font-family: 'Exo 2', sans-serif; font-size: 2.5rem; font-weight: 700;">
-          Titre Principal
+          Main title
         </div>
         <div class="font-example" style="font-family: 'Exo 2', sans-serif; font-size: 2rem; font-weight: 700;">
-          Titre de Section
+          Section title
         </div>
         <div class="font-example" style="font-family: 'Exo 2', sans-serif; font-size: 1.5rem; font-weight: 600;">
-          Sous-titre Section
+          Section subtitle
         </div>
       </div>
       <div class="font-rationale">
-        Les formes modernes et géométriques d'Exo 2 transmettent un sentiment d'innovation, adapté à une application technologique. Sa structure solide offre une excellente lisibilité pour les titres et en-têtes.
+        The modern and geometric forms of Exo 2 convey an innovative sentiment, suitable for a technological application. Its solid structure offers excellent readability for titles and headers.
       </div>
     </div>
     
     <div class="font-card">
       <div class="font-name">Ubuntu Mono</div>
-      <div class="font-meta">Police Secondaire - Ubuntu Font Licence</div>
+      <div class="font-meta">Secondary font - Ubuntu Font Licence</div>
       <div class="font-specimen">
-        <h4>Exemples d'utilisation</h4>
+        <h4>Usage examples</h4>
         <div class="font-example" style="font-family: 'Ubuntu Mono', monospace; font-size: 1rem">
-          Texte de contenu principal et descriptions détaillées pour une lecture optimale.
+          Main content text and detailed descriptions for optimal reading.
         </div>
         <div class="font-example" style="font-family: 'Ubuntu Mono', monospace; font-size: 0.9rem">
-          Informations techniques et données précises.
+          Technical information and precise data.
         </div>
       </div>
       <div class="font-rationale">
-        Ubuntu Mono, avec son style monospace, apporte une sensation technique et précise, parfaite pour afficher des données ou extraits de code. Sa clarté améliore la lisibilité du texte principal.
+        Ubuntu Mono, with its monospace style, brings a technical and precise feeling, perfect for displaying data or code snippets. Its clarity improves the readability of the main text.
       </div>
     </div>
   </div>
@@ -50,28 +50,28 @@ DESIGN RULES:
   • Primary font: Exo 2 (300 Light, 400 Regular, 600 SemiBold, 700 Bold)
   • Secondary font: Roboto (300 Light, 400 Regular, 500 Medium)
 - Show exactly the hierarchy samples and weights as shown in the template
-- Use French language for all labels and text to match the template
+- Use English language for all labels and text to match the template
 - Maintain the exact HTML structure of the template
 - Remove all line breaks in HTML when generating
 - Escape " with \"
 
 TECHNICAL SPECS (to be included in the usage rules):
 1. Web Font Integration:
-   - Utiliser Google Fonts pour le chargement optimal
-   - Charger uniquement les variantes de poids nécessaires
+   - Use Google Fonts for optimal loading
+   - Load only the necessary weight variants
 
 2. Accessibility Rules:
-   - Minimum 16px pour le texte principal
-   - Hauteur de ligne 1.5 pour le corps du texte
-   - Conformité WCAG AA pour le contraste
+   - Minimum 16px for the main text
+   - Line height 1.5 for the body text
+   - WCAG AA contrast compliance
 
 3. Usage Guidelines:
-   - Hiérarchie précise des titres (H1-H3)
-   - Tailles adaptatives pour les écrans mobiles
-   - Utilisation cohérente des graisses selon la hiérarchie
+   - Precise title hierarchy (H1-H3)
+   - Adaptive sizes for mobile screens
+   - Consistent use of weights according to the hierarchy
 
 CONTEXT:
-- La charte graphique est pour "", une entreprise tech premium
-- La typographie doit évoquer l'innovation, la confiance et l'expérience utilisateur haut de gamme
-- Le système typographique doit être cohérent avec le design moderne et épuré du template
-- Utiliser la langue française pour tout le contenu textuel pour correspondre au template`;
+- The brand identity is for "", a premium tech company
+- The typography should evoke innovation, trust, and a high-end user experience
+- The typography system should be consistent with the modern and minimal design language shown in the template
+- Use English language for all text content to match the template`;

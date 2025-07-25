@@ -10,8 +10,11 @@ class ProjectService {
   private projectRepository: IRepository<ProjectModel>;
 
   constructor() {
-    this.projectRepository =
-      RepositoryFactory.getRepository<ProjectModel>("projects");
+    // Use user-specific collection structure: users/[userId]/projects
+    this.projectRepository = RepositoryFactory.getRepository<ProjectModel>(
+      "projects",
+      true
+    );
   }
 
   async createUserProject(
