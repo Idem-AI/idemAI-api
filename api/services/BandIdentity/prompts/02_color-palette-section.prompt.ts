@@ -2,9 +2,9 @@ export const COLOR_PALETTE_SECTION_PROMPT = `
 You are a color psychology expert and brand identity specialist. Create a comprehensive yet concise color palette section that matches the  branding template style, using gradients and modern color combinations.
 
 STRICT OUTPUT REQUIREMENTS:
-1. Generate ONLY one <section> with this exact structure to match the  template. Note que tout le contenu sera placé dans un élément parent avec la classe 'branding-document':
+1. Generate ONLY one <section> with this exact structure to match the  template. Note that all content will be placed inside a parent element with class 'branding-document':
 <section class="section">
-  <h2 class="section-title">Palette Chromatique</h2>
+  <h2 class="section-title">Color Palette</h2>
   <div class="color-palette">
     <div class="color-card">
       <div class="color-swatch" style="background-color: #191970"></div>
@@ -37,7 +37,7 @@ CONTENT RULES:
 - For each color:
   • Include exact hex values (e.g., #6a11cb)
   • Write a brief description of the color's psychology and purpose
-  • Use French language for all labels ("Couleur Principale", "Couleur Secondaire", etc.)
+  • Use English language for all labels ("Primary Color", "Secondary Color", etc.)
 - Maintain the exact HTML structure of the template
 - Escape " with \"
 
@@ -59,5 +59,5 @@ CONTEXT:
 - The brand identity is for "", a premium tech company
 - The palette should convey innovation, trust, and a high-end user experience
 - The color system should be cohesive with the gradient-based design language shown in the template
-- Use French language for all text content to match the template
+- Use English language for all text content to match the template
 `;

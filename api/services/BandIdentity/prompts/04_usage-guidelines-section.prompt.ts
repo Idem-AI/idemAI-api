@@ -74,7 +74,7 @@ STRICT OUTPUT REQUIREMENTS:
               <rect x="50" y="60" width="100" height="40" fill="#191970" rx="4" />
               <text x="100" y="85" text-anchor="middle" fill="white" font-family="Arial" font-size="16" font-weight="bold">LOGO</text>
               <rect x="50" y="60" width="100" height="40" stroke="#28a745" stroke-width="1" stroke-dasharray="5,5" fill="none" rx="4" />
-              <text x="100" y="130" text-anchor="middle" fill="#28a745" font-family="Arial" font-size="12">✔ Bon contraste et zone respectée</text>
+              <text x="100" y="130" text-anchor="middle" fill="#28a745" font-family="Arial" font-size="12">✔ Good contrast and respected area</text>
             </svg>
           </div>
         </div>
@@ -95,7 +95,7 @@ STRICT OUTPUT REQUIREMENTS:
               <text x="100" y="55" text-anchor="middle" fill="#adb5bd" font-family="Arial" font-size="16" font-weight="bold">LOGO</text>
               <line x1="140" y1="30" x2="170" y2="60" stroke="#dc3545" stroke-width="2" />
               <line x1="170" y1="30" x2="140" y2="60" stroke="#dc3545" stroke-width="2" />
-              <text x="100" y="130" text-anchor="middle" fill="#dc3545" font-family="Arial" font-size="12">✖ Contraste insuffisant</text>
+              <text x="100" y="130" text-anchor="middle" fill="#dc3545" font-family="Arial" font-size="12">✖ Insufficient contrast</text>
             </svg>
           </div>
         </div>
@@ -106,7 +106,7 @@ STRICT OUTPUT REQUIREMENTS:
   <div class="guidelines-section" id="typography-guidelines">
     <div class="section-divider">
       <span class="divider-icon"></span>
-      <h2 class="divider-title">Directives Typographiques</h2>
+      <h2 class="divider-title">Typography Guidelines</h2>
       <hr class="divider-line">
     </div>
     <div class="guideline-header">
@@ -118,10 +118,10 @@ STRICT OUTPUT REQUIREMENTS:
       <table class="accessibility-table">
         <thead>
           <tr>
-            <th>Élément</th>
-            <th>Police</th>
-            <th>Taille</th>
-            <th>Espacement</th>
+            <th>Element</th>
+            <th>Font</th>
+            <th>Size</th>
+            <th>Spacing</th>
             <th>Usage</th>
           </tr>
         </thead>
@@ -131,35 +131,35 @@ STRICT OUTPUT REQUIREMENTS:
             <td>Exo 2 Bold</td>
             <td>2.5rem</td>
             <td>1.2</td>
-            <td>Titres principaux de page</td>
+            <td>Main page titles</td>
           </tr>
           <tr>
             <td><strong>H2</strong></td>
             <td>Exo 2 Bold</td>
             <td>2.0rem</td>
             <td>1.1</td>
-            <td>Titres de section</td>
+            <td>Section titles</td>
           </tr>
           <tr>
             <td><strong>H3</strong></td>
             <td>Exo 2 SemiBold</td>
             <td>1.5rem</td>
             <td>1.2</td>
-            <td>Sous-titres</td>
+            <td>Subtitles</td>
           </tr>
           <tr>
-            <td><strong>Corps</strong></td>
+            <td><strong>Body</strong></td>
             <td>Ubuntu Mono Regular</td>
             <td>1.0rem</td>
             <td>1.5</td>
-            <td>Texte principal</td>
+            <td>Main text</td>
           </tr>
           <tr>
             <td><strong>Label</strong></td>
             <td>Ubuntu Mono Medium</td>
             <td>0.9rem</td>
             <td>1.2</td>
-            <td>Interface et légendes</td>
+            <td>Interface and captions</td>
           </tr>
         </tbody>
       </table>
@@ -189,10 +189,10 @@ STRICT OUTPUT REQUIREMENTS:
                 <!-- Bon exemple -->
                 <rect x="25" y="20" width="150" height="100" fill="#f8f9fa" stroke="#e9ecef" />
                 <rect x="45" y="40" width="110" height="30" fill="#191970" rx="3" />
-                <text x="100" y="60" text-anchor="middle" fill="white" font-family="Arial" font-size="14">Titre Principal</text>
+                <text x="100" y="60" text-anchor="middle" fill="white" font-family="Arial" font-size="14">Main Title</text>
                 <rect x="45" y="80" width="110" height="20" fill="white" stroke="#191970" stroke-width="1" rx="3" />
-                <text x="100" y="94" text-anchor="middle" fill="#191970" font-family="Arial" font-size="12">Bouton Secondaire</text>
-                <text x="100" y="125" text-anchor="middle" fill="#28a745" font-family="Arial" font-size="12">✔ Bon contraste et cohérence</text>
+                <text x="100" y="94" text-anchor="middle" fill="#191970" font-family="Arial" font-size="12">Secondary Button</text>
+                <text x="100" y="125" text-anchor="middle" fill="#28a745" font-family="Arial" font-size="12">✔ Good contrast and consistency</text>
               </svg>
             </div>
           </div>
@@ -214,7 +214,7 @@ STRICT OUTPUT REQUIREMENTS:
                 <line x1="150" y1="65" x2="165" y2="80" stroke="#dc3545" stroke-width="2" />
                 <line x1="165" y1="65" x2="150" y2="80" stroke="#dc3545" stroke-width="2" />
                 <!-- Contrast warning -->
-                <text x="90" y="125" font-size="12" fill="#dc3545" text-anchor="middle">Contraste < 3:1 (Non accessible)</text>
+                <text x="90" y="125" font-size="12" fill="#dc3545" text-anchor="middle">Contrast < 3:1 (Not accessible)</text>
               </svg>
             </div>
           </div>
@@ -223,20 +223,20 @@ STRICT OUTPUT REQUIREMENTS:
     </div>
     
     <div class="guideline-card">
-      <div class="guideline-title">Photographie & Imagerie</div>
+      <div class="guideline-title">Photography & Imagery</div>
       <div class="guideline-content">
         <div class="imagery-rules">
           <div class="imagery-rule">
             <h3 class="rule-title">Style</h3>
-            <p>Privilégier les images épurées avec beaucoup d'espace négatif et une palette de couleurs harmonieuse.</p>
+            <p>Favor clean images with plenty of negative space and a harmonious color palette.</p>
           </div>
           <div class="imagery-rule">
-            <h3 class="rule-title">Traitement</h3>
-            <p>Appliquer un léger filtre bleuté sur les images pour renforcer l'identité de marque.</p>
+            <h3 class="rule-title">Processing</h3>
+            <p>Apply a slight bluish filter on images to reinforce the brand identity.</p>
           </div>
           <div class="imagery-rule">
             <h3 class="rule-title">Composition</h3>
-            <p>Suivre la règle des tiers et privilégier des compositions avec un point focal clair.</p>
+            <p>Follow the rule of thirds and favor compositions with a clear focal point.</p>
           </div>
         </div>
       </div>

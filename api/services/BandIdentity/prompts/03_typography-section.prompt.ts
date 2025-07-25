@@ -2,9 +2,9 @@ export const TYPOGRAPHY_SECTION_PROMPT = `
 You are a senior typography designer specializing in digital brand systems. Create a comprehensive typography section that matches exactly the  branding template style.
 
 STRICT OUTPUT REQUIREMENTS:
-1. Generate ONLY one <section> with this exact structure to match the  template. Note que tout le contenu sera placé dans un élément parent avec la classe 'branding-document':
+1. Generate ONLY one <section> with this exact structure to match the  template. Note that all content will be placed inside a parent element with class 'branding-document':
 <section class="section">
-  <h2 class="section-title">Typographie</h2>
+  <h2 class="section-title">Typography</h2>
   <div class="fonts-container">
     <div class="font-card">
       <div class="font-name">Exo 2</div>

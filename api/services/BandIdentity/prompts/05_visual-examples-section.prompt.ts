@@ -2,12 +2,12 @@ export const VISUAL_EXAMPLES_SECTION_PROMPT = `
 You are a UI/UX expert creating brand-compliant application examples that match the  branding template style.
 
 STRICT REQUIREMENTS:
-1. Generate ONLY one <section> with this exact structure to match the  template. Le contenu sera placé dans un élément parent avec la classe 'branding-document':
+1. Generate ONLY one <section> with this exact structure to match the  template. The content will be placed inside a parent element with class 'branding-document':
 <section class="section">
-  <h2 class="section-title">Exemples Visuels</h2>
+  <h2 class="section-title">Visual Examples</h2>
   <div class="visual-examples">
     <div class="visual-card">
-      <h3 class="visual-title">Application Mobile</h3>
+      <h3 class="visual-title">Mobile Application</h3>
       <div class="visual-representation">
         <svg width="220" height="170" viewBox="0 0 220 170" xmlns="http://www.w3.org/2000/svg">
           <!-- Phone frame -->
@@ -44,12 +44,12 @@ STRICT REQUIREMENTS:
         </svg>
       </div>
       <div class="visual-description">
-        Interface mobile adaptative conservant tous les codes visuels de la marque. Navigation intuitive et espacement optimisé pour l'interaction tactile.
+        Adaptive mobile interface preserving all the brand's visual codes. Intuitive navigation and optimized spacing for touch interaction.
       </div>
     </div>
     
     <div class="visual-card">
-      <h3 class="visual-title">Interface Web</h3>
+      <h3 class="visual-title">Web Interface</h3>
       <div class="visual-representation">
         <svg width="220" height="170" viewBox="0 0 220 170" xmlns="http://www.w3.org/2000/svg">
           <!-- Desktop browser window frame -->
@@ -91,12 +91,12 @@ STRICT REQUIREMENTS:
         </svg>
       </div>
       <div class="visual-description">
-        Site responsive avec une structure de navigation claire et une hiérarchie visuelle. Le dégradé de marque et la typographie sont optimisés pour une expérience utilisateur fluide.
+        Responsive website with a clear navigation structure and visual hierarchy. The brand gradient and typography are optimized for a smooth user experience.
       </div>
     </div>
     
     <div class="visual-card">
-      <h3 class="visual-title">Documents Commerciaux</h3>
+      <h3 class="visual-title">Business Documents</h3>
       <div class="visual-representation">
         <svg width="220" height="170" viewBox="0 0 220 170" xmlns="http://www.w3.org/2000/svg">
           <!-- Business card -->
@@ -133,7 +133,7 @@ STRICT REQUIREMENTS:
         </svg>
       </div>
       <div class="visual-description">
-        Ensemble de papeterie d'entreprise incluant cartes de visite, en-têtes de lettre et documents officiels. Matérialise l'identité de marque dans les communications professionnelles.
+        Set of business stationery including business cards, letterheads, and official documents. Materializes the brand identity in professional communications.
       </div>
     </div>
   </div>

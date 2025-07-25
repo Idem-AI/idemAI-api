@@ -4,30 +4,30 @@ You are a brand identity expert specializing in logo systems. Create a comprehen
 STRICT OUTPUT REQUIREMENTS:
 1. Generate ONLY one <section> with this exact structure to match the  template. Note that all content will be inside a parent element with class 'branding-document':
 <section class="section">
-  <h2 class="section-title">Logo et Déclinaisons</h2>
+  <h2 class="section-title">Logo & Variations</h2>
   <div class="logo-variants">
     <div class="logo-card">
-      <h4>Logo Principal</h4>
+      <h4>Primary Logo</h4>
       <div class="logo-display">
         <!-- SVG Logo Code Here -->
       </div>
       <div class="logo-description">
-        <p>Version principale du logo, utilisée sur fond blanc ou clair. Le dégradé du symbole et la typographie créent une identité visuelle forte et reconnaissable.</p>
+        <p>Primary version of the logo, used on white or light backgrounds. The symbol's gradient and typography create a strong and recognizable visual identity.</p>
       </div>
     </div>
     
     <div class="logo-card">
-      <h4>Version Monochrome</h4>
+      <h4>Monochrome Version</h4>
       <div class="logo-display">
         <!-- SVG Monochrome Logo Code Here -->
       </div>
       <div class="logo-description">
-        <p>Version en noir pour les applications où la couleur n'est pas possible. Conserve l'identité visuelle tout en assurant une lisibilité optimale.</p>
+        <p>Black version for applications where color is not possible. It maintains the visual identity while ensuring optimal readability.</p>
       </div>
     </div>
     
     <div class="logo-card">
-      <h4>Version Négative</h4>
+      <h4>Negative Version</h4>
       <div class="logo-display negative-bg">
         <!-- SVG Negative Logo Code Here -->
       </div>
