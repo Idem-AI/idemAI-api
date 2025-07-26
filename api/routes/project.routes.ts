@@ -76,7 +76,7 @@ projectRoutes.post("/create", authenticate, checkQuota, projectController.create
  *       '500':
  *         description: Internal server error.
  */
-projectRoutes.get('/', authenticate, checkQuota, projectController.getAllProjects);
+projectRoutes.get('/', authenticate, checkQuota,  projectController.getAllProjects);
 
 // Get a specific project by ID
 /**

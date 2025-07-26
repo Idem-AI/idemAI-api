@@ -1,14 +1,6 @@
 import { Router, Request, Response } from "express";
 import quotaController from "../controllers/quota.controller";
 import { authenticate } from "../services/auth.service";
-import { addBetaInfo } from "../middleware/quota.middleware";
-
-interface AuthenticatedRequest extends Request {
-  user: {
-    uid: string;
-    [key: string]: any;
-  };
-}
 
 const router = Router();
 

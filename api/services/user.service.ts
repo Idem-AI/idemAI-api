@@ -1,13 +1,7 @@
 import { admin } from "..";
 import logger from "../config/logger";
-import { UserModel } from "../models/userModel";
+import { QuotaData, UserModel } from "../models/userModel";
 import { RepositoryFactory } from "../repository/RepositoryFactory";
-export interface QuotaData {
-  dailyUsage: number;
-  weeklyUsage: number;
-  lastResetDaily: string; // ISO date string
-  lastResetWeekly: string; // ISO date string
-}
 
 export interface QuotaLimits {
   dailyLimit: number;
@@ -67,7 +61,7 @@ class UserService {
       const userRecord = await admin.auth().getUser(uid);
 
       // Get user data from repository
-      let user = await this.userRepository.findById(uid);
+      let user: UserModel = await this.userRepository.findById(uid);
 
       if (!user) {
         // User doesn't exist in repository, create a new user
@@ -90,6 +84,14 @@ class UserService {
       } else {
         // Update existing user's lastLogin
         logger.info(`Updating lastLogin for user ${uid}`);
+        if (!user.quota) {
+          user.quota = {
+            dailyUsage: this.quotaLimits.dailyLimit,
+            weeklyUsage: this.quotaLimits.weeklyLimit,
+            lastResetDaily: new Date().toISOString().split("T")[0],
+            lastResetWeekly: new Date().toISOString().split("T")[0],
+          };
+        }
         user =
           (await this.userRepository.update(
             uid,
@@ -277,7 +279,7 @@ class UserService {
    */
   private async getUserQuota(userId: string): Promise<QuotaData | null> {
     try {
-      const user = await this.userRepository.findById(userId);
+      const user: UserModel = await this.userRepository.findById(userId);
 
       if (!user) {
         logger.warn(`User ${userId} not found when getting quota data`);
@@ -286,20 +288,20 @@ class UserService {
 
       // Check if user has quota data
       if (
-        user.dailyUsage === undefined ||
-        user.weeklyUsage === undefined ||
-        !user.lastResetDaily ||
-        !user.lastResetWeekly
+        user.quota.dailyUsage === undefined ||
+        user.quota.weeklyUsage === undefined ||
+        !user.quota.lastResetDaily ||
+        !user.quota.lastResetWeekly
       ) {
         logger.info(`User ${userId} has no quota data yet`);
         return null;
       }
 
       return {
-        dailyUsage: user.dailyUsage,
-        weeklyUsage: user.weeklyUsage,
-        lastResetDaily: user.lastResetDaily,
-        lastResetWeekly: user.lastResetWeekly,
+        dailyUsage: user.quota.dailyUsage,
+        weeklyUsage: user.quota.weeklyUsage,
+        lastResetDaily: user.quota.lastResetDaily,
+        lastResetWeekly: user.quota.lastResetWeekly,
       };
     } catch (error) {
       logger.error(`Error getting user quota for ${userId}:`, error);

@@ -4,7 +4,7 @@ import {
   DocumentReference,
   Timestamp,
   FieldValue,
-  Firestore
+  Firestore,
 } from "firebase-admin/firestore";
 import { IRepository } from "./IRepository";
 import logger from "../config/logger";
@@ -32,9 +32,19 @@ export class FirestoreRepository<
     );
   }
 
+  // Static property to track if settings have been applied
+  private static settingsApplied = false;
+
   private getDb(): Firestore {
     const db = admin.firestore();
-    db.settings({ ignoreUndefinedProperties: true });
+
+    // Only apply settings once
+    if (!FirestoreRepository.settingsApplied) {
+      db.settings({ ignoreUndefinedProperties: true });
+      FirestoreRepository.settingsApplied = true;
+      logger.info("Firestore settings applied: ignoreUndefinedProperties=true");
+    }
+
     return db;
   }
 
