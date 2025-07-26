@@ -7,4 +7,11 @@ export interface UserModel {
   subscription: 'free' | 'pro' | 'enterprise';
   createdAt: Date;
   lastLogin: Date;
+  
+  // Quota-related fields
+  dailyUsage?: number;
+  weeklyUsage?: number;
+  lastResetDaily?: string; // ISO date string (YYYY-MM-DD)
+  lastResetWeekly?: string; // ISO date string (YYYY-MM-DD)
+  quotaUpdatedAt?: Date;
 }

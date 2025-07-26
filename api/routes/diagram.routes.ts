@@ -7,6 +7,7 @@ import {
   deleteDiagramController,
 } from "../controllers/diagram.controller";
 import { authenticate } from "../services/auth.service"; // Updated import path
+import { checkQuota } from "../middleware/quota.middleware";
 
 export const diagramRoutes = Router();
 
@@ -68,6 +69,7 @@ const resourceName = "diagrams";
 diagramRoutes.post(
   `/${resourceName}/generate/:projectId`,
   authenticate,
+  checkQuota,
   generateDiagramController
 );
 
@@ -107,6 +109,7 @@ diagramRoutes.post(
 diagramRoutes.get(
   `/${resourceName}/getAll/:projectId`,
   authenticate,
+  checkQuota,
   getDiagramsByProjectController
 );
 
@@ -144,6 +147,7 @@ diagramRoutes.get(
 diagramRoutes.get(
   `/${resourceName}/get/:diagramId`,
   authenticate,
+  checkQuota,
   getDiagramByIdController
 );
 
@@ -189,6 +193,7 @@ diagramRoutes.get(
 diagramRoutes.put(
   `/${resourceName}/update/:diagramId`,
   authenticate,
+  checkQuota,
   updateDiagramController
 );
 
@@ -230,5 +235,6 @@ diagramRoutes.put(
 diagramRoutes.delete(
   `/${resourceName}/delete/:diagramId`,
   authenticate,
+  checkQuota,
   deleteDiagramController
 );

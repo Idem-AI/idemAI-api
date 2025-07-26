@@ -8,6 +8,7 @@ import {
   generateLogoColorsAndTypographyController,
 } from "../controllers/branding.controller";
 import { authenticate } from "../services/auth.service"; // Updated import path
+import { checkQuota } from "../middleware/quota.middleware";
 
 export const brandingRoutes = Router();
 
@@ -65,6 +66,7 @@ const resourceName = "brandings";
 brandingRoutes.post(
   `/${resourceName}/generate/:projectId`,
   authenticate,
+  checkQuota,
   generateBrandingController
 );
 
@@ -130,6 +132,7 @@ brandingRoutes.post(
 brandingRoutes.post(
   `/${resourceName}/genColorsAndTypography`,
   authenticate,
+  checkQuota,
   generateLogoColorsAndTypographyController
 );
 
@@ -169,6 +172,7 @@ brandingRoutes.post(
 brandingRoutes.get(
   `/${resourceName}/getAll/:projectId`,
   authenticate,
+  checkQuota,
   getBrandingsByProjectController
 );
 
@@ -206,6 +210,7 @@ brandingRoutes.get(
 brandingRoutes.get(
   `/${resourceName}/get/:projectId`,
   authenticate,
+  checkQuota,
   getBrandingByIdController
 );
 
@@ -251,6 +256,7 @@ brandingRoutes.get(
 brandingRoutes.put(
   `/${resourceName}/update/:projectId`,
   authenticate,
+  checkQuota,
   updateBrandingController
 );
 
@@ -292,5 +298,6 @@ brandingRoutes.put(
 brandingRoutes.delete(
   `/${resourceName}/delete/:projectId`,
   authenticate,
+  checkQuota,
   deleteBrandingController
 );

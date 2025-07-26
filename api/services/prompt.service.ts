@@ -2,6 +2,8 @@ import { GoogleGenAI, createPartFromUri, Content, File } from "@google/genai";
 import dotenv from "dotenv";
 import * as fs from "fs-extra";
 import logger from "../config/logger";
+import quotaService from './quota.service';
+import betaRestrictionsService from './betaRestrictions.service';
 
 dotenv.config();
 
@@ -31,6 +33,9 @@ export interface PromptRequest {
     localPath: string;
     mimeType?: string;
   };
+  userId?: string;
+  promptType?: string;
+  skipQuotaCheck?: boolean;
 }
 
 export interface AIResponse {
@@ -200,23 +205,100 @@ export class PromptService {
   }
 
   public async runPrompt(request: PromptRequest): Promise<string> {
-    logger.info(`Running prompt for provider: ${request.provider}, model: ${request.modelName}, file attached: ${!!request.file}`);
-    const { provider, modelName, messages, llmOptions = {}, file } = request;
+    logger.info(`Running prompt for provider: ${request.provider}, model: ${request.modelName}, file attached: ${!!request.file}, userId: ${request.userId}`);
+    const { provider, modelName, messages, llmOptions = {}, file, userId, promptType, skipQuotaCheck = false } = request;
 
     if (!messages || messages.length === 0) {
       logger.error("Messages array cannot be empty.");
       throw new Error("Messages array cannot be empty.");
     }
 
+    // Quota checking for authenticated users (skip for system/internal calls)
+    if (userId && !skipQuotaCheck) {
+      logger.info(`Checking quota for user: ${userId}`);
+      const quotaCheck = await quotaService.checkQuota(userId);
+      
+      if (!quotaCheck.allowed) {
+        logger.warn(`Quota exceeded for user ${userId}: ${quotaCheck.message}`);
+        throw new Error(quotaCheck.message || 'Quota exceeded');
+      }
+      
+      logger.info(`Quota check passed for user ${userId}. Remaining: daily=${quotaCheck.remainingDaily}, weekly=${quotaCheck.remainingWeekly}`);
+    }
+
+    // Beta restrictions validation
+    if (promptType) {
+      const featureValidation = betaRestrictionsService.validateFeature(promptType);
+      if (!featureValidation.allowed) {
+        logger.warn(`Feature ${promptType} not allowed in beta: ${featureValidation.message}`);
+        throw new Error(featureValidation.message || 'Feature not available in beta');
+      }
+
+      // Validate and adjust prompt parameters for beta
+      const paramValidation = betaRestrictionsService.validatePromptParams(promptType, { llmOptions, ...request });
+      if (!paramValidation.allowed) {
+        logger.warn(`Prompt parameters not allowed in beta: ${paramValidation.message}`);
+        throw new Error(paramValidation.message || 'Parameters not allowed in beta');
+      }
+
+      // Apply adjusted parameters if any
+      if (paramValidation.adjustedParams) {
+        Object.assign(request, paramValidation.adjustedParams);
+        logger.info(`Applied beta parameter adjustments for ${promptType}`);
+      }
+    }
+
+    // Input validation for user content
+    if (userId && messages.length > 0) {
+      const userMessage = messages.find(msg => msg.role === 'user');
+      if (userMessage) {
+        const inputValidation = betaRestrictionsService.validateInput(userMessage.content);
+        if (!inputValidation.allowed) {
+          logger.warn(`Invalid input from user ${userId}: ${inputValidation.message}`);
+          throw new Error(inputValidation.message || 'Invalid input');
+        }
+      }
+    }
+
+    // Apply beta prompt modifications if needed
+    let modifiedMessages = messages;
+    if (betaRestrictionsService.isBetaMode() && messages.length > 0) {
+      modifiedMessages = messages.map(msg => {
+        if (msg.role === 'user' || msg.role === 'system') {
+          return {
+            ...msg,
+            content: betaRestrictionsService.applyBetaPromptModifications(msg.content)
+          };
+        }
+        return msg;
+      });
+      logger.info('Applied beta prompt modifications');
+    }
+
     try {
+      let result: string;
       switch (provider) {
         case LLMProvider.GEMINI:
-          return this._runGeminiPrompt(modelName, messages, llmOptions, file);
+          result = await this._runGeminiPrompt(modelName, modifiedMessages, llmOptions, file);
+          break;
         default:
           const unsupportedProviderError = new Error(`Unsupported LLM provider: ${provider}`);
           logger.error(`Unsupported LLM provider encountered in runPrompt: ${unsupportedProviderError.message}`, { provider, stack: unsupportedProviderError.stack });
           throw unsupportedProviderError;
       }
+
+      // Increment quota after successful API call
+      if (userId && !skipQuotaCheck) {
+        try {
+          await quotaService.incrementUsage(userId);
+          logger.info(`Incremented quota usage for user ${userId}`);
+        } catch (quotaError) {
+          logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
+          // Don't throw here as the API call was successful
+        }
+      }
+
+      return result;
     } catch (error: any) {
       logger.error(`Error in runPrompt for provider ${provider}, model ${modelName}: ${error.message}`, { stack: error.stack, details: error });
       throw error;

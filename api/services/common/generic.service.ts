@@ -121,28 +121,30 @@ export class GenericService {
   }
 
   /**
-   * Runs a step and appends the result to the context file
-   * @param promptConstant Prompt template
-   * @param stepName Name of the step
+   * Runs a single step and appends the result to the temp file
+   * @param step Prompt step configuration
    * @param project Project model
-   * @param includeProjectInfo Whether to include project info in the prompt
+   * @param includeProjectInfo Whether to include project details in the prompt
+   * @param userId User ID for quota tracking
+   * @param promptType Type of prompt for beta restrictions
    * @returns Generated content for the step
    */
   protected async runStepAndAppend(
-    promptConstant: string,
-    stepName: string,
+    step: IPromptStep,
     project: ProjectModel,
-    includeProjectInfo = true
+    includeProjectInfo: boolean = true,
+    userId?: string,
+    promptType?: string
   ): Promise<string> {
     logger.info(
-      `Generating section: '${stepName}' for projectId: ${project.id}`
+      `Generating section: '${step.stepName}' for projectId: ${project.id}`
     );
 
     let currentStepPrompt = `You are generating content section by section.
     The previously generated content is available in the attached text file.
     Please review the attached file for context.
 
-    CURRENT TASK: Generate the '${stepName}' section.
+    CURRENT TASK: Generate the '${step.stepName}' section.
 
     ${
       includeProjectInfo
@@ -151,10 +153,10 @@ ${JSON.stringify(project, null, 2)}`
         : ""
     }
 
-    SPECIFIC INSTRUCTIONS FOR '${stepName}':
-${promptConstant}
+    SPECIFIC INSTRUCTIONS FOR '${step.stepName}':
+${step.promptConstant}
 
-    Please generate *only* the content for the '${stepName}' section,
+    Please generate *only* the content for the '${step.stepName}' section,
     building upon the context from the attached file.`;
 
     const response = await this.promptService.runPrompt({
@@ -167,18 +169,20 @@ ${promptConstant}
         },
       ],
       file: { localPath: this.tempFilePath, mimeType: "text/plain" },
+      userId,
+      promptType: promptType || step.stepName,
     });
 
-    logger.debug(`LLM response for section '${stepName}': ${response}`);
+    logger.debug(`LLM response for section '${step.stepName}': ${response}`);
     const stepSpecificContent = this.promptService.getCleanAIText(response);
     logger.info(
-      `Successfully generated and processed section: '${stepName}' for projectId: ${project.id}`
+      `Successfully generated and processed section: '${step.stepName}' for projectId: ${project.id}`
     );
 
-    const sectionOutputToFile = `\n\n## ${stepName}\n\n${stepSpecificContent}\n\n---\n`;
+    const sectionOutputToFile = `\n\n## ${step.stepName}\n\n${stepSpecificContent}\n\n---\n`;
     await fs.appendFile(this.tempFilePath, sectionOutputToFile, "utf-8");
     logger.info(
-      `Appended section '${stepName}' to temporary file: ${this.tempFilePath}`
+      `Appended section '${step.stepName}' to temporary file: ${this.tempFilePath}`
     );
 
     return stepSpecificContent;
@@ -197,11 +201,7 @@ ${promptConstant}
     const results: ISectionResult[] = [];
 
     for (const step of steps) {
-      const content = await this.runStepAndAppend(
-        step.promptConstant,
-        step.stepName,
-        project
-      );
+      const content = await this.runStepAndAppend(step, project);
 
       let parsedData = null;
       if (step.modelParser) {

@@ -7,6 +7,7 @@ import {
   deleteBusinessPlanController,
 } from "../controllers/businessPlan.controller";
 import { authenticate } from "../services/auth.service";
+import { checkQuota } from "../middleware/quota.middleware";
 
 export const businessPlanRoutes = Router();
 
@@ -63,6 +64,7 @@ const resourceName = "businessPlans";
 businessPlanRoutes.post(
   `/${resourceName}/:projectId`,
   authenticate,
+  checkQuota,
   generateBusinessPlanController
 );
 
@@ -100,6 +102,7 @@ businessPlanRoutes.post(
 businessPlanRoutes.get(
   `/${resourceName}/:projectId`,
   authenticate,
+  checkQuota,
   getBusinessPlanByIdController
 );
 
@@ -145,6 +148,7 @@ businessPlanRoutes.get(
 businessPlanRoutes.put(
   `/${resourceName}/:projectId`,
   authenticate,
+  checkQuota,
   updateBusinessPlanController
 );
 
@@ -186,5 +190,6 @@ businessPlanRoutes.put(
 businessPlanRoutes.delete(
   `/${resourceName}/:projectId`,
   authenticate,
+  checkQuota,
   deleteBusinessPlanController
 );

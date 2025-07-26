@@ -11,6 +11,7 @@ import {
   getDevelopmentConfigsController,
 } from "../controllers/development.controller";
 import { authenticate } from "../services/auth.service";
+import { checkQuota } from "../middleware/quota.middleware";
 
 export const developmentRoutes = Router();
 
@@ -51,6 +52,7 @@ const secondaryResourceName = "webcontainers";
 developmentRoutes.get(
   `/${primaryResourceName}`,
   authenticate,
+  checkQuota,
   getAllWebContainersController
 );
 
@@ -95,6 +97,7 @@ developmentRoutes.get(
 developmentRoutes.get(
   `/${primaryResourceName}/project/:projectId`,
   authenticate,
+  checkQuota,
   getWebContainersByProjectController
 );
 
@@ -135,6 +138,7 @@ developmentRoutes.get(
 developmentRoutes.post(
   `/${primaryResourceName}/configs`,
   authenticate,
+  checkQuota,
   saveDevelopmentConfigsController
 );
 
@@ -169,6 +173,7 @@ developmentRoutes.post(
 developmentRoutes.get(
   `/${primaryResourceName}/configs/:projectId`,
   authenticate,
+  checkQuota,
   getDevelopmentConfigsController
 );
 
@@ -209,6 +214,7 @@ developmentRoutes.get(
 developmentRoutes.post(
   `/${primaryResourceName}/${secondaryResourceName}`,
   authenticate,
+  checkQuota,
   createWebContainerController
 );
 
@@ -239,6 +245,7 @@ developmentRoutes.post(
 developmentRoutes.get(
   `/${primaryResourceName}/${secondaryResourceName}`,
   authenticate,
+  checkQuota,
   getAllWebContainersController
 );
 
@@ -283,6 +290,7 @@ developmentRoutes.get(
 developmentRoutes.get(
   `/${primaryResourceName}/${secondaryResourceName}/project/:projectId`,
   authenticate,
+  checkQuota,
   getWebContainersByProjectController
 );
 
@@ -327,6 +335,7 @@ developmentRoutes.get(
 developmentRoutes.get(
   `/${primaryResourceName}/${secondaryResourceName}/:webContainerId`,
   authenticate,
+  checkQuota,
   getWebContainerByIdController
 );
 
@@ -377,6 +386,7 @@ developmentRoutes.get(
 developmentRoutes.put(
   `/${primaryResourceName}/${secondaryResourceName}/:webContainerId`,
   authenticate,
+  checkQuota,
   updateWebContainerController
 );
 
@@ -421,6 +431,7 @@ developmentRoutes.put(
 developmentRoutes.delete(
   `/${primaryResourceName}/${secondaryResourceName}/:webContainerId`,
   authenticate,
+  checkQuota,
   deleteWebContainerController
 );
 
@@ -467,6 +478,7 @@ developmentRoutes.delete(
 developmentRoutes.post(
   `/${primaryResourceName}/${secondaryResourceName}/:webContainerId/push-to-github`,
   authenticate,
+  checkQuota,
   pushWebContainerToGitHubController
 );
 
