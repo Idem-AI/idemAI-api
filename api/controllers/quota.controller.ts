@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import quotaService from '../services/quota.service';
+import { userService } from '../services/user.service';
 import betaRestrictionsService from '../services/betaRestrictions.service';
 import logger from '../config/logger';
 import { CustomRequest } from '../interfaces/express.interface';
@@ -15,7 +15,7 @@ export class QuotaController {
       const userId = req.user?.uid;
       logger.info(`Getting quota info for user: ${userId}`);
 
-      const quotaInfo = await quotaService.getQuotaInfo(userId!);
+      const quotaInfo = await userService.getQuotaInfo(userId!);
       const betaInfo = betaRestrictionsService.isBetaMode() ? {
         isBeta: true,
         limitations: betaRestrictionsService.getBetaLimitationsMessage(),
@@ -48,7 +48,7 @@ export class QuotaController {
       const userId = req.user?.uid;
       logger.info(`Checking quota for user: ${userId}`);
 
-      const quotaCheck = await quotaService.checkQuota(userId!);
+      const quotaCheck = await userService.checkQuota(userId!);
       
       logger.info(`Quota check completed for user ${userId}: allowed=${quotaCheck.allowed}`);
 
@@ -59,8 +59,8 @@ export class QuotaController {
           remainingDaily: quotaCheck.remainingDaily,
           remainingWeekly: quotaCheck.remainingWeekly,
           message: quotaCheck.message,
-          limits: quotaService.getCurrentLimits(),
-          isBeta: quotaService.isBetaMode()
+          limits: userService.getCurrentLimits(),
+          isBeta: userService.isBetaMode()
         }
       });
     } catch (error) {
@@ -83,7 +83,7 @@ export class QuotaController {
         isBeta: betaRestrictionsService.isBetaMode(),
         limitations: betaRestrictionsService.getBetaLimitationsMessage(),
         restrictions: betaRestrictionsService.getRestrictions(),
-        quotaLimits: quotaService.getCurrentLimits()
+        quotaLimits: userService.getCurrentLimits()
       };
 
       res.json({
@@ -118,7 +118,7 @@ export class QuotaController {
       }
 
       const featureValidation = betaRestrictionsService.validateFeature(featureName);
-      const quotaCheck = await quotaService.checkQuota(userId!);
+      const quotaCheck = await userService.checkQuota(userId!);
 
       res.json({
         success: true,
@@ -149,8 +149,8 @@ export class QuotaController {
       const userId = req.user?.uid;
       logger.info(`Getting usage stats for user: ${userId}`);
 
-      const quotaInfo = await quotaService.getQuotaInfo(userId!);
-      const limits = quotaService.getCurrentLimits();
+      const quotaInfo = await userService.getQuotaInfo(userId!);
+      const limits = userService.getCurrentLimits();
 
       const stats = {
         daily: {

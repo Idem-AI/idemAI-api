@@ -4,12 +4,10 @@ import {
   DocumentReference,
   Timestamp,
   FieldValue,
+  Firestore
 } from "firebase-admin/firestore";
 import { IRepository } from "./IRepository";
 import logger from "../config/logger";
-
-const db = admin.firestore();
-db.settings({ ignoreUndefinedProperties: true });
 
 /**
  * A generic Firestore repository implementation.
@@ -34,7 +32,14 @@ export class FirestoreRepository<
     );
   }
 
+  private getDb(): Firestore {
+    const db = admin.firestore();
+    db.settings({ ignoreUndefinedProperties: true });
+    return db;
+  }
+
   private getCollection(userId?: string): CollectionReference {
+    const db = this.getDb();
     if (this.userSpecificCollection && userId) {
       // For user-specific collections, use the path: users/{userId}/{collectionName}
       return db.collection(`users/${userId}/${this.collectionName}`);

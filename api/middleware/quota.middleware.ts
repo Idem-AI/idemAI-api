@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import quotaService from '../services/quota.service';
+import { userService } from '../services/user.service';
 import betaRestrictionsService from '../services/betaRestrictions.service';
 import logger from '../config/logger';
 
@@ -28,13 +28,13 @@ export const checkQuota = async (req: Request & { user?: { uid: string } }, res:
 
     logger.info(`Quota middleware: Checking quota for user ${userId}`);
     
-    const quotaCheck = await quotaService.checkQuota(userId);
+    const quotaCheck = await userService.checkQuota(userId);
     
     if (!quotaCheck.allowed) {
       logger.warn(`Quota middleware: Quota exceeded for user ${userId}: ${quotaCheck.message}`);
       
       // Include quota information in the response
-      const quotaInfo = await quotaService.getQuotaInfo(userId);
+      const quotaInfo = await userService.getQuotaInfo(userId);
       
       res.status(429).json({
         error: 'Quota exceeded',

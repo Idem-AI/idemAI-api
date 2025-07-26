@@ -2,9 +2,8 @@ import { GoogleGenAI, createPartFromUri, Content, File } from "@google/genai";
 import dotenv from "dotenv";
 import * as fs from "fs-extra";
 import logger from "../config/logger";
-import quotaService from './quota.service';
 import betaRestrictionsService from './betaRestrictions.service';
-
+import { userService } from "./user.service";
 dotenv.config();
 
 export enum LLMProvider {
@@ -216,7 +215,7 @@ export class PromptService {
     // Quota checking for authenticated users (skip for system/internal calls)
     if (userId && !skipQuotaCheck) {
       logger.info(`Checking quota for user: ${userId}`);
-      const quotaCheck = await quotaService.checkQuota(userId);
+      const quotaCheck = await userService.checkQuota(userId);
       
       if (!quotaCheck.allowed) {
         logger.warn(`Quota exceeded for user ${userId}: ${quotaCheck.message}`);
@@ -290,7 +289,7 @@ export class PromptService {
       // Increment quota after successful API call
       if (userId && !skipQuotaCheck) {
         try {
-          await quotaService.incrementUsage(userId);
+          await userService.incrementUsage(userId);
           logger.info(`Incremented quota usage for user ${userId}`);
         } catch (quotaError) {
           logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
