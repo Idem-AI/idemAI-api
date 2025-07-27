@@ -47,7 +47,21 @@ class UserService {
     }
 
     try {
-      const createdUser = await this.userRepository.create(user, "users", user.uid);
+      user.quota = {
+        dailyUsage: 0,
+        weeklyUsage: 0,
+        dailyLimit: this.quotaLimits.dailyLimit,
+        weeklyLimit: this.quotaLimits.weeklyLimit,
+        lastResetDaily: new Date().toISOString().split("T")[0], // YYYY-MM-DD
+        lastResetWeekly: this.getWeekStart(new Date())
+          .toISOString()
+          .split("T")[0],
+      };
+      const createdUser = await this.userRepository.create(
+        user,
+        "users",
+        user.uid
+      );
       logger.info(`User created successfully: ${createdUser.uid}`);
       return createdUser;
     } catch (error: any) {
@@ -81,7 +95,10 @@ class UserService {
       const userRecord = await admin.auth().getUser(uid);
 
       // Get user data from repository
-      let user: UserModel | null = await this.userRepository.findById(uid, "users");
+      let user: UserModel | null = await this.userRepository.findById(
+        uid,
+        "users"
+      );
 
       if (!user) {
         // User doesn't exist in repository, create a new user
@@ -327,6 +344,8 @@ class UserService {
       return {
         dailyUsage: user.quota.dailyUsage,
         weeklyUsage: user.quota.weeklyUsage,
+        dailyLimit: user.quota.dailyLimit!,
+        weeklyLimit: user.quota.weeklyLimit!,
         lastResetDaily: user.quota.lastResetDaily,
         lastResetWeekly: user.quota.lastResetWeekly,
       };
@@ -344,6 +363,8 @@ class UserService {
     const quotaData: QuotaData = {
       dailyUsage: 0,
       weeklyUsage: 0,
+      dailyLimit: this.quotaLimits.dailyLimit,
+      weeklyLimit: this.quotaLimits.weeklyLimit,
       lastResetDaily: now.toISOString().split("T")[0], // YYYY-MM-DD
       lastResetWeekly: this.getWeekStart(now).toISOString().split("T")[0],
     };
@@ -355,6 +376,8 @@ class UserService {
         quota: {
           dailyUsage: quotaData.dailyUsage,
           weeklyUsage: quotaData.weeklyUsage,
+          dailyLimit: quotaData.dailyLimit,
+          weeklyLimit: quotaData.weeklyLimit,
           lastResetDaily: quotaData.lastResetDaily,
           lastResetWeekly: quotaData.lastResetWeekly,
         },

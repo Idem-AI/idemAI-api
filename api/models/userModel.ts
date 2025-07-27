@@ -1,6 +1,8 @@
 export interface QuotaData {
   dailyUsage: number;
   weeklyUsage: number;
+  dailyLimit: number;
+  weeklyLimit: number;
   lastResetDaily: string; // ISO date string
   lastResetWeekly: string; // ISO date string
   quotaUpdatedAt?: Date;

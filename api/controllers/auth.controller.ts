@@ -35,8 +35,10 @@ export const sessionLoginController = async (
     displayName: user.displayName,
     photoURL: user.photoURL,
     quota: {
-      dailyUsage: 6,
-      weeklyUsage: 20,
+      dailyUsage: 0,
+      weeklyUsage: 0,
+      dailyLimit: 0,
+      weeklyLimit: 0,
       lastResetDaily: new Date().toISOString().split("T")[0],
       lastResetWeekly: new Date().toISOString().split("T")[0],
     },
