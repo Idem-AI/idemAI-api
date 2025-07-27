@@ -191,9 +191,6 @@ class UserService {
         quotaData = await this.createUserQuota(userId);
       }
 
-      // Reset counters if needed
-      quotaData = await this.resetCountersIfNeeded(userId, quotaData);
-
       // Increment counters
       quotaData.dailyUsage += 1;
       quotaData.weeklyUsage += 1;
@@ -280,7 +277,8 @@ class UserService {
   private async getUserQuota(userId: string): Promise<QuotaData | null> {
     try {
       const user: UserModel = await this.userRepository.findById(userId);
-
+      console.log("-----user",user);
+      console.log("-----user quota",user.quota);
       if (!user) {
         logger.warn(`User ${userId} not found when getting quota data`);
         return null;

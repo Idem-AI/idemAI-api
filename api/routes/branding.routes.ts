@@ -172,7 +172,6 @@ brandingRoutes.post(
 brandingRoutes.get(
   `/${resourceName}/getAll/:projectId`,
   authenticate,
-  checkQuota,
   getBrandingsByProjectController
 );
 
@@ -210,7 +209,6 @@ brandingRoutes.get(
 brandingRoutes.get(
   `/${resourceName}/get/:projectId`,
   authenticate,
-  checkQuota,
   getBrandingByIdController
 );
 
@@ -256,7 +254,6 @@ brandingRoutes.get(
 brandingRoutes.put(
   `/${resourceName}/update/:projectId`,
   authenticate,
-  checkQuota,
   updateBrandingController
 );
 
@@ -298,6 +295,5 @@ brandingRoutes.put(
 brandingRoutes.delete(
   `/${resourceName}/delete/:projectId`,
   authenticate,
-  checkQuota,
   deleteBrandingController
 );
