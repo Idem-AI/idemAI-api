@@ -3,10 +3,9 @@ import logger from "../config/logger";
 import { DiagramService } from "../services/Diagrams/diagram.service";
 import { CustomRequest } from "../interfaces/express.interface";
 import { PromptService } from "../services/prompt.service";
+import { userService } from "../services/user.service";
 
-const diagramService = new DiagramService(
-  new PromptService()
-);
+const diagramService = new DiagramService(new PromptService());
 
 export const generateDiagramController = async (
   req: CustomRequest,
@@ -48,6 +47,8 @@ export const generateDiagramController = async (
         newDiagram?.id || "unknown"
       }`
     );
+    userService.incrementUsage(userId, 1);
+
     res
       .status(201)
       .json(newDiagram || { message: "Diagram generated but not returned" });

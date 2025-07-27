@@ -223,7 +223,7 @@ class UserService {
   /**
    * Increment user's usage counters
    */
-  async incrementUsage(userId: string): Promise<void> {
+  async incrementUsage(userId: string,incrementValue: number): Promise<void> {
     try {
       logger.info(`Incrementing usage for user: ${userId}`);
 
@@ -233,8 +233,8 @@ class UserService {
       }
 
       // Increment counters
-      quotaData.dailyUsage += 1;
-      quotaData.weeklyUsage += 1;
+      quotaData.dailyUsage += incrementValue;
+      quotaData.weeklyUsage += incrementValue;
 
       // Update user document with incremented quota
       await this.userRepository.update(

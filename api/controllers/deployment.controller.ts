@@ -12,6 +12,7 @@ import {
   ArchitectureComponent,
 } from "../models/deployment.model";
 import { PromptService } from "../services/prompt.service";
+import { userService } from "../services/user.service";
 
 const deploymentService = new DeploymentService(new PromptService());
 
@@ -748,6 +749,7 @@ export const GenerateDeploymentController = async (
         ? `New deployment created successfully with ${fileCount} Terraform files generated`
         : "New deployment created successfully";
     }
+    userService.incrementUsage(userId,1);
 
     res.status(201).json({
       success: true,

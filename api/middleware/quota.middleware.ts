@@ -60,8 +60,6 @@ export const checkQuota = async (
       isBeta: betaRestrictionsService.isBetaMode(),
     };
 
-    await userService.incrementUsage(userId);
-
     logger.info(`Quota middleware: Quota check passed for user ${userId}`);
     next();
   } catch (error) {

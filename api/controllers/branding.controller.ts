@@ -3,7 +3,7 @@ import { BrandingService } from "../services/BandIdentity/branding.service";
 import { PromptService } from "../services/prompt.service";
 import { CustomRequest } from "../interfaces/express.interface";
 import logger from "../config/logger";
-
+import { userService } from "../services/user.service";
 // Create instances of the services
 const promptService = new PromptService();
 const brandingService = new BrandingService(promptService);
@@ -46,6 +46,7 @@ export const generateBrandingController = async (
       `Branding generated successfully - UserId: ${userId}, ProjectId: ${projectId}, ProjectUpdated: ${updatedProject.id}`
     );
     // Return the branding from the updated project
+    userService.incrementUsage(userId,1);
     res.status(201).json(updatedProject.analysisResultModel.branding);
   } catch (error: any) {
     logger.error(
@@ -101,6 +102,7 @@ export const generateLogoColorsAndTypographyController = async (
       `Logo, colors, and typography generated successfully - UserId: ${userId}, ProjectId: ${project.id}`
     );
     // Return the branding from the updated project
+    userService.incrementUsage(userId,1);
     res.status(201).json(updatedProject);
   } catch (error: any) {
     logger.error(

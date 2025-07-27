@@ -3,6 +3,7 @@ import { CustomRequest } from "../interfaces/express.interface";
 import { BusinessPlanService } from "../services/BusinessPlan/businessPlan.service";
 import { PromptService } from "../services/prompt.service";
 import logger from "../config/logger";
+import { userService } from "../services/user.service";
 
 // Create instances of the services
 const promptService = new PromptService();
@@ -36,6 +37,7 @@ export const generateBusinessPlanController = async (
       logger.info(
         `Business plan generated successfully (Project updated) - UserId: ${userId}, ProjectId: ${projectId}, UpdatedProjectId: ${item.id}`
       );
+      userService.incrementUsage(userId,1);
       res.status(201).json(item);
     } else {
       logger.warn(

@@ -216,61 +216,6 @@ class ProjectController {
       next(error);
     }
   }
-
-  // Method to generate agentic zip (restored and with logging)
-  async generateProjectAgenticZip(
-    req: CustomRequest,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
-    const { projectId } = req.params;
-    const userId = req.user?.uid;
-
-    logger.info(
-      `Attempting to generate agentic zip for projectId: ${projectId}, userId: ${userId}`
-    );
-
-    if (!userId) {
-      logger.warn(
-        `Generate agentic zip failed for projectId ${projectId}: User not authenticated.`
-      );
-      res.status(401).json({ message: "User not authenticated" });
-      return;
-    }
-
-    try {
-      const zipBuffer = await projectService.generateAgenticZip(
-        userId,
-        projectId
-      );
-
-      if (!zipBuffer) {
-        logger.warn(
-          `Agentic zip generation failed for projectId ${projectId}, userId: ${userId} - no zip buffer returned.`
-        );
-        res
-          .status(404)
-          .json({ message: "Project not found or unable to generate ZIP." });
-        return;
-      }
-
-      logger.info(
-        `Successfully generated agentic zip for projectId: ${projectId}, userId: ${userId}`
-      );
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename=${projectId}_agentic_structure.zip`
-      );
-      res.setHeader("Content-Type", "application/zip");
-      res.send(zipBuffer);
-    } catch (error: any) {
-      logger.error(
-        `Error in generateProjectAgenticZip controller for projectId ${projectId}, userId ${userId}: ${error.message}`,
-        { stack: error.stack, details: error }
-      );
-      next(error);
-    }
-  }
 }
 
 export const projectController = new ProjectController();
