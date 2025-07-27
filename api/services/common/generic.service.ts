@@ -31,10 +31,7 @@ export class GenericService {
 
   constructor(protected promptService: PromptService) {
     logger.info("GenericService initialized");
-    this.projectRepository = RepositoryFactory.getRepository<ProjectModel>(
-      TargetModelType.PROJECT,
-      true
-    );
+    this.projectRepository = RepositoryFactory.getRepository<ProjectModel>();
   }
 
   /**
@@ -66,7 +63,10 @@ export class GenericService {
     projectId: string,
     userId: string
   ): Promise<ProjectModel | null> {
-    const project = await this.projectRepository.findById(projectId, userId);
+    const project = await this.projectRepository.findById(
+      projectId,
+      `users/${userId}/projects`
+    );
     logger.debug(
       `Project data fetched: ${project ? JSON.stringify(project.id) : "null"}`
     );

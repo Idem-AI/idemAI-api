@@ -11,7 +11,6 @@ export interface UserModel {
   email: string;
   displayName?: string;
   photoURL?: string;
-  sessionCookie: string;
   subscription: "free" | "pro" | "enterprise";
   createdAt: Date;
   lastLogin: Date;

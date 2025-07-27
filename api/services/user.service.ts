@@ -1,6 +1,7 @@
 import { admin } from "..";
 import logger from "../config/logger";
 import { QuotaData, UserModel } from "../models/userModel";
+import { IRepository } from "../repository/IRepository";
 import { RepositoryFactory } from "../repository/RepositoryFactory";
 
 export interface QuotaLimits {
@@ -17,11 +18,11 @@ export interface QuotaCheckResult {
   message?: string;
 }
 class UserService {
-  private userRepository: any;
+  private userRepository: IRepository<UserModel>;
   private isBeta: boolean;
   private quotaLimits: QuotaLimits;
   constructor() {
-    this.userRepository = RepositoryFactory.getRepository<UserModel>("users");
+    this.userRepository = RepositoryFactory.getRepository<UserModel>();
 
     this.isBeta = process.env.IS_BETA === "true";
 
@@ -37,6 +38,25 @@ class UserService {
       `QuotaService initialized - Beta mode: ${this.isBeta}, Limits:`,
       this.quotaLimits
     );
+  }
+
+  public async createUser(user: UserModel): Promise<UserModel> {
+    if (!user) {
+      logger.warn("createUser failed: No user data provided.");
+      throw new Error("No user data provided.");
+    }
+
+    try {
+      const createdUser = await this.userRepository.create(user, "users", user.uid);
+      logger.info(`User created successfully: ${createdUser.uid}`);
+      return createdUser;
+    } catch (error: any) {
+      logger.error(`Error creating user: ${error.message}`, {
+        stack: error.stack,
+        details: error,
+      });
+      throw error;
+    }
   }
 
   public async getUserProfile(sessionCookie: string): Promise<UserModel> {
@@ -61,7 +81,7 @@ class UserService {
       const userRecord = await admin.auth().getUser(uid);
 
       // Get user data from repository
-      let user: UserModel = await this.userRepository.findById(uid);
+      let user: UserModel | null = await this.userRepository.findById(uid, "users");
 
       if (!user) {
         // User doesn't exist in repository, create a new user
@@ -71,13 +91,18 @@ class UserService {
 
         user = await this.userRepository.create(
           {
-            uid: userRecord.uid,
-            email: userRecord.email || "",
-            displayName: userRecord.displayName || "",
-            photoURL: userRecord.photoURL || "",
-            sessionCookie: sessionCookie,
+            uid: "",
+            email: "",
             subscription: "free",
             lastLogin: new Date(),
+            quota: {
+              dailyUsage: this.quotaLimits.dailyLimit,
+              weeklyUsage: this.quotaLimits.weeklyLimit,
+              lastResetDaily: new Date().toISOString().split("T")[0],
+              lastResetWeekly: new Date().toISOString().split("T")[0],
+            },
+            displayName: "",
+            photoURL: "",
           },
           uid
         );
@@ -97,7 +122,6 @@ class UserService {
             uid,
             {
               lastLogin: new Date(),
-              sessionCookie: sessionCookie,
             },
             uid
           )) || user;
@@ -199,9 +223,12 @@ class UserService {
       await this.userRepository.update(
         userId,
         {
-          dailyUsage: quotaData.dailyUsage,
-          weeklyUsage: quotaData.weeklyUsage,
-          quotaUpdatedAt: new Date(),
+          quota: {
+            dailyUsage: quotaData.dailyUsage,
+            weeklyUsage: quotaData.weeklyUsage,
+            lastResetDaily: quotaData.lastResetDaily,
+            lastResetWeekly: quotaData.lastResetWeekly,
+          },
         },
         userId
       );
@@ -276,9 +303,11 @@ class UserService {
    */
   private async getUserQuota(userId: string): Promise<QuotaData | null> {
     try {
-      const user: UserModel = await this.userRepository.findById(userId);
-      console.log("-----user",user);
-      console.log("-----user quota",user.quota);
+      const user: UserModel | null = await this.userRepository.findById(
+        userId,
+        "users"
+      )!;
+
       if (!user) {
         logger.warn(`User ${userId} not found when getting quota data`);
         return null;
@@ -323,11 +352,12 @@ class UserService {
     await this.userRepository.update(
       userId,
       {
-        dailyUsage: quotaData.dailyUsage,
-        weeklyUsage: quotaData.weeklyUsage,
-        lastResetDaily: quotaData.lastResetDaily,
-        lastResetWeekly: quotaData.lastResetWeekly,
-        quotaUpdatedAt: now,
+        quota: {
+          dailyUsage: quotaData.dailyUsage,
+          weeklyUsage: quotaData.weeklyUsage,
+          lastResetDaily: quotaData.lastResetDaily,
+          lastResetWeekly: quotaData.lastResetWeekly,
+        },
       },
       userId
     );
@@ -371,11 +401,12 @@ class UserService {
       await this.userRepository.update(
         userId,
         {
-          dailyUsage: updatedQuotaData.dailyUsage,
-          weeklyUsage: updatedQuotaData.weeklyUsage,
-          lastResetDaily: updatedQuotaData.lastResetDaily,
-          lastResetWeekly: updatedQuotaData.lastResetWeekly,
-          quotaUpdatedAt: now,
+          quota: {
+            dailyUsage: updatedQuotaData.dailyUsage,
+            weeklyUsage: updatedQuotaData.weeklyUsage,
+            lastResetDaily: updatedQuotaData.lastResetDaily,
+            lastResetWeekly: updatedQuotaData.lastResetWeekly,
+          },
         },
         userId
       );

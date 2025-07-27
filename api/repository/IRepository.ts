@@ -3,14 +3,15 @@ export interface IRepository<
 > {
   create(
     item: Omit<T, "id" | "createdAt" | "updatedAt">,
-    userId?: string
-  ): Promise<T>; // userId for user-specific collections
-  findById(id: string, userId?: string): Promise<T | null>;
-  findAll(userId?: string): Promise<T[]>;
+    collectionPath: string,
+    id?: string
+  ): Promise<T>; // collectionPath is the full Firestore path, id for custom document ID
+  findById(id: string, collectionPath: string): Promise<T | null>;
+  findAll(collectionPath: string): Promise<T[]>;
   update(
     id: string,
     item: Partial<Omit<T, "id" | "createdAt" | "updatedAt">>,
-    userId?: string
+    collectionPath: string
   ): Promise<T | null>;
-  delete(id: string, userId?: string): Promise<boolean>;
+  delete(id: string, collectionPath: string): Promise<boolean>;
 }

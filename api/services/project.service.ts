@@ -10,11 +10,8 @@ class ProjectService {
   private projectRepository: IRepository<ProjectModel>;
 
   constructor() {
-    // Use user-specific collection structure: users/[userId]/projects
-    this.projectRepository = RepositoryFactory.getRepository<ProjectModel>(
-      "projects",
-      true
-    );
+    // Use repository with explicit paths
+    this.projectRepository = RepositoryFactory.getRepository<ProjectModel>();
   }
 
   async createUserProject(
@@ -37,7 +34,7 @@ class ProjectService {
 
       const newProject = await this.projectRepository.create(
         projectToCreate,
-        userId
+        `users/${userId}/projects`
       );
       if (!newProject || !newProject.id) {
         throw new Error("Project creation failed or project ID is missing.");
@@ -62,7 +59,7 @@ class ProjectService {
     }
 
     try {
-      const projects = await this.projectRepository.findAll(userId);
+      const projects = await this.projectRepository.findAll(`users/${userId}/projects`);
       logger.info(`Projects fetched for user ${userId}: ${projects.length}`);
       return projects;
     } catch (error: any) {
@@ -84,7 +81,7 @@ class ProjectService {
     }
 
     try {
-      const project = await this.projectRepository.findById(projectId, userId);
+      const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
       if (!project) {
         logger.info(
           `Project ${projectId} not found for user ${userId} via repository`
@@ -109,7 +106,7 @@ class ProjectService {
     }
 
     try {
-      const success = await this.projectRepository.delete(projectId, userId);
+      const success = await this.projectRepository.delete(projectId, `users/${userId}/projects`);
       if (success) {
         logger.info(
           `Project ${projectId} deleted successfully for user ${userId} via repository`
@@ -144,7 +141,7 @@ class ProjectService {
       const updatedProject = await this.projectRepository.update(
         projectId,
         updatedData,
-        userId
+        `users/${userId}/projects`
       );
       if (updatedProject) {
         logger.info(

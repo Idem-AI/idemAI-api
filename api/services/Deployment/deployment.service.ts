@@ -7,7 +7,6 @@ import {
   GitRepository,
   EnvironmentVariable,
   ChatMessage,
-  ArchitectureTemplate,
   CloudComponentDetailed,
   ArchitectureComponent,
   PipelineStep,

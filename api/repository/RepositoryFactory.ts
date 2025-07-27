@@ -13,21 +13,16 @@ interface BaseEntity {
 
 export class RepositoryFactory {
   /**
-   * Get a repository instance for the specified collection
-   * @param collectionName The name of the collection
-   * @param userSpecificCollection Whether the collection is stored under users/{userId}/{collectionName}
-   * @returns A repository instance for the specified collection
+   * Get a repository instance for the active SGBD
+   * @returns A repository instance
    */
-  public static getRepository<T extends BaseEntity>(
-    collectionName: string, 
-    userSpecificCollection: boolean = false
-  ): IRepository<T> {
-    logger.info(`RepositoryFactory.getRepository called for collection: ${collectionName}, userSpecific: ${userSpecificCollection}, SGBD: ${activeSGBD}`);
+  public static getRepository<T extends BaseEntity>(): IRepository<T> {
+    logger.info(`RepositoryFactory.getRepository called, SGBD: ${activeSGBD}`);
     
     switch (activeSGBD) {
       case SGBDType.FIRESTORE:
-        logger.info(`Creating FirestoreRepository for collection: ${collectionName}, userSpecific: ${userSpecificCollection}`);
-        return new FirestoreRepository<T>(collectionName, userSpecificCollection);
+        logger.info(`Creating FirestoreRepository`);
+        return new FirestoreRepository<T>();
       // case SGBDType.MONGODB:
       //   // Assuming you would have a MongoDBRepository that implements IRepository
       //   // import { MongoDBRepository } from './MongoDBRepository'; 
@@ -37,7 +32,7 @@ export class RepositoryFactory {
       //   // import { PostgreSQLRepository } from './PostgreSQLRepository';
       //   // return new PostgreSQLRepository<T>(collectionName, userSpecificCollection, someDbConnection);
       default:
-        logger.error(`Unsupported SGBD type: ${activeSGBD} requested for collection: ${collectionName}`);
+        logger.error(`Unsupported SGBD type: ${activeSGBD}`);
         throw new Error(`Unsupported SGBD type: ${activeSGBD}`);
     }
   }
