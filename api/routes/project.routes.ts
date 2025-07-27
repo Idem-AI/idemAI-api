@@ -47,7 +47,7 @@ export const projectRoutes = Router();
  *       '500':
  *         description: Internal server error.
  */
-projectRoutes.post("/create", authenticate, checkQuota, projectController.createProject);
+projectRoutes.post("/create", authenticate, projectController.createProject);
 
 
 
@@ -76,7 +76,7 @@ projectRoutes.post("/create", authenticate, checkQuota, projectController.create
  *       '500':
  *         description: Internal server error.
  */
-projectRoutes.get('/', authenticate, checkQuota,  projectController.getAllProjects);
+projectRoutes.get('/', authenticate,  projectController.getAllProjects);
 
 // Get a specific project by ID
 /**
@@ -154,7 +154,7 @@ projectRoutes.get(
  *       '500':
  *         description: Internal server error.
  */
-projectRoutes.put('/:projectId', authenticate, checkQuota, projectController.updateProject);
+projectRoutes.put('/:projectId', authenticate, projectController.updateProject);
 
 // Delete a specific project by ID
 /**
@@ -194,6 +194,5 @@ projectRoutes.put('/:projectId', authenticate, checkQuota, projectController.upd
 projectRoutes.delete(
   "/delete/:projectId",
   authenticate,
-  checkQuota,
   projectController.deleteProject
 );

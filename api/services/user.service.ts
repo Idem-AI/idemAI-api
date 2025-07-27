@@ -140,7 +140,7 @@ class UserService {
             {
               lastLogin: new Date(),
             },
-            uid
+            `users/${uid}`
           )) || user;
       }
 
@@ -247,7 +247,7 @@ class UserService {
             lastResetWeekly: quotaData.lastResetWeekly,
           },
         },
-        userId
+        `users/${userId}`
       );
 
       logger.info(
@@ -382,7 +382,7 @@ class UserService {
           lastResetWeekly: quotaData.lastResetWeekly,
         },
       },
-      userId
+      `users/${userId}`
     );
 
     logger.info(`Created new quota data for user ${userId}`);
@@ -431,7 +431,7 @@ class UserService {
             lastResetWeekly: updatedQuotaData.lastResetWeekly,
           },
         },
-        userId
+        `users/${userId}`
       );
     }
 

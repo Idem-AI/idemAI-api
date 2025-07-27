@@ -117,7 +117,7 @@ export class BrandingService extends GenericService {
       // Get the existing project to prepare for update
       const oldProject = await this.projectRepository.findById(
         projectId,
-        userId
+        `users/${userId}/projects`
       );
       if (!oldProject) {
         logger.warn(
@@ -155,7 +155,7 @@ export class BrandingService extends GenericService {
       const updatedProject = await this.projectRepository.update(
         projectId,
         newProject,
-        userId
+        `users/${userId}/projects`
       );
 
       if (updatedProject) {
@@ -242,7 +242,7 @@ export class BrandingService extends GenericService {
     logger.info(
       `Fetching branding for projectId: ${projectId}, userId: ${userId}`
     );
-    const project = await this.projectRepository.findById(projectId, userId);
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
       logger.warn(
         `Project not found with ID: ${projectId} for user: ${userId} when fetching branding.`
@@ -276,7 +276,7 @@ export class BrandingService extends GenericService {
       `Updating branding for userId: ${userId}, projectId: ${projectId}`
     );
 
-    const project = await this.projectRepository.findById(projectId, userId);
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
       logger.warn(
         `Project not found with ID: ${projectId} for user: ${userId} when updating branding.`
@@ -298,7 +298,7 @@ export class BrandingService extends GenericService {
     const result = await this.projectRepository.update(
       projectId,
       updatedProject,
-      userId
+      `users/${userId}/projects`
     );
     logger.info(`Successfully updated branding for projectId: ${projectId}`);
     return result;
@@ -309,7 +309,7 @@ export class BrandingService extends GenericService {
       `Removing branding for userId: ${userId}, projectId: ${projectId}`
     );
 
-    const project = await this.projectRepository.findById(projectId, userId);
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
       logger.warn(
         `Project not found with ID: ${projectId} for user: ${userId} when deleting branding.`
@@ -352,7 +352,7 @@ export class BrandingService extends GenericService {
       sections: [],
     };
 
-    await this.projectRepository.update(projectId, project, userId);
+    await this.projectRepository.update(projectId, project, `users/${userId}/projects`);
     logger.info(`Successfully reset branding for projectId: ${projectId}`);
     return true;
   }

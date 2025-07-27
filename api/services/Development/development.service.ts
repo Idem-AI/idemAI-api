@@ -189,7 +189,7 @@ export class DevelopmentService extends GenericService {
             project.analysisResultModel
           ),
         },
-        userId
+        `users/${userId}/projects`
       );
 
       if (!updatedProject) {
@@ -306,7 +306,7 @@ export class DevelopmentService extends GenericService {
             project.analysisResultModel
           ),
         },
-        userId
+        `users/${userId}/projects`
       );
 
       if (!updatedProject) {
@@ -391,7 +391,7 @@ export class DevelopmentService extends GenericService {
     logger.info(`Getting all webcontainers for userId: ${userId}`);
 
     try {
-      const projects = await this.projectRepository.findAll(userId);
+      const projects = await this.projectRepository.findAll(`users/${userId}/projects`);
       const allWebContainers: WebContainerModel[] = [];
 
       for (const project of projects) {
@@ -501,7 +501,7 @@ export class DevelopmentService extends GenericService {
             project.analysisResultModel
           ),
         },
-        userId
+        `users/${userId}/projects`
       );
 
       if (!updatedProject) {
@@ -730,7 +730,7 @@ export class DevelopmentService extends GenericService {
     webContainerId: string,
     userId: string
   ): Promise<ProjectModel | null> {
-    const projects = await this.projectRepository.findAll(userId);
+    const projects = await this.projectRepository.findAll(`users/${userId}/projects`);
 
     for (const project of projects) {
       if (project.analysisResultModel?.development) {
@@ -783,7 +783,7 @@ export class DevelopmentService extends GenericService {
 
     project.analysisResultModel.development.configs = developmentConfigs;
 
-    await this.projectRepository.update(projectId, project, userId);
+    await this.projectRepository.update(projectId, project, `users/${userId}/projects`);
     logger.info(
       `Successfully saved development configs for projectId: ${projectId}`
     );

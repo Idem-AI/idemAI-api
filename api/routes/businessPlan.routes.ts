@@ -1,7 +1,6 @@
 import { Router } from "express";
 import {
   generateBusinessPlanController,
-  getBusinessPlansByProjectController,
   getBusinessPlanByIdController,
   updateBusinessPlanController,
   deleteBusinessPlanController,
@@ -102,7 +101,6 @@ businessPlanRoutes.post(
 businessPlanRoutes.get(
   `/${resourceName}/:projectId`,
   authenticate,
-  checkQuota,
   getBusinessPlanByIdController
 );
 
@@ -148,7 +146,6 @@ businessPlanRoutes.get(
 businessPlanRoutes.put(
   `/${resourceName}/:projectId`,
   authenticate,
-  checkQuota,
   updateBusinessPlanController
 );
 
@@ -190,6 +187,5 @@ businessPlanRoutes.put(
 businessPlanRoutes.delete(
   `/${resourceName}/:projectId`,
   authenticate,
-  checkQuota,
   deleteBusinessPlanController
 );

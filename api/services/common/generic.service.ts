@@ -1,6 +1,5 @@
 import { IRepository } from "../../repository/IRepository";
 import { RepositoryFactory } from "../../repository/RepositoryFactory";
-import { TargetModelType } from "../../enums/targetModelType.enum";
 import { PromptService, LLMProvider } from "../prompt.service";
 import { ProjectModel } from "../../models/project.model";
 import { SectionModel } from "../../models/section.model";
@@ -279,7 +278,7 @@ ${step.promptConstant}
     try {
       const oldProject = await this.projectRepository.findById(
         projectId,
-        userId
+        `users/${userId}/projects`
       );
       if (!oldProject) {
         logger.warn(
@@ -301,7 +300,7 @@ ${step.promptConstant}
       const updatedProject = await this.projectRepository.update(
         projectId,
         newProject,
-        userId
+        `users/${userId}/projects`
       );
       logger.info(
         `Successfully updated project with ID: ${projectId} with new ${modelProperty} sections`

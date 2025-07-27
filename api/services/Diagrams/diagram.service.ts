@@ -73,7 +73,7 @@ export class DiagramService extends GenericService {
       }));
 
       // Get the existing project to prepare for update
-      const oldProject = await this.projectRepository.findById(projectId, userId);
+      const oldProject = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
       if (!oldProject) {
         logger.warn(
           `Original project not found with ID: ${projectId} for user: ${userId} before updating with diagrams.`
@@ -108,7 +108,7 @@ export class DiagramService extends GenericService {
       const updatedProject = await this.projectRepository.update(
         projectId,
         newProject,
-        userId
+        `users/${userId}/projects`
       );
 
       if (updatedProject) {
@@ -143,7 +143,7 @@ export class DiagramService extends GenericService {
     logger.info(
       `Fetching diagrams for projectId: ${projectId}, userId: ${userId}`
     );
-    const project = await this.projectRepository.findById(projectId, userId);
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
       logger.warn(
         `Project not found with ID: ${projectId} for user: ${userId} when fetching diagrams.`
@@ -161,7 +161,7 @@ export class DiagramService extends GenericService {
     logger.info(`Getting diagram by ID: ${diagramId} for userId: ${userId}`);
 
     // Look through all projects for this user to find a diagram with matching ID
-    const projects = await this.projectRepository.findAll(userId);
+    const projects = await this.projectRepository.findAll(`users/${userId}/projects`);
 
     for (const project of projects) {
       if (project.analysisResultModel?.design) {
@@ -191,7 +191,7 @@ export class DiagramService extends GenericService {
     );
 
     // Find which project contains this diagram
-    const projects = await this.projectRepository.findAll(userId);
+    const projects = await this.projectRepository.findAll(`users/${userId}/projects`);
     let targetProject: ProjectModel | null = null;
     let diagramIndex = -1;
 
@@ -229,7 +229,7 @@ export class DiagramService extends GenericService {
     const result = await this.projectRepository.update(
       targetProject.id!,
       updatedProject,
-      userId
+      `users/${userId}/projects`
     );
     logger.info(
       `Successfully updated diagram with ID: ${diagramId} for userId: ${userId}`
@@ -243,7 +243,7 @@ export class DiagramService extends GenericService {
     );
 
     // Find which project contains this diagram
-    const projects = await this.projectRepository.findAll(userId);
+    const projects = await this.projectRepository.findAll(`users/${userId}/projects`);
     let targetProject: ProjectModel | null = null;
 
     for (const project of projects) {
@@ -275,7 +275,7 @@ export class DiagramService extends GenericService {
     await this.projectRepository.update(
       targetProject.id!,
       updatedProject,
-      userId
+      `users/${userId}/projects`
     );
     logger.info(
       `Successfully deleted diagram: ${diagramId} for userId: ${userId}`

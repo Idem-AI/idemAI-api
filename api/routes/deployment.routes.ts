@@ -112,7 +112,6 @@ deploymentRoutes.post(
 deploymentRoutes.get(
   `${resourceName}/:projectId`,
   authenticate,
-  checkQuota,
   GetDeploymentsByProjectController
 );
 
@@ -151,7 +150,6 @@ deploymentRoutes.get(
 deploymentRoutes.get(
   `${resourceName}/:projectId/:deploymentId`,
   authenticate,
-  checkQuota,
   GetDeploymentByIdController
 );
 
@@ -202,7 +200,6 @@ deploymentRoutes.get(
 deploymentRoutes.put(
   `${resourceName}/update/:deploymentId`,
   authenticate,
-  checkQuota,
   UpdateDeploymentController
 );
 
@@ -241,7 +238,6 @@ deploymentRoutes.put(
 deploymentRoutes.delete(
   `${resourceName}/delete/:deploymentId`,
   authenticate,
-  checkQuota,
   DeleteDeploymentController
 );
 
@@ -293,7 +289,6 @@ deploymentRoutes.delete(
 deploymentRoutes.put(
   `${resourceName}/updateGitConfig/:deploymentId`,
   authenticate,
-  checkQuota,
   UpdateGitConfigController
 );
 
@@ -344,7 +339,6 @@ deploymentRoutes.put(
 deploymentRoutes.put(
   `${resourceName}/updateEnvVars/:deploymentId`,
   authenticate,
-  checkQuota,
   UpdateEnvironmentVariablesController
 );
 
@@ -413,7 +407,6 @@ deploymentRoutes.put(
 deploymentRoutes.post(
   `${resourceName}/chat`,
   authenticate,
-  checkQuota,
   AddChatMessageController
 );
 
@@ -464,7 +457,6 @@ deploymentRoutes.post(
 deploymentRoutes.put(
   `${resourceName}/updateArchitectureTemplates/:deploymentId`,
   authenticate,
-  checkQuota,
   UpdateArchitectureComponentsController
 );
 
@@ -510,7 +502,6 @@ deploymentRoutes.put(
 deploymentRoutes.post(
   `${resourceName}/startPipeline/:deploymentId`,
   authenticate,
-  checkQuota,
   StartPipelineController
 );
 
@@ -549,7 +540,6 @@ deploymentRoutes.post(
 deploymentRoutes.get(
   `${resourceName}/getPipelineStatus/:deploymentId`,
   authenticate,
-  checkQuota,
   GetPipelineStatusController
 );
 
@@ -588,7 +578,6 @@ deploymentRoutes.get(
 deploymentRoutes.get(
   `${resourceName}/estimateCost/:deploymentId`,
   authenticate,
-  checkQuota,
   EstimateCostController
 );
 
@@ -629,7 +618,6 @@ deploymentRoutes.get(
 deploymentRoutes.post(
   `${resourceName}/create`,
   authenticate,
-  checkQuota,
   CreateDeploymentController
 );
 

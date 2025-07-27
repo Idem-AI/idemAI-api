@@ -122,7 +122,7 @@ export class BusinessPlanService extends GenericService {
     logger.info(
       `Fetching business plan for projectId: ${projectId}, userId: ${userId}`
     );
-    const project = await this.projectRepository.findById(projectId, userId);
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
       logger.warn(
         `Project not found with ID: ${projectId} for user: ${userId} when fetching business plan.`
@@ -146,7 +146,7 @@ export class BusinessPlanService extends GenericService {
       `Attempting to update business plan for itemId: ${itemId}, userId: ${userId}`
     );
     try {
-      const project = await this.projectRepository.findById(itemId, userId);
+      const project = await this.projectRepository.findById(itemId, `users/${userId}/projects`);
       if (!project) {
         logger.warn(
           `Project not found with ID: ${itemId} for user: ${userId} when attempting to update business plan.`
@@ -181,7 +181,7 @@ export class BusinessPlanService extends GenericService {
       `Attempting to delete business plan for itemId: ${itemId}, userId: ${userId}`
     );
     try {
-      const project = await this.projectRepository.findById(itemId, userId);
+      const project = await this.projectRepository.findById(itemId, `users/${userId}/projects`);
       if (!project) {
         logger.warn(
           `Project not found with ID: ${itemId} for user: ${userId} when attempting to delete business plan.`

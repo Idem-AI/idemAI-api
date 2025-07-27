@@ -109,7 +109,6 @@ diagramRoutes.post(
 diagramRoutes.get(
   `/${resourceName}/getAll/:projectId`,
   authenticate,
-  checkQuota,
   getDiagramsByProjectController
 );
 
@@ -147,7 +146,6 @@ diagramRoutes.get(
 diagramRoutes.get(
   `/${resourceName}/get/:diagramId`,
   authenticate,
-  checkQuota,
   getDiagramByIdController
 );
 
@@ -193,7 +191,6 @@ diagramRoutes.get(
 diagramRoutes.put(
   `/${resourceName}/update/:diagramId`,
   authenticate,
-  checkQuota,
   updateDiagramController
 );
 
@@ -235,6 +232,5 @@ diagramRoutes.put(
 diagramRoutes.delete(
   `/${resourceName}/delete/:diagramId`,
   authenticate,
-  checkQuota,
   deleteDiagramController
 );
