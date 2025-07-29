@@ -34,9 +34,6 @@ export class BrandingService extends GenericService {
       `Generating branding for userId: ${userId}, projectId: ${projectId}`
     );
 
-    // Initialize temp file
-    await this.initTempFile(projectId, "branding");
-
     // Get project
     const project = await this.getProject(projectId, userId);
     if (!project) {
@@ -44,61 +41,56 @@ export class BrandingService extends GenericService {
     }
 
     // Extract and add project description to context
-    const projectDescription = this.extractProjectDescription(project);
-    await this.addDescriptionToContext(
-      "Here is the project description: " + projectDescription
-    );
-    await this.addDescriptionToContext(
-      "Here is the project branding: " +
-        JSON.stringify(project.analysisResultModel.branding)
-    );
-    await this.addDescriptionToContext(
-      "Here is the project branding colors: " +
-        JSON.stringify(project.analysisResultModel.branding.colors)
-    );
-    await this.addDescriptionToContext(
-      "Here is the project branding typography: " +
-        JSON.stringify(project.analysisResultModel.branding.typography)
-    );
-    await this.addDescriptionToContext(
-      "Here is the project branding logo: " +
-        JSON.stringify(project.analysisResultModel.branding.logo)
-    );
+    const projectDescription =
+      this.extractProjectDescription(project) +
+      "\n\nHere is the project branding colors: " +
+      JSON.stringify(project.analysisResultModel.branding.colors) +
+      "\n\nHere is the project branding typography: " +
+      JSON.stringify(project.analysisResultModel.branding.typography) +
+      "\n\nHere is the project branding logo: " +
+      JSON.stringify(project.analysisResultModel.branding.logo);
 
     try {
       // Define branding steps
       const steps: IPromptStep[] = [
         {
-          promptConstant: BRAND_HEADER_SECTION_PROMPT,
+          promptConstant: projectDescription + BRAND_HEADER_SECTION_PROMPT,
           stepName: "Brand Header",
+          hasDependencies: false,
         },
         {
-          promptConstant: LOGO_SYSTEM_SECTION_PROMPT,
+          promptConstant: projectDescription + LOGO_SYSTEM_SECTION_PROMPT,
           stepName: "Logo System",
+          hasDependencies: false,
         },
         {
-          promptConstant: COLOR_PALETTE_SECTION_PROMPT,
+          promptConstant: projectDescription + COLOR_PALETTE_SECTION_PROMPT,
           stepName: "Color Palette",
+          hasDependencies: false,
         },
         {
-          promptConstant: TYPOGRAPHY_SECTION_PROMPT,
+          promptConstant: projectDescription + TYPOGRAPHY_SECTION_PROMPT,
           stepName: "Typography",
+          hasDependencies: false,
         },
         {
-          promptConstant: USAGE_GUIDELINES_SECTION_PROMPT,
+          promptConstant: projectDescription + USAGE_GUIDELINES_SECTION_PROMPT,
           stepName: "Usage Guidelines",
         },
+        // {
+        //   promptConstant: projectDescription + VISUAL_EXAMPLES_SECTION_PROMPT,
+        //   stepName: "Visual Examples",
+        //   hasDependencies: false
+        // },
         {
-          promptConstant: VISUAL_EXAMPLES_SECTION_PROMPT,
-          stepName: "Visual Examples",
-        },
-        {
-          promptConstant: BRAND_FOOTER_SECTION_PROMPT,
+          promptConstant: projectDescription + BRAND_FOOTER_SECTION_PROMPT,
           stepName: "Brand Footer",
+          hasDependencies: false,
         },
         {
           promptConstant: GLOBAL_CSS_PROMPT,
           stepName: "Global CSS",
+          hasDependencies: false,
         },
       ];
 
@@ -171,18 +163,8 @@ export class BrandingService extends GenericService {
       );
       throw error;
     } finally {
-      try {
-        logger.info(
-          `Attempting to remove temporary file: ${this.tempFilePath}`
-        );
-        // Clean up the temporary file
-        await this.cleanup();
-      } catch (cleanupError) {
-        logger.error(
-          `Error removing temporary file ${this.tempFilePath}:`,
-          cleanupError
-        );
-      }
+      // No cleanup needed - in-memory context is automatically garbage collected
+      logger.info(`Completed branding generation for projectId ${projectId}`);
     }
   }
 
@@ -197,17 +179,16 @@ export class BrandingService extends GenericService {
     logger.info(
       `Generating logo colors and typography for userId: ${userId}, projectId: ${project.id}`
     );
-    await this.initTempFile(project.id!, "branding");
+
     if (!project.id) {
       throw new Error(`Project not found with ID: ${project.id}`);
     }
 
     const projectDescription = this.extractProjectDescription(project);
-    await this.addDescriptionToContext(projectDescription);
 
     const steps: IPromptStep[] = [
       {
-        promptConstant: COLORS_TYPOGRAPHY_GENERATION_PROMPT,
+        promptConstant: projectDescription + COLORS_TYPOGRAPHY_GENERATION_PROMPT,
         stepName: "Colors and Typography Generation",
         modelParser: (content) =>
           this.parseSection(
@@ -215,12 +196,14 @@ export class BrandingService extends GenericService {
             "Colors and Typography Generation",
             project.id!
           ),
+          hasDependencies: false,
       },
       {
         promptConstant: LOGO_GENERATION_PROMPT,
         stepName: "Logo Generation",
         modelParser: (content) =>
           this.parseSection(content, "Logo Generation", project.id!),
+        requiresSteps: ["Colors and Typography Generation"],
       },
     ];
     const sectionResults = await this.processSteps(steps, project);
@@ -242,7 +225,10 @@ export class BrandingService extends GenericService {
     logger.info(
       `Fetching branding for projectId: ${projectId}, userId: ${userId}`
     );
-    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    const project = await this.projectRepository.findById(
+      projectId,
+      `users/${userId}/projects`
+    );
     if (!project) {
       logger.warn(
         `Project not found with ID: ${projectId} for user: ${userId} when fetching branding.`
@@ -276,7 +262,10 @@ export class BrandingService extends GenericService {
       `Updating branding for userId: ${userId}, projectId: ${projectId}`
     );
 
-    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    const project = await this.projectRepository.findById(
+      projectId,
+      `users/${userId}/projects`
+    );
     if (!project) {
       logger.warn(
         `Project not found with ID: ${projectId} for user: ${userId} when updating branding.`
@@ -309,7 +298,10 @@ export class BrandingService extends GenericService {
       `Removing branding for userId: ${userId}, projectId: ${projectId}`
     );
 
-    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    const project = await this.projectRepository.findById(
+      projectId,
+      `users/${userId}/projects`
+    );
     if (!project) {
       logger.warn(
         `Project not found with ID: ${projectId} for user: ${userId} when deleting branding.`
@@ -352,7 +344,11 @@ export class BrandingService extends GenericService {
       sections: [],
     };
 
-    await this.projectRepository.update(projectId, project, `users/${userId}/projects`);
+    await this.projectRepository.update(
+      projectId,
+      project,
+      `users/${userId}/projects`
+    );
     logger.info(`Successfully reset branding for projectId: ${projectId}`);
     return true;
   }

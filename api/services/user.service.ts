@@ -108,19 +108,24 @@ class UserService {
 
         user = await this.userRepository.create(
           {
-            uid: "",
-            email: "",
-            subscription: "free",
+            uid: uid,
+            email: userRecord.email || "",
+            displayName: userRecord.displayName || "",
+            photoURL: userRecord.photoURL || "",
+            subscription: "free", // Default subscription
             lastLogin: new Date(),
             quota: {
-              dailyUsage: this.quotaLimits.dailyLimit,
-              weeklyUsage: this.quotaLimits.weeklyLimit,
+              dailyUsage: 0,
+              weeklyUsage: 0,
+              dailyLimit: this.quotaLimits.dailyLimit,
+              weeklyLimit: this.quotaLimits.weeklyLimit,
               lastResetDaily: new Date().toISOString().split("T")[0],
-              lastResetWeekly: new Date().toISOString().split("T")[0],
+              lastResetWeekly: this.getWeekStart(new Date())
+                .toISOString()
+                .split("T")[0],
             },
-            displayName: "",
-            photoURL: "",
           },
+          "users",
           uid
         );
       } else {
@@ -139,8 +144,9 @@ class UserService {
             uid,
             {
               lastLogin: new Date(),
+              quota: user.quota, // Ensure quota is preserved
             },
-            `users/${uid}`
+            "users"
           )) || user;
       }
 
@@ -223,7 +229,7 @@ class UserService {
   /**
    * Increment user's usage counters
    */
-  async incrementUsage(userId: string,incrementValue: number): Promise<void> {
+  async incrementUsage(userId: string, incrementValue: number): Promise<void> {
     try {
       logger.info(`Incrementing usage for user: ${userId}`);
 
@@ -247,7 +253,7 @@ class UserService {
             lastResetWeekly: quotaData.lastResetWeekly,
           },
         },
-        `users/${userId}`
+        "users"
       );
 
       logger.info(
@@ -323,7 +329,7 @@ class UserService {
       const user: UserModel | null = await this.userRepository.findById(
         userId,
         "users"
-      )!;
+      );
 
       if (!user) {
         logger.warn(`User ${userId} not found when getting quota data`);
@@ -382,7 +388,7 @@ class UserService {
           lastResetWeekly: quotaData.lastResetWeekly,
         },
       },
-      `users/${userId}`
+      "users"
     );
 
     logger.info(`Created new quota data for user ${userId}`);
@@ -431,7 +437,7 @@ class UserService {
             lastResetWeekly: updatedQuotaData.lastResetWeekly,
           },
         },
-        `users/${userId}`
+        "users"
       );
     }
 

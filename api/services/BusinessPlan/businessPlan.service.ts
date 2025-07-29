@@ -1,5 +1,5 @@
-import { PromptService } from "../prompt.service";
-import { FAISABILITY_PROMPT } from "./prompts/01_faisability.prompt";
+import { LLMProvider, PromptConfig, PromptService } from "../prompt.service";
+import { FEASABILITY_PROMPT } from "./prompts/01_faisability.prompt";
 import { ProjectModel } from "../../models/project.model";
 import { RISK_ANALYSIS_PROMPT } from "./prompts/02_risk-analylsis.prompt";
 import { REQUIREMENTS_PROMPT } from "./prompts/04_requirements.prompt";
@@ -11,6 +11,7 @@ import { BusinessPlanModel } from "../../models/businessPlan.model";
 import { PROJECT_DESCRIPTION_PROMPT } from "./prompts/00_projectDescription.prompt";
 import { GenericService, IPromptStep } from "../common/generic.service";
 import { SectionModel } from "../../models/section.model";
+import { GLOBAL_CSS_PROMPT } from "./prompts/07_global-css-section.prompt";
 
 export class BusinessPlanService extends GenericService {
   constructor(promptService: PromptService) {
@@ -26,50 +27,71 @@ export class BusinessPlanService extends GenericService {
       `Generating business plan for userId: ${userId}, projectId: ${projectId}`
     );
 
-    // Initialize temp file
-    await this.initTempFile(projectId, "business_plan");
-
     // Get project
     const project = await this.getProject(projectId, userId);
     if (!project) {
       return null;
     }
-
+    const projectDescription = this.extractProjectDescription(project);
     try {
       // Define business plan steps
       const steps: IPromptStep[] = [
         {
-          promptConstant: PROJECT_DESCRIPTION_PROMPT,
+          promptConstant: projectDescription + PROJECT_DESCRIPTION_PROMPT,
           stepName: "Project Description",
+          hasDependencies: false,
         },
+
         {
-          promptConstant: FAISABILITY_PROMPT,
+          promptConstant: FEASABILITY_PROMPT,
           stepName: "Feasibility Study",
+          requiresSteps: ["Project Description"],
         },
         {
           promptConstant: RISK_ANALYSIS_PROMPT,
           stepName: "Risk Analysis",
+          requiresSteps: ["Project Description"],
         },
         {
           promptConstant: SMART_OBJECTIVES_PROMPT,
           stepName: "SMART Objectives",
+          requiresSteps: ["Project Description"],
         },
         {
           promptConstant: REQUIREMENTS_PROMPT,
           stepName: "Detailed Requirements",
+          requiresSteps: ["Project Description"],
         },
         {
           promptConstant: STAKEHOLDER_MEETINGS_PROMPT,
           stepName: "Stakeholder Meeting Plan",
+          requiresSteps: ["Project Description"],
         },
         {
           promptConstant: USE_CASE_MODELING_PROMPT,
           stepName: "Use Case Modeling",
+          requiresSteps: ["Project Description"],
+        },
+        {
+          promptConstant: GLOBAL_CSS_PROMPT,
+          stepName: "Global CSS",
+          hasDependencies: false,
         },
       ];
-
+      const promptConfig: PromptConfig = {
+        provider: LLMProvider.CHATGPT,
+        modelName: "gpt-4o",
+        llmOptions: {
+          temperature: 0.2,
+          maxOutputTokens: 4096,
+        },
+      };
       // Process all steps and get results
-      const sectionResults = await this.processSteps(steps, project);
+      const sectionResults = await this.processSteps(
+        steps,
+        project,
+        promptConfig
+      );
 
       // Map sections from results
       const sections: SectionModel[] = sectionResults.map((result) => ({
@@ -100,18 +122,10 @@ export class BusinessPlanService extends GenericService {
       );
       throw error;
     } finally {
-      try {
-        logger.info(
-          `Attempting to remove temporary file: ${this.tempFilePath}`
-        );
-        // Clean up the temporary file
-        await this.cleanup();
-      } catch (cleanupError) {
-        logger.error(
-          `Error removing temporary file ${this.tempFilePath}:`,
-          cleanupError
-        );
-      }
+      // No cleanup needed - in-memory context is automatically garbage collected
+      logger.info(
+        `Completed business plan generation for projectId ${projectId}`
+      );
     }
   }
 
@@ -122,7 +136,11 @@ export class BusinessPlanService extends GenericService {
     logger.info(
       `Fetching business plan for projectId: ${projectId}, userId: ${userId}`
     );
-    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    const project = await this.projectRepository.findById(
+      projectId,
+      `users/${userId}/projects`
+    );
+    console.log("project", project);
     if (!project) {
       logger.warn(
         `Project not found with ID: ${projectId} for user: ${userId} when fetching business plan.`
@@ -146,7 +164,10 @@ export class BusinessPlanService extends GenericService {
       `Attempting to update business plan for itemId: ${itemId}, userId: ${userId}`
     );
     try {
-      const project = await this.projectRepository.findById(itemId, `users/${userId}/projects`);
+      const project = await this.projectRepository.findById(
+        itemId,
+        `users/${userId}/projects`
+      );
       if (!project) {
         logger.warn(
           `Project not found with ID: ${itemId} for user: ${userId} when attempting to update business plan.`
@@ -181,7 +202,10 @@ export class BusinessPlanService extends GenericService {
       `Attempting to delete business plan for itemId: ${itemId}, userId: ${userId}`
     );
     try {
-      const project = await this.projectRepository.findById(itemId, `users/${userId}/projects`);
+      const project = await this.projectRepository.findById(
+        itemId,
+        `users/${userId}/projects`
+      );
       if (!project) {
         logger.warn(
           `Project not found with ID: ${itemId} for user: ${userId} when attempting to delete business plan.`

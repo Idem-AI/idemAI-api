@@ -62,6 +62,7 @@ import { ChatMessage, DeploymentModel } from "./deployment.model";
  *         - analysisResultModel
  */
 export interface ProjectModel {
+  project: any;
   id?: string;
   name: string;
   description: string;

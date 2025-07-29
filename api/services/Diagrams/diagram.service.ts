@@ -26,9 +26,6 @@ export class DiagramService extends GenericService {
       `Generating diagrams for userId: ${userId}, projectId: ${projectId}`
     );
 
-    // Initialize temp file
-    await this.initTempFile(projectId, "diagram");
-
     // Get project
     const project = await this.getProject(projectId, userId);
     if (!project) {
@@ -41,22 +38,27 @@ export class DiagramService extends GenericService {
         {
           promptConstant: USE_CASE_DIAGRAM_PROMPT,
           stepName: "Uses Cases Diagram",
+          hasDependencies: false,
         },
         {
           promptConstant: CLASS_DIAGRAM_PROMPT,
           stepName: "Class Diagram",
+          requiresSteps: ["Uses Cases Diagram"],
         },
         {
           promptConstant: ARCHITECTURE_DIAGRAM_PROMPT,
           stepName: "Architecture Diagram",
+          requiresSteps: ["Uses Cases Diagram"],
         },
         {
           promptConstant: ENTITY_DIAGRAM_PROMPT,
           stepName: "Entity Relationship Diagram",
+          requiresSteps: ["Uses Cases Diagram"],
         },
         {
           promptConstant: SEQUENCE_DIAGRAM_PROMPT,
           stepName: "Sequence Diagram",
+          requiresSteps: ["Uses Cases Diagram"],
         },
       ];
 
@@ -122,14 +124,10 @@ export class DiagramService extends GenericService {
         `Error generating diagrams for projectId ${projectId}:`,
         error
       );
-      // Clean up the temporary file
-      await this.cleanup();
       return null;
     } finally {
       try {
         logger.info(`Attempting to remove temporary file:`);
-        // Clean up the temporary file
-        await this.cleanup();
       } catch (cleanupError) {
         logger.error(`Error removing temporary file:`, cleanupError);
       }

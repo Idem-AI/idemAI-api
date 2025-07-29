@@ -16,7 +16,12 @@ import {
   DeploymentValidators,
 } from "../../models/deployment.model";
 import logger from "../../config/logger";
-import { PromptService, LLMProvider } from "../prompt.service";
+import {
+  PromptService,
+  LLMProvider,
+  AIChatMessage,
+  PromptConfig,
+} from "../prompt.service";
 import { GenericService } from "../common/generic.service";
 import { exec } from "child_process";
 import { promisify } from "util";
@@ -189,7 +194,6 @@ export class DeploymentService extends GenericService {
       logger.info(
         `Deployment generated successfully - UserId: ${userId}, ProjectId: ${projectId}, DeploymentId: ${generatedDeployment.id}`
       );
-
 
       return generatedDeployment;
     } catch (error: any) {
@@ -497,13 +501,13 @@ export class DeploymentService extends GenericService {
       "Use the project information and other details to create appropriate, well-commented Terraform code.";
 
     try {
-      const response = await this.promptService.runPrompt({
+      const messages: AIChatMessage[] = [
+        { role: "system", content: TERRAFORM_SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ];
+      const promptConfig: PromptConfig = {
         provider: LLMProvider.GEMINI,
         modelName: "gemini-2.5-flash",
-        messages: [
-          { role: "system", content: TERRAFORM_SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
-        ],
         file: this.contextFilePath
           ? { localPath: this.contextFilePath, mimeType: "text/plain" }
           : undefined,
@@ -511,7 +515,12 @@ export class DeploymentService extends GenericService {
           temperature: 0.2,
           maxOutputTokens: 4096,
         },
-      });
+      };
+
+      const response = await this.promptService.runPrompt(
+        promptConfig,
+        messages
+      );
 
       if (!response) {
         logger.warn(`No response from LLM for ${stepName} generation`);
@@ -935,19 +944,20 @@ export class DeploymentService extends GenericService {
           );
 
           // Call the PromptService to generate a response
-          const aiResponse = await this.promptService.runPrompt({
-            provider: LLMProvider.GEMINI,
-            modelName: "gemini-2.5-flash",
-            messages: promptMessages,
-            llmOptions: {
-              temperature: 0.7,
-              maxOutputTokens: 1024,
+          const aiResponse = await this.promptService.runPrompt(
+            {
+              provider: LLMProvider.GEMINI,
+              modelName: "gemini-2.5-flash",
+              llmOptions: {
+                temperature: 0.7,
+                maxOutputTokens: 1024,
+              },
             },
-          });
+            promptMessages
+          );
           console.log("aiResponse", aiResponse);
 
           // Create an AI message and parse the response as JSON if possible
-          let aiMessage: ChatMessage;
 
           try {
             // Try to extract JSON from the response (it might be wrapped in markdown code blocks)
@@ -958,7 +968,7 @@ export class DeploymentService extends GenericService {
             const parsedResponse = JSON.parse(jsonContent);
 
             // Create an AI message from the structured response
-            aiMessage = {
+            const aiMessage = {
               sender: "ai",
               text: parsedResponse.message || aiResponse, // Fallback to raw response if message field missing
               timestamp: new Date(),
@@ -980,7 +990,7 @@ export class DeploymentService extends GenericService {
             );
 
             // Fallback to treating the response as plain text
-            aiMessage = {
+            message = {
               sender: "ai",
               text: aiResponse,
               timestamp: new Date(),
@@ -993,7 +1003,7 @@ export class DeploymentService extends GenericService {
           if (!project.activeChatMessages) {
             project.activeChatMessages = [];
           }
-          project.activeChatMessages.push(aiMessage);
+          project.activeChatMessages.push(message);
         } catch (promptError: any) {
           logger.error(
             `Error generating AI response for project ${projectId}: ${promptError.message}`,

@@ -7,11 +7,7 @@ STRICT REQUIREMENTS:
 <footer class="brand-footer">
   <div class="footer-content">
     <div class="footer-logo">
-      <svg class="footer-logo-svg" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
-        <path d="M10,20 C30,5 90,5 110,20 C90,35 30,35 10,20" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round" />
-        <circle cx="40" cy="20" r="7" fill="currentColor" />
-        <circle cx="80" cy="20" r="7" fill="currentColor" />
-      </svg>
+     [Logo]
     </div>
     <div class="footer-info">
       <h3 class="footer-title">Brand Guidelines</h3>
@@ -29,7 +25,6 @@ RULES:
 1. Maintain exact HTML structure
 2. Use copyright current year
 3. Preserve all classes and structure
-4. Keep the SVG logo as is
 5. Ensure all text is in English
 
 PROJECT CONTEXT:`;

@@ -1,11 +1,16 @@
 import { IRepository } from "../../repository/IRepository";
 import { RepositoryFactory } from "../../repository/RepositoryFactory";
-import { PromptService, LLMProvider } from "../prompt.service";
+import {
+  PromptService,
+  LLMProvider,
+  PromptRequest,
+  PromptConfig,
+  AIChatMessage,
+} from "../prompt.service";
 import { ProjectModel } from "../../models/project.model";
 import { SectionModel } from "../../models/section.model";
-import * as fs from "fs-extra";
-import * as path from "path";
-import * as os from "os";
+// File operations have been removed - using in-memory context
+
 import logger from "../../config/logger";
 
 // Define interface for prompt step
@@ -13,6 +18,14 @@ export interface IPromptStep {
   promptConstant: string;
   stepName: string;
   modelParser?: (content: string) => any;
+  // Optional list of specific previous step names this step requires
+  // If not provided, all previous steps will be included
+  requiresSteps?: string[];
+  // Boolean indicating if this step depends on ANY previous steps
+  // If false, no previous steps will be included regardless of requiresSteps
+  // If true, either all steps or those in requiresSteps will be included
+  // If not provided, defaults to true (backward compatibility)
+  hasDependencies?: boolean;
 }
 
 // Define interface for section result
@@ -26,30 +39,11 @@ export interface ISectionResult {
 
 export class GenericService {
   protected projectRepository: IRepository<ProjectModel>;
-  protected tempFilePath: string = "";
+  // tempFilePath property removed - using in-memory context instead
 
   constructor(protected promptService: PromptService) {
     logger.info("GenericService initialized");
     this.projectRepository = RepositoryFactory.getRepository<ProjectModel>();
-  }
-
-  /**
-   * Initializes the temporary file for accumulating context
-   * @param projectId Project ID
-   * @param prefix Prefix for the temp file name
-   * @returns Path to the created temporary file
-   */
-  protected async initTempFile(
-    projectId: string,
-    prefix: string
-  ): Promise<string> {
-    const tempFileName = `${prefix}_context_${projectId}_${Date.now()}.txt`;
-    this.tempFilePath = path.join(os.tmpdir(), tempFileName);
-
-    await fs.writeFile(this.tempFilePath, "", "utf-8");
-    logger.info(`Temporary file created: ${this.tempFilePath}`);
-
-    return this.tempFilePath;
   }
 
   /**
@@ -106,20 +100,6 @@ export class GenericService {
   }
 
   /**
-   * Adds project description to the context file
-   * @param projectDescription Project description text
-   */
-  protected async addDescriptionToContext(
-    projectDescription: string
-  ): Promise<void> {
-    if (projectDescription && this.tempFilePath) {
-      const descriptionContext = `## Project Description\n\n${projectDescription}\n\n---\n`;
-      await fs.appendFile(this.tempFilePath, descriptionContext, "utf-8");
-      logger.info(`Added project description to context file`);
-    }
-  }
-
-  /**
    * Runs a single step and appends the result to the temp file
    * @param step Prompt step configuration
    * @param project Project model
@@ -132,45 +112,89 @@ export class GenericService {
     step: IPromptStep,
     project: ProjectModel,
     includeProjectInfo: boolean = true,
+    messages: AIChatMessage[],
     userId?: string,
-    promptType?: string
+    promptType?: string,
+    contextFromPreviousSteps: string = "",
+    promptConfig: PromptConfig = {
+      provider: LLMProvider.GEMINI,
+      modelName: "gemini-2.5-flash",
+      userId,
+      promptType: promptType || step.stepName,
+    }
   ): Promise<string> {
     logger.info(
       `Generating section: '${step.stepName}' for projectId: ${project.id}`
     );
 
-    let currentStepPrompt = `You are generating content section by section.
-    The previously generated content is available in the attached text file.
-    Please review the attached file for context.
+    // Construire le prompt avec ou sans contexte des étapes précédentes
+    const hasDependencies =
+      step.hasDependencies !== undefined ? step.hasDependencies : true;
 
-    CURRENT TASK: Generate the '${step.stepName}' section.
+    let currentStepPrompt: string;
 
-    ${
-      includeProjectInfo
-        ? `PROJECT DETAILS (from input 'data' object):
-${JSON.stringify(project, null, 2)}`
-        : ""
-    }
+    if (!hasDependencies || !contextFromPreviousSteps) {
+      // Prompt sans contexte des étapes précédentes
+      currentStepPrompt = `CURRENT TASK: Generate the '${
+        step.stepName
+      }' section.
 
-    SPECIFIC INSTRUCTIONS FOR '${step.stepName}':
+${
+  includeProjectInfo
+    ? `PROJECT DETAILS (from input 'data' object):
+${JSON.stringify(
+  {
+    description: project.description,
+    targets: project.targets,
+    type: project.type,
+    scope: project.scope,
+  },
+  null,
+  2
+)}`
+    : ""
+}
+
+SPECIFIC INSTRUCTIONS FOR '${step.stepName}':
 ${step.promptConstant}
 
-    Please generate *only* the content for the '${step.stepName}' section,
-    building upon the context from the attached file.`;
+Please generate *only* the content for the '${step.stepName}' section.`;
+    } else {
+      // Prompt avec contexte des étapes précédentes intégré directement
+      currentStepPrompt = `You are generating content section by section.
+Here is the previously generated content for context:
 
-    const response = await this.promptService.runPrompt({
-      provider: LLMProvider.GEMINI,
-      modelName: "gemini-2.5-flash",
-      messages: [
-        {
-          role: "user",
-          content: currentStepPrompt,
-        },
-      ],
-      file: { localPath: this.tempFilePath, mimeType: "text/plain" },
-      userId,
-      promptType: promptType || step.stepName,
-    });
+--- PREVIOUS CONTEXT ---
+${contextFromPreviousSteps}
+--- END PREVIOUS CONTEXT ---
+
+CURRENT TASK: Generate the '${step.stepName}' section.
+
+${
+  includeProjectInfo
+    ? `PROJECT DETAILS (from input 'data' object):
+${JSON.stringify(
+  {
+    description: project.description,
+    targets: project.targets,
+    type: project.type,
+    scope: project.scope,
+  },
+  null,
+  2
+)}`
+    : ""
+}
+
+SPECIFIC INSTRUCTIONS FOR '${step.stepName}':
+${step.promptConstant}
+
+Please generate *only* the content for the '${
+        step.stepName
+      }' section, building upon the context provided above.`;
+    }
+
+    const response = await this.promptService.runPrompt(promptConfig, messages);
 
     logger.debug(`LLM response for section '${step.stepName}': ${response}`);
     const stepSpecificContent = this.promptService.getCleanAIText(response);
@@ -178,10 +202,9 @@ ${step.promptConstant}
       `Successfully generated and processed section: '${step.stepName}' for projectId: ${project.id}`
     );
 
-    const sectionOutputToFile = `\n\n## ${step.stepName}\n\n${stepSpecificContent}\n\n---\n`;
-    await fs.appendFile(this.tempFilePath, sectionOutputToFile, "utf-8");
+    // In-memory context handling - no file operations needed
     logger.info(
-      `Appended section '${step.stepName}' to temporary file: ${this.tempFilePath}`
+      `Successfully processed section '${step.stepName}' for in-memory context`
     );
 
     return stepSpecificContent;
@@ -193,14 +216,89 @@ ${step.promptConstant}
    * @param project Project model
    * @returns Array of section results
    */
+
   protected async processSteps(
     steps: IPromptStep[],
-    project: ProjectModel
+    project: ProjectModel,
+    promptConfig?: PromptConfig,
+    promptType?: string,
+    userId?: string
   ): Promise<ISectionResult[]> {
     const results: ISectionResult[] = [];
+    const completedSteps: { name: string; content: string }[] = [];
 
     for (const step of steps) {
-      const content = await this.runStepAndAppend(step, project);
+      const hasDependencies =
+        step.hasDependencies !== undefined ? step.hasDependencies : true;
+
+      // Construire le contexte des étapes précédentes si nécessaire
+      let contextFromPreviousSteps = "";
+
+      if (
+        hasDependencies &&
+        step.requiresSteps &&
+        step.requiresSteps.length > 0
+      ) {
+        // Filtrer et concaténer uniquement les étapes spécifiées
+        const requiredSteps = completedSteps.filter((s) =>
+          step.requiresSteps!.includes(s.name)
+        );
+        console.log("requiredSteps", requiredSteps);
+
+        contextFromPreviousSteps = requiredSteps
+          .map((s) => `## ${s.name}\n\n${s.content}\n\n---\n`)
+          .join("\n");
+
+        logger.info(
+          `Built context for step '${step.stepName}' from ${
+            requiredSteps.length
+          } required steps: [${requiredSteps.map((s) => s.name).join(", ")}]`
+        );
+      } else if (
+        hasDependencies &&
+        (!step.requiresSteps || step.requiresSteps.length === 0)
+      ) {
+        // Inclure toutes les étapes précédentes si hasDependencies=true mais requiresSteps non spécifié
+        contextFromPreviousSteps = completedSteps
+          .map((s) => `## ${s.name}\n\n${s.content}\n\n---\n`)
+          .join("\n");
+
+        logger.info(
+          `Built context for step '${step.stepName}' from all ${completedSteps.length} previous steps`
+        );
+      } else {
+        // Aucune dépendance
+        logger.info(
+          `No context needed for step '${step.stepName}' (no dependencies)`
+        );
+      }
+      const messages: AIChatMessage[] = [
+        {
+          role: "system",
+          content: contextFromPreviousSteps,
+        },
+        {
+          role: "user",
+          content: step.promptConstant,
+        },
+      ];
+      // Exécuter l'étape actuelle avec le contexte construit
+      const content = await this.runStepAndAppend(
+        step,
+        project,
+        true,
+        messages,
+        userId,
+        promptType || step.stepName,
+        contextFromPreviousSteps,
+        promptConfig
+      );
+
+      // Stocker le contenu de cette étape pour les étapes futures
+      completedSteps.push({
+        name: step.stepName,
+        content: content,
+      });
 
       let parsedData = null;
       if (step.modelParser) {
@@ -313,23 +411,6 @@ ${step.promptConstant}
         error
       );
       return null;
-    }
-  }
-
-  /**
-   * Cleans up temporary resources
-   */
-  protected async cleanup(): Promise<void> {
-    if (this.tempFilePath && (await fs.pathExists(this.tempFilePath))) {
-      try {
-        await fs.remove(this.tempFilePath);
-        logger.info(`Removed temporary file: ${this.tempFilePath}`);
-      } catch (error) {
-        logger.warn(
-          `Failed to remove temporary file: ${this.tempFilePath}`,
-          error
-        );
-      }
     }
   }
 }

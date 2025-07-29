@@ -115,7 +115,7 @@ export const getBusinessPlanByIdController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  const { itemId: projectId } = req.params; // Assuming itemId from route is the projectId
+  const { projectId } = req.params;
   logger.info(
     `getBusinessPlanByIdController (acting as getByProjectId) called - UserId: ${userId}, ProjectId: ${projectId}`
   );

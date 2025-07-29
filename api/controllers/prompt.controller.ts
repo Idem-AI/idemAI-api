@@ -15,9 +15,11 @@ class PromptController {
         });
         return;
       }
+      const messages = requestBody.messages;
+      const config = requestBody;
 
       // Pass the runPrompt function from the service to tryGenerateFullJSON
-      const jsonResponse = await this.promptService.runPrompt(requestBody);
+      const jsonResponse = await this.promptService.runPrompt(config, messages);
       res.status(200).json(jsonResponse);
     } catch (error: any) {
       console.error("Error in PromptController:", error);

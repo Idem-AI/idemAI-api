@@ -85,6 +85,7 @@ export const generateLogoColorsAndTypographyController = async (
       res.status(400).json({ message: "Project ID is required" });
       return;
     }
+
     const updatedProject =
       await brandingService.generateLogoColorsAndTypography(userId, project);
 
