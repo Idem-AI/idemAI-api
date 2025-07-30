@@ -5,7 +5,6 @@ import { RISK_ANALYSIS_PROMPT } from "./prompts/02_risk-analylsis.prompt";
 import { REQUIREMENTS_PROMPT } from "./prompts/04_requirements.prompt";
 import { SMART_OBJECTIVES_PROMPT } from "./prompts/03_smart-objectives.prompt";
 import { STAKEHOLDER_MEETINGS_PROMPT } from "./prompts/05_stakeholder-meetings.model";
-import { USE_CASE_MODELING_PROMPT } from "./prompts/06_use-case-modeling.prompt";
 import logger from "../../config/logger";
 import { BusinessPlanModel } from "../../models/businessPlan.model";
 import { PROJECT_DESCRIPTION_PROMPT } from "./prompts/00_projectDescription.prompt";
@@ -33,6 +32,12 @@ export class BusinessPlanService extends GenericService {
       return null;
     }
     const projectDescription = this.extractProjectDescription(project);
+    const logo = JSON.stringify(project.analysisResultModel.branding.logo);
+    const colors = JSON.stringify(project.analysisResultModel.branding.colors);
+    const typography = JSON.stringify(
+      project.analysisResultModel.branding.typography
+    );
+    `Project description:\n\n${projectDescription}\n\nLogo:\n\n${logo}\n\nColors:\n\n${colors}\n\nTypography:\n\n${typography}`;
     try {
       // Define business plan steps
       const steps: IPromptStep[] = [
@@ -41,48 +46,43 @@ export class BusinessPlanService extends GenericService {
           stepName: "Project Description",
           hasDependencies: false,
         },
-
-        {
-          promptConstant: FEASABILITY_PROMPT,
-          stepName: "Feasibility Study",
-          requiresSteps: ["Project Description"],
-        },
-        {
-          promptConstant: RISK_ANALYSIS_PROMPT,
-          stepName: "Risk Analysis",
-          requiresSteps: ["Project Description"],
-        },
-        {
-          promptConstant: SMART_OBJECTIVES_PROMPT,
-          stepName: "SMART Objectives",
-          requiresSteps: ["Project Description"],
-        },
-        {
-          promptConstant: REQUIREMENTS_PROMPT,
-          stepName: "Detailed Requirements",
-          requiresSteps: ["Project Description"],
-        },
-        {
-          promptConstant: STAKEHOLDER_MEETINGS_PROMPT,
-          stepName: "Stakeholder Meeting Plan",
-          requiresSteps: ["Project Description"],
-        },
-        {
-          promptConstant: USE_CASE_MODELING_PROMPT,
-          stepName: "Use Case Modeling",
-          requiresSteps: ["Project Description"],
-        },
         {
           promptConstant: GLOBAL_CSS_PROMPT,
           stepName: "Global CSS",
           hasDependencies: false,
         },
+
+        {
+          promptConstant: FEASABILITY_PROMPT,
+          stepName: "Feasibility Study",
+          requiresSteps: ["Project Description", "Global CSS"],
+        },
+        {
+          promptConstant: RISK_ANALYSIS_PROMPT,
+          stepName: "Risk Analysis",
+          requiresSteps: ["Project Description", "Global CSS"],
+        },
+        {
+          promptConstant: SMART_OBJECTIVES_PROMPT,
+          stepName: "SMART Objectives",
+          requiresSteps: ["Project Description", "Global CSS"],
+        },
+        {
+          promptConstant: REQUIREMENTS_PROMPT,
+          stepName: "Detailed Requirements",
+          requiresSteps: ["Project Description", "Global CSS"],
+        },
+        {
+          promptConstant: STAKEHOLDER_MEETINGS_PROMPT,
+          stepName: "Stakeholder Meeting Plan",
+          requiresSteps: ["Project Description", "Global CSS"],
+        },
       ];
       const promptConfig: PromptConfig = {
-        provider: LLMProvider.CHATGPT,
-        modelName: "gpt-4o",
+        provider: LLMProvider.GEMINI,
+        modelName: "gemini-2.0-flash",
         llmOptions: {
-          temperature: 0.2,
+          temperature: 0.5,
           maxOutputTokens: 4096,
         },
       };
@@ -150,6 +150,9 @@ export class BusinessPlanService extends GenericService {
     logger.info(
       `Successfully fetched business plan for projectId: ${projectId}`
     );
+    project.analysisResultModel.businessPlan!.sections =
+      project.analysisResultModel.businessPlan!.sections.slice(1);
+
     return project.analysisResultModel.businessPlan!;
   }
 
