@@ -1,16 +1,19 @@
 import { LLMProvider, PromptConfig, PromptService } from "../prompt.service";
-import { FEASABILITY_PROMPT } from "./prompts/01_faisability.prompt";
 import { ProjectModel } from "../../models/project.model";
-import { RISK_ANALYSIS_PROMPT } from "./prompts/02_risk-analylsis.prompt";
-import { REQUIREMENTS_PROMPT } from "./prompts/04_requirements.prompt";
-import { SMART_OBJECTIVES_PROMPT } from "./prompts/03_smart-objectives.prompt";
-import { STAKEHOLDER_MEETINGS_PROMPT } from "./prompts/05_stakeholder-meetings.model";
 import logger from "../../config/logger";
 import { BusinessPlanModel } from "../../models/businessPlan.model";
-import { PROJECT_DESCRIPTION_PROMPT } from "./prompts/00_projectDescription.prompt";
 import { GenericService, IPromptStep } from "../common/generic.service";
 import { SectionModel } from "../../models/section.model";
 import { GLOBAL_CSS_PROMPT } from "./prompts/07_global-css-section.prompt";
+import { AGENT_COVER_PROMPT } from "./prompts/agent-cover.prompt";
+import { AGENT_COMPANY_SUMMARY_PROMPT } from "./prompts/agent-company-summary.prompt";
+import { AGENT_OPPORTUNITY_PROMPT } from "./prompts/agent-opportunity.prompt";
+import { AGENT_TARGET_AUDIENCE_PROMPT } from "./prompts/agent-target-audience.prompt";
+import { AGENT_PRODUCTS_SERVICES_PROMPT } from "./prompts/agent-products-services.prompt";
+import { AGENT_MARKETING_SALES_PROMPT } from "./prompts/agent-marketing-sales.prompt";
+import { AGENT_FINANCIAL_PLAN_PROMPT } from "./prompts/agent-financial-plan.prompt";
+import { AGENT_GOAL_PLANNING_PROMPT } from "./prompts/agent-goal-planning.prompt";
+import { AGENT_APPENDIX_PROMPT } from "./prompts/agent-appendix.prompt";
 
 export class BusinessPlanService extends GenericService {
   constructor(promptService: PromptService) {
@@ -31,56 +34,81 @@ export class BusinessPlanService extends GenericService {
     if (!project) {
       return null;
     }
+
+    // Extract branding information
+    const brandName = project.name || "Startup";
+    const logoSvg = project.analysisResultModel?.branding?.logo?.svg || "";
+    const brandColors = project.analysisResultModel?.branding?.colors || {
+      primary: "#007bff",
+      secondary: "#6c757d",
+    };
+    const typography = project.analysisResultModel?.branding?.typography || {
+      primary: "Arial, sans-serif",
+    };
+    const language = "fr";
+
+    // Create brand context for all agents
+    const brandContext = `Brand: ${brandName}\nLogo SVG: ${logoSvg}\nBrand Colors: ${JSON.stringify(
+      brandColors
+    )}\nTypography: ${JSON.stringify(typography)}\nLanguage: ${language}`;
     const projectDescription = this.extractProjectDescription(project);
-    const logo = JSON.stringify(project.analysisResultModel.branding.logo);
-    const colors = JSON.stringify(project.analysisResultModel.branding.colors);
-    const typography = JSON.stringify(
-      project.analysisResultModel.branding.typography
-    );
-    `Project description:\n\n${projectDescription}\n\nLogo:\n\n${logo}\n\nColors:\n\n${colors}\n\nTypography:\n\n${typography}`;
     try {
-      // Define business plan steps
+      // Define business plan steps with specialized agents
       const steps: IPromptStep[] = [
-        {
-          promptConstant: projectDescription + PROJECT_DESCRIPTION_PROMPT,
-          stepName: "Project Description",
-          hasDependencies: false,
-        },
         {
           promptConstant: GLOBAL_CSS_PROMPT,
           stepName: "Global CSS",
           hasDependencies: false,
         },
-
         {
-          promptConstant: FEASABILITY_PROMPT,
-          stepName: "Feasibility Study",
-          requiresSteps: ["Project Description", "Global CSS"],
+          promptConstant: `${projectDescription}\n${AGENT_COVER_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Cover Page",
+          hasDependencies: false,
         },
         {
-          promptConstant: RISK_ANALYSIS_PROMPT,
-          stepName: "Risk Analysis",
-          requiresSteps: ["Project Description", "Global CSS"],
+          promptConstant: `${projectDescription}\n${AGENT_COMPANY_SUMMARY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Company Summary",
+          hasDependencies: false,
         },
         {
-          promptConstant: SMART_OBJECTIVES_PROMPT,
-          stepName: "SMART Objectives",
-          requiresSteps: ["Project Description", "Global CSS"],
+          promptConstant: `${projectDescription}\n${AGENT_OPPORTUNITY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Opportunity",
+          hasDependencies: false,
         },
         {
-          promptConstant: REQUIREMENTS_PROMPT,
-          stepName: "Detailed Requirements",
-          requiresSteps: ["Project Description", "Global CSS"],
+          promptConstant: `${projectDescription}\n${AGENT_TARGET_AUDIENCE_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Target Audience",
+          hasDependencies: false,
         },
         {
-          promptConstant: STAKEHOLDER_MEETINGS_PROMPT,
-          stepName: "Stakeholder Meeting Plan",
-          requiresSteps: ["Project Description", "Global CSS"],
+          promptConstant: `${projectDescription}\n${AGENT_PRODUCTS_SERVICES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Products and Services",
+          hasDependencies: false,
+        },
+        {
+          promptConstant: `${projectDescription}\n${AGENT_MARKETING_SALES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Marketing and Sales",
+          hasDependencies: false,
+        },
+        {
+          promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Financial Plan",
+          hasDependencies: false,
+        },
+        {
+          promptConstant: `${projectDescription}\n${AGENT_GOAL_PLANNING_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Goal Planning",
+          hasDependencies: false,
+        },
+        {
+          promptConstant: `${projectDescription}\n${AGENT_APPENDIX_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Appendix",
+          hasDependencies: false,
         },
       ];
       const promptConfig: PromptConfig = {
-        provider: LLMProvider.GEMINI,
-        modelName: "gemini-2.0-flash",
+        provider: LLMProvider.CHATGPT,
+        modelName: "gpt-4.1-2025-04-14",
         llmOptions: {
           temperature: 0.5,
           maxOutputTokens: 4096,
@@ -150,8 +178,6 @@ export class BusinessPlanService extends GenericService {
     logger.info(
       `Successfully fetched business plan for projectId: ${projectId}`
     );
-    project.analysisResultModel.businessPlan!.sections =
-      project.analysisResultModel.businessPlan!.sections.slice(1);
 
     return project.analysisResultModel.businessPlan!;
   }
