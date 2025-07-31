@@ -193,6 +193,104 @@ export const updateDiagramController = async (
   }
 };
 
+export const generateDiagramStreamingController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = "sA6ZeSlrP9Ri8tCNAncPNKi83Nz2";
+  const { projectId } = req.params;
+  logger.info(
+    `generateDiagramStreamingController called - UserId: ${userId}, ProjectId: ${projectId}`
+  );
+
+  try {
+    if (!userId) {
+      logger.warn(
+        "User not authenticated for generateDiagramStreamingController"
+      );
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    if (!projectId) {
+      logger.warn(
+        "Project ID is required for generateDiagramStreamingController"
+      );
+      res.status(400).json({ message: "Project ID is required" });
+      return;
+    }
+
+    // Configuration pour SSE (Server-Sent Events)
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no"); // Pour Nginx
+
+    // Fonction de callback pour envoyer chaque résultat d'étape
+    const streamCallback = async (stepResult: any) => {
+      try {
+        // Formatage du message SSE
+        res.write(`data: ${JSON.stringify(stepResult)}\n\n`);
+        // On force l'envoi immédiat si la fonction flush est disponible
+        // Note: res.flush existe sur certaines implémentations mais pas sur le type Response standard
+        (res as any).flush?.();
+
+        logger.info(
+          `Streamed step result - UserId: ${userId}, ProjectId: ${projectId}, Step: ${stepResult.name}`
+        );
+      } catch (error: any) {
+        logger.error(
+          `Error streaming step result - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+          { stack: error.stack }
+        );
+      }
+    };
+
+    // Appel au service avec le callback de streaming
+    const updatedProject = await diagramService.generateDiagram(
+      userId,
+      projectId,
+      streamCallback // Passer le callback de streaming
+    );
+
+    if (!updatedProject) {
+      logger.warn(
+        `Failed to generate diagram - UserId: ${userId}, ProjectId: ${projectId}`
+      );
+      res.write(
+        `data: ${JSON.stringify({ error: "Failed to generate diagram" })}\n\n`
+      );
+      res.end();
+      return;
+    }
+
+    // Obtenir le diagramme ajouté le plus récemment
+    const newDiagram = updatedProject.analysisResultModel?.design;
+
+    logger.info(
+      `Diagram generation completed - UserId: ${userId}, ProjectId: ${projectId}, DiagramId: ${
+        newDiagram?.id || "unknown"
+      }`
+    );
+    userService.incrementUsage(userId, 1);
+
+    // Envoyer un événement de fin
+    res.write(
+      `data: ${JSON.stringify({ type: "complete", diagram: newDiagram })}\n\n`
+    );
+    res.end();
+  } catch (error: any) {
+    logger.error(
+      `Error in generateDiagramStreamingController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack, body: req.body }
+    );
+
+    // Envoyer une erreur et terminer le stream
+    res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+    res.end();
+  }
+};
+
 export const deleteDiagramController = async (
   req: CustomRequest,
   res: Response

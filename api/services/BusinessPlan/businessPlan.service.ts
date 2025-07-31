@@ -80,39 +80,36 @@ export class BusinessPlanService extends GenericService {
           stepName: "Target Audience",
           hasDependencies: false,
         },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_PRODUCTS_SERVICES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Products and Services",
-          hasDependencies: false,
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_MARKETING_SALES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Marketing and Sales",
-          hasDependencies: false,
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Financial Plan",
-          hasDependencies: false,
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_GOAL_PLANNING_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Goal Planning",
-          hasDependencies: false,
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_APPENDIX_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Appendix",
-          hasDependencies: false,
-        },
+        // {
+        //   promptConstant: `${projectDescription}\n${AGENT_PRODUCTS_SERVICES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+        //   stepName: "Products and Services",
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: `${projectDescription}\n${AGENT_MARKETING_SALES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+        //   stepName: "Marketing and Sales",
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+        //   stepName: "Financial Plan",
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: `${projectDescription}\n${AGENT_GOAL_PLANNING_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+        //   stepName: "Goal Planning",
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: `${projectDescription}\n${AGENT_APPENDIX_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+        //   stepName: "Appendix",
+        //   hasDependencies: false,
+        // },
       ];
       const promptConfig: PromptConfig = {
-        provider: LLMProvider.CHATGPT,
-        modelName: "gpt-4.1-2025-04-14",
-        llmOptions: {
-          temperature: 0.5,
-          maxOutputTokens: 4096,
-        },
+        provider: LLMProvider.GEMINI,
+        modelName: "gemini-2.5-flash",
+
       };
       // Process all steps and get results
       const sectionResults = await this.processSteps(
