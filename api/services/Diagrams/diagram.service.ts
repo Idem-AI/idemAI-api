@@ -24,7 +24,7 @@ export class DiagramService extends GenericService {
   async generateDiagram(
     userId: string,
     projectId: string,
-    streamCallback?: (sectionResult: ISectionResult) => void
+    streamCallback?: (sectionResult: ISectionResult) => Promise<void>
   ): Promise<ProjectModel | null> {
     logger.info(
       `Generating diagrams for userId: ${userId}, projectId: ${projectId}`
@@ -130,7 +130,7 @@ export class DiagramService extends GenericService {
           
           // Call the stream callback if provided
           if (streamCallback) {
-            streamCallback(result);
+            await streamCallback(result);
           }
         }
       );
@@ -326,6 +326,16 @@ export class DiagramService extends GenericService {
     const completedSteps: { name: string; content: string }[] = [];
 
     for (const step of steps) {
+      // Envoyer un événement "step_started" avant de commencer l'étape
+      const stepStartedResult: ISectionResult = {
+        name: step.stepName,
+        type: "event",
+        data: "step_started",
+        summary: `Starting ${step.stepName}`,
+        parsedData: { status: "started", stepName: step.stepName },
+      };
+      await stepCallback(stepStartedResult);
+      
       const hasDependencies = 
         step.hasDependencies !== undefined ? step.hasDependencies : true;
 
@@ -410,10 +420,14 @@ export class DiagramService extends GenericService {
         type: "text/markdown",
         data: content,
         summary: `${step.stepName} for Project ${project.id}`,
-        parsedData: parsedData,
+        parsedData: { 
+          ...parsedData, 
+          status: "completed", 
+          stepName: step.stepName 
+        },
       };
 
-      // Call the callback with the result
+      // Call the callback with the completed result
       await stepCallback(sectionResult);
     }
   }

@@ -4,6 +4,8 @@ import { DiagramService } from "../services/Diagrams/diagram.service";
 import { CustomRequest } from "../interfaces/express.interface";
 import { PromptService } from "../services/prompt.service";
 import { userService } from "../services/user.service";
+import { SectionModel } from "../models/section.model";
+import { ISectionResult } from "../services/common/generic.service";
 
 const diagramService = new DiagramService(new PromptService());
 
@@ -227,16 +229,29 @@ export const generateDiagramStreamingController = async (
     res.setHeader("X-Accel-Buffering", "no"); // Pour Nginx
 
     // Fonction de callback pour envoyer chaque résultat d'étape
-    const streamCallback = async (stepResult: any) => {
+    const streamCallback = async (stepResult: ISectionResult) => {
       try {
+        // Déterminer le type d'événement
+        const eventType = stepResult.parsedData?.status || "progress";
+
+        // Créer un message structuré pour le frontend
+        const message = {
+          type: eventType, // 'started', 'completed', 'progress'
+          stepName: stepResult.name,
+          data: stepResult.data,
+          summary: stepResult.summary,
+          timestamp: new Date().toISOString(),
+          ...(stepResult.parsedData && { parsedData: stepResult.parsedData }),
+        };
+
         // Formatage du message SSE
-        res.write(`data: ${JSON.stringify(stepResult)}\n\n`);
+        res.write(`data: ${JSON.stringify(message)}\n\n`);
         // On force l'envoi immédiat si la fonction flush est disponible
         // Note: res.flush existe sur certaines implémentations mais pas sur le type Response standard
         (res as any).flush?.();
 
         logger.info(
-          `Streamed step result - UserId: ${userId}, ProjectId: ${projectId}, Step: ${stepResult.name}`
+          `Streamed step ${eventType} - UserId: ${userId}, ProjectId: ${projectId}, Step: ${stepResult.name}`
         );
       } catch (error: any) {
         logger.error(
