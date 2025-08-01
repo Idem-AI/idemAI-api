@@ -77,8 +77,24 @@ app.use(
       }
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Cache-Control",
+      "Accept",
+      "Accept-Language",
+      "Accept-Encoding",
+      "Connection",
+      "User-Agent",
+      "Referer",
+    ],
+    exposedHeaders: [
+      "Content-Type",
+      "Cache-Control",
+      "Connection",
+      "X-Accel-Buffering",
+    ],
   })
 );
 
