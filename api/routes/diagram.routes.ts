@@ -108,7 +108,7 @@ diagramRoutes.post(
  *       '500':
  *         description: Internal server error.
  */
-diagramRoutes.post(
+diagramRoutes.get(
   `/${resourceName}/generate-stream/:projectId`,
   // authenticate,
   // checkQuota,
