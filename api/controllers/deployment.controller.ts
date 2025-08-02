@@ -684,11 +684,11 @@ export const EstimateCostController = async (
 };
 
 // Legacy method for backward compatibility
-export const GenerateDeploymentController = async (
+export const generateDeploymentController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const userId = "sA6ZeSlrP9Ri8tCNAncPNKi83Nz2";
+  const userId = req.user?.uid;
   const { projectId, deploymentId } = req.body;
 
   logger.info(

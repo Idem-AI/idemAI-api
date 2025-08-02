@@ -16,7 +16,11 @@ import { GLOBAL_CSS_PROMPT } from "./prompts/06_global-css-section.prompt";
 import { BRAND_FOOTER_SECTION_PROMPT } from "./prompts/07_brand-footer-section.prompt";
 import logger from "../../config/logger";
 import { SectionModel } from "../../models/section.model";
-import { GenericService, IPromptStep } from "../common/generic.service";
+import {
+  GenericService,
+  IPromptStep,
+  ISectionResult,
+} from "../common/generic.service";
 import { LogoModel } from "../../models/logo.model";
 import { COLORS_TYPOGRAPHY_GENERATION_PROMPT } from "./prompts/singleGenerations/colors-typography-generation.prompt";
 
@@ -26,12 +30,13 @@ export class BrandingService extends GenericService {
     logger.info("BrandingService initialized");
   }
 
-  async generateBranding(
+  async generateBrandingWithStreaming(
     userId: string,
-    projectId: string
+    projectId: string,
+    streamCallback?: (sectionResult: ISectionResult) => Promise<void>
   ): Promise<ProjectModel | null> {
     logger.info(
-      `Generating branding for userId: ${userId}, projectId: ${projectId}`
+      `Generating branding with streaming for userId: ${userId}, projectId: ${projectId}`
     );
 
     // Get project
@@ -77,11 +82,6 @@ export class BrandingService extends GenericService {
           promptConstant: projectDescription + USAGE_GUIDELINES_SECTION_PROMPT,
           stepName: "Usage Guidelines",
         },
-        // {
-        //   promptConstant: projectDescription + VISUAL_EXAMPLES_SECTION_PROMPT,
-        //   stepName: "Visual Examples",
-        //   hasDependencies: false
-        // },
         {
           promptConstant: projectDescription + BRAND_FOOTER_SECTION_PROMPT,
           stepName: "Brand Footer",
@@ -94,17 +94,45 @@ export class BrandingService extends GenericService {
         },
       ];
 
-      // Process all steps and get results. Each step's modelParser (this.parseSection) returns a SectionModel.
-      // We assume processSteps places the modelParser's output into a 'parsedData' field for each result.
-      const stepResults = await this.processSteps(steps, project);
+      // Initialize empty sections array to collect results as they come in
+      let sections: SectionModel[] = [];
 
-      // Map sections from results
-      const sections: SectionModel[] = stepResults.map((result) => ({
-        name: result.name,
-        type: result.type,
-        data: result.data,
-        summary: result.summary,
-      }));
+      // Process steps one by one with streaming if callback provided
+      if (streamCallback) {
+        await this.processStepsWithStreaming(
+          steps,
+          project,
+          async (result: ISectionResult) => {
+            logger.info(`Received streamed result for step: ${result.name}`);
+
+            // Convert result to section model
+            const section: SectionModel = {
+              name: result.name,
+              type: result.type,
+              data: result.data,
+              summary: result.summary,
+            };
+
+            // Add to sections array
+            sections.push(section);
+
+            // Call the provided callback
+            await streamCallback(result);
+          },
+          undefined, // promptConfig
+          "branding", // promptType
+          userId
+        );
+      } else {
+        // Fallback to non-streaming processing
+        const stepResults = await this.processSteps(steps, project);
+        sections = stepResults.map((result) => ({
+          name: result.name,
+          type: result.type,
+          data: result.data,
+          summary: result.summary,
+        }));
+      }
 
       // Get the existing project to prepare for update
       const oldProject = await this.projectRepository.findById(
@@ -113,30 +141,27 @@ export class BrandingService extends GenericService {
       );
       if (!oldProject) {
         logger.warn(
-          `Original project not found with ID: ${projectId} for user: ${userId} before updating with diagrams.`
+          `Original project not found with ID: ${projectId} for user: ${userId} before updating with branding.`
         );
         return null;
       }
 
-      // Filter out diagrams that need to be updated
-      const existingDiagrams =
-        oldProject.analysisResultModel?.branding?.sections || [];
-      const updatedDiagrams = [
-        ...existingDiagrams.filter(
-          (d: SectionModel) => !sections.some((s) => s.name === d.name)
-        ),
-        ...sections,
-      ];
-
-      // Create updated project with new diagram sections
+      // Create the new project with updated branding
       const newProject = {
         ...oldProject,
         analysisResultModel: {
           ...oldProject.analysisResultModel,
           branding: {
-            ...oldProject.analysisResultModel?.branding,
-            sections: updatedDiagrams,
-            id: `branding_${projectId}_${Date.now()}`,
+            sections: sections,
+            colors: oldProject.analysisResultModel.branding.colors,
+            typography: oldProject.analysisResultModel.branding.typography,
+            logo: oldProject.analysisResultModel.branding.logo,
+            generatedLogos:
+              oldProject.analysisResultModel.branding.generatedLogos || [],
+            generatedColors:
+              oldProject.analysisResultModel.branding.generatedColors || [],
+            generatedTypography:
+              oldProject.analysisResultModel.branding.generatedTypography || [],
             createdAt: new Date(),
             updatedAt: new Date(),
           },
@@ -163,7 +188,6 @@ export class BrandingService extends GenericService {
       );
       throw error;
     } finally {
-      // No cleanup needed - in-memory context is automatically garbage collected
       logger.info(`Completed branding generation for projectId ${projectId}`);
     }
   }
@@ -188,7 +212,8 @@ export class BrandingService extends GenericService {
 
     const steps: IPromptStep[] = [
       {
-        promptConstant: projectDescription + COLORS_TYPOGRAPHY_GENERATION_PROMPT,
+        promptConstant:
+          projectDescription + COLORS_TYPOGRAPHY_GENERATION_PROMPT,
         stepName: "Colors and Typography Generation",
         modelParser: (content) =>
           this.parseSection(
@@ -196,7 +221,7 @@ export class BrandingService extends GenericService {
             "Colors and Typography Generation",
             project.id!
           ),
-          hasDependencies: false,
+        hasDependencies: false,
       },
       {
         promptConstant: LOGO_GENERATION_PROMPT,

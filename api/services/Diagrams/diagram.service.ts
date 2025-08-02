@@ -49,21 +49,21 @@ export class DiagramService extends GenericService {
           stepName: "Class Diagram",
           requiresSteps: ["Uses Cases Diagram"],
         },
-        {
-          promptConstant: ARCHITECTURE_DIAGRAM_PROMPT,
-          stepName: "Architecture Diagram",
-          requiresSteps: ["Uses Cases Diagram"],
-        },
-        {
-          promptConstant: ENTITY_DIAGRAM_PROMPT,
-          stepName: "Entity Relationship Diagram",
-          requiresSteps: ["Uses Cases Diagram"],
-        },
-        {
-          promptConstant: SEQUENCE_DIAGRAM_PROMPT,
-          stepName: "Sequence Diagram",
-          requiresSteps: ["Uses Cases Diagram"],
-        },
+        // {
+        //   promptConstant: ARCHITECTURE_DIAGRAM_PROMPT,
+        //   stepName: "Architecture Diagram",
+        //   requiresSteps: ["Uses Cases Diagram"],
+        // },
+        // {
+        //   promptConstant: ENTITY_DIAGRAM_PROMPT,
+        //   stepName: "Entity Relationship Diagram",
+        //   requiresSteps: ["Uses Cases Diagram"],
+        // },
+        // {
+        //   promptConstant: SEQUENCE_DIAGRAM_PROMPT,
+        //   stepName: "Sequence Diagram",
+        //   requiresSteps: ["Uses Cases Diagram"],
+        // },
       ];
 
       // Initialize empty sections array to collect results as they come in
@@ -304,131 +304,5 @@ export class DiagramService extends GenericService {
       `Successfully deleted diagram: ${diagramId} for userId: ${userId}`
     );
     return true;
-  }
-
-  /**
-   * Process steps with streaming, calling a callback for each completed step
-   * @param steps Array of prompt steps
-   * @param project Project model
-   * @param stepCallback Callback function called after each step completes
-   * @param promptConfig Optional prompt configuration
-   * @param promptType Optional prompt type
-   * @param userId Optional user ID
-   */
-  private async processStepsWithStreaming(
-    steps: IPromptStep[],
-    project: ProjectModel,
-    stepCallback: (result: ISectionResult) => Promise<void>,
-    promptConfig?: any,
-    promptType?: string,
-    userId?: string
-  ): Promise<void> {
-    const completedSteps: { name: string; content: string }[] = [];
-
-    for (const step of steps) {
-      // Envoyer un événement "step_started" avant de commencer l'étape
-      const stepStartedResult: ISectionResult = {
-        name: step.stepName,
-        type: "event",
-        data: "step_started",
-        summary: `Starting ${step.stepName}`,
-        parsedData: { status: "started", stepName: step.stepName },
-      };
-      await stepCallback(stepStartedResult);
-      
-      const hasDependencies = 
-        step.hasDependencies !== undefined ? step.hasDependencies : true;
-
-      // Construire le contexte des étapes précédentes si nécessaire
-      let contextFromPreviousSteps = "";
-
-      if (hasDependencies && step.requiresSteps && step.requiresSteps.length > 0) {
-        // Filtrer et concaténer uniquement les étapes spécifiées
-        const requiredSteps = completedSteps.filter(s => 
-          step.requiresSteps!.includes(s.name)
-        );
-
-        contextFromPreviousSteps = requiredSteps
-          .map(s => `## ${s.name}\n\n${s.content}\n\n---\n`)
-          .join("\n");
-
-        logger.info(
-          `Built context for step '${step.stepName}' from ${requiredSteps.length} required steps: [${requiredSteps.map(s => s.name).join(", ")}]`
-        );
-      } else if (hasDependencies && (!step.requiresSteps || step.requiresSteps.length === 0)) {
-        // Inclure toutes les étapes précédentes si hasDependencies=true mais requiresSteps non spécifié
-        contextFromPreviousSteps = completedSteps
-          .map(s => `## ${s.name}\n\n${s.content}\n\n---\n`)
-          .join("\n");
-
-        logger.info(
-          `Built context for step '${step.stepName}' from all ${completedSteps.length} previous steps`
-        );
-      } else {
-        logger.info(
-          `No context needed for step '${step.stepName}' (no dependencies)`
-        );
-      }
-      
-      const messages = [
-        {
-          role: "system" as const,
-          content: contextFromPreviousSteps,
-        },
-        {
-          role: "user" as const,
-          content: step.promptConstant,
-        },
-      ];
-      
-      // Exécuter l'étape actuelle avec le contexte construit
-      const content = await this.runStepAndAppend(
-        step,
-        project,
-        true,
-        messages,
-        userId,
-        promptType || step.stepName,
-        contextFromPreviousSteps,
-        promptConfig
-      );
-
-      // Stocker le contenu de cette étape pour les étapes futures
-      completedSteps.push({
-        name: step.stepName,
-        content: content,
-      });
-
-      let parsedData = null;
-      if (step.modelParser) {
-        try {
-          parsedData = step.modelParser(content);
-          logger.info(
-            `Successfully parsed ${step.stepName} for projectId: ${project.id}`
-          );
-        } catch (error) {
-          logger.error(
-            `Error parsing ${step.stepName} for project ${project.id}:`,
-            error
-          );
-          parsedData = { error: "Parsing error", content };
-        }
-      }
-
-      const sectionResult: ISectionResult = {
-        name: step.stepName,
-        type: "text/markdown",
-        data: content,
-        summary: `${step.stepName} for Project ${project.id}`,
-        parsedData: { 
-          ...parsedData, 
-          status: "completed", 
-          stepName: step.stepName 
-        },
-      };
-
-      // Call the callback with the completed result
-      await stepCallback(sectionResult);
-    }
   }
 }

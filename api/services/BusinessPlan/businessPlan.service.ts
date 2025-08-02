@@ -2,7 +2,11 @@ import { LLMProvider, PromptConfig, PromptService } from "../prompt.service";
 import { ProjectModel } from "../../models/project.model";
 import logger from "../../config/logger";
 import { BusinessPlanModel } from "../../models/businessPlan.model";
-import { GenericService, IPromptStep } from "../common/generic.service";
+import {
+  GenericService,
+  IPromptStep,
+  ISectionResult,
+} from "../common/generic.service";
 import { SectionModel } from "../../models/section.model";
 import { GLOBAL_CSS_PROMPT } from "./prompts/07_global-css-section.prompt";
 import { AGENT_COVER_PROMPT } from "./prompts/agent-cover.prompt";
@@ -21,12 +25,13 @@ export class BusinessPlanService extends GenericService {
     logger.info("BusinessPlanService initialized.");
   }
 
-  async generateBusinessPlan(
+  async generateBusinessPlanWithStreaming(
     userId: string,
-    projectId: string
+    projectId: string,
+    streamCallback?: (sectionResult: ISectionResult) => Promise<void>
   ): Promise<ProjectModel | null> {
     logger.info(
-      `Generating business plan for userId: ${userId}, projectId: ${projectId}`
+      `Generating business plan with streaming for userId: ${userId}, projectId: ${projectId}`
     );
 
     // Get project
@@ -80,58 +85,84 @@ export class BusinessPlanService extends GenericService {
           stepName: "Target Audience",
           hasDependencies: false,
         },
-        // {
-        //   promptConstant: `${projectDescription}\n${AGENT_PRODUCTS_SERVICES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-        //   stepName: "Products and Services",
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: `${projectDescription}\n${AGENT_MARKETING_SALES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-        //   stepName: "Marketing and Sales",
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-        //   stepName: "Financial Plan",
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: `${projectDescription}\n${AGENT_GOAL_PLANNING_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-        //   stepName: "Goal Planning",
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: `${projectDescription}\n${AGENT_APPENDIX_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-        //   stepName: "Appendix",
-        //   hasDependencies: false,
-        // },
       ];
       const promptConfig: PromptConfig = {
         provider: LLMProvider.GEMINI,
         modelName: "gemini-2.5-flash",
-
       };
-      // Process all steps and get results
-      const sectionResults = await this.processSteps(
-        steps,
-        project,
-        promptConfig
-      );
 
-      // Map sections from results
-      const sections: SectionModel[] = sectionResults.map((result) => ({
-        name: result.name,
-        type: result.type,
-        data: result.data,
-        summary: result.summary,
-      }));
+      // Initialize empty sections array to collect results as they come in
+      let sectionResults: SectionModel[] = [];
 
-      // Update the project with the business plan sections
-      const updatedProject = await this.updateProjectWithSections(
+      // Process steps one by one with streaming if callback provided
+      if (streamCallback) {
+        await this.processStepsWithStreaming(
+          steps,
+          project,
+          async (result: ISectionResult) => {
+            logger.info(`Received streamed result for step: ${result.name}`);
+
+            // Convert result to section model
+            const section: SectionModel = {
+              name: result.name,
+              type: result.type,
+              data: result.data,
+              summary: result.summary,
+            };
+
+            // Add to sections array
+            sectionResults.push(section);
+
+            // Call the provided callback
+            await streamCallback(result);
+          },
+          promptConfig,
+          "business_plan",
+          userId
+        );
+      } else {
+        // Fallback to non-streaming processing
+        const stepResults = await this.processSteps(
+          steps,
+          project,
+          promptConfig
+        );
+        sectionResults = stepResults.map((result) => ({
+          name: result.name,
+          type: result.type,
+          data: result.data,
+          summary: result.summary,
+        }));
+      }
+
+      // Get the existing project to prepare for update
+      const oldProject = await this.projectRepository.findById(
         projectId,
-        userId,
-        "businessPlan",
-        sections
+        `users/${userId}/projects`
+      );
+      if (!oldProject) {
+        logger.warn(
+          `Original project not found with ID: ${projectId} for user: ${userId} before updating with business plan.`
+        );
+        return null;
+      }
+
+      // Create the new project with updated business plan
+      const newProject = {
+        ...oldProject,
+        analysisResultModel: {
+          ...oldProject.analysisResultModel,
+          businessPlan: {
+            sections: sectionResults,
+          },
+        },
+      };
+
+      // Update the project in the database
+      const updatedProject = await this.projectRepository.update(
+        projectId,
+        newProject,
+        `users/${userId}/projects`
       );
 
       if (updatedProject) {
@@ -147,7 +178,6 @@ export class BusinessPlanService extends GenericService {
       );
       throw error;
     } finally {
-      // No cleanup needed - in-memory context is automatically garbage collected
       logger.info(
         `Completed business plan generation for projectId ${projectId}`
       );

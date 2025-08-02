@@ -1,11 +1,11 @@
 import { Router } from "express";
 import {
-  generateBrandingController,
   getBrandingsByProjectController,
   getBrandingByIdController,
   updateBrandingController,
   deleteBrandingController,
   generateLogoColorsAndTypographyController,
+  generateBrandingStreamingController,
 } from "../controllers/branding.controller";
 import { authenticate } from "../services/auth.service"; // Updated import path
 import { checkQuota } from "../middleware/quota.middleware";
@@ -67,7 +67,7 @@ brandingRoutes.post(
   `/${resourceName}/generate/:projectId`,
   authenticate,
   checkQuota,
-  generateBrandingController
+  generateBrandingStreamingController
 );
 
 // Generate logo, colors, and typography for a project
@@ -129,7 +129,7 @@ brandingRoutes.post(
  *       '500':
  *         description: Internal server error.
  */
-brandingRoutes.post(
+brandingRoutes.get(
   `/${resourceName}/genColorsAndTypography`,
   authenticate,
   checkQuota,

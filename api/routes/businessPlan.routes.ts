@@ -60,7 +60,7 @@ const resourceName = "businessPlans";
  *       '500':
  *         description: Internal server error.
  */
-businessPlanRoutes.post(
+businessPlanRoutes.get(
   `/${resourceName}/:projectId`,
   authenticate,
   checkQuota,

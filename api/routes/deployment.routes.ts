@@ -14,7 +14,7 @@ import {
   StartPipelineController,
   GetPipelineStatusController,
   EstimateCostController,
-  GenerateDeploymentController,
+  generateDeploymentController,
 } from "../controllers/deployment.controller";
 
 export const deploymentRoutes = Router();
@@ -74,7 +74,7 @@ const resourceName = "/deployments";
  */
 deploymentRoutes.post(
   `${resourceName}/generate`,
-  GenerateDeploymentController
+  generateDeploymentController
 );
 
 /**
