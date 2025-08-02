@@ -478,6 +478,23 @@ Please generate *only* the content for the '${
       await Promise.all(Array.from(stepPromises.values()));
     }
 
+    // Send final completion message to frontend
+    const completionResult: ISectionResult = {
+      name: "completion",
+      type: "event",
+      data: "all_steps_completed",
+      summary: `All steps completed successfully for project ${project.id}`,
+      parsedData: {
+        status: "completed",
+        message: "All generation steps have been completed successfully",
+        totalSteps: steps.length,
+        completedSteps: Array.from(completedSteps.keys()),
+        projectId: project.id,
+        timestamp: new Date().toISOString(),
+      },
+    };
+    await stepCallback(completionResult);
+
     logger.info(`All steps completed for project ${project.id}`);
   }
 

@@ -47,7 +47,7 @@ export class DiagramService extends GenericService {
         {
           promptConstant: CLASS_DIAGRAM_PROMPT,
           stepName: "Class Diagram",
-          requiresSteps: ["Uses Cases Diagram"],
+          hasDependencies: false,
         },
         // {
         //   promptConstant: ARCHITECTURE_DIAGRAM_PROMPT,
