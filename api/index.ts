@@ -32,6 +32,7 @@ if (serviceAccountFromEnv.project_id && serviceAccountFromEnv.private_key) {
       serviceAccountFromEnv as admin.ServiceAccount
     ),
     projectId: process.env.FIREBASE_PROJECT_ID,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
   });
   console.log("Firebase Admin SDK initialized successfully.");
 } else {
