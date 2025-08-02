@@ -53,7 +53,7 @@ export const generateLogoColorsAndTypographyController = async (
       `Logo, colors, and typography generated successfully - UserId: ${userId}, ProjectId: ${project.id}`
     );
     // Return the branding from the updated project
-    userService.incrementUsage(userId,1);
+    userService.incrementUsage(userId, 1);
     res.status(201).json(updatedProject);
   } catch (error: any) {
     logger.error(
@@ -63,6 +63,126 @@ export const generateLogoColorsAndTypographyController = async (
     res.status(500).json({
       message: "Error generating logo, colors, and typography",
       error: error.message,
+    });
+  }
+};
+
+export const generateColorsAndTypographyController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const project = req.body.project;
+  const userId = req.user?.uid;
+  logger.info(
+    `generateColorsAndTypographyController called - UserId: ${userId}, ProjectId: ${project.id}`,
+    { body: req.body }
+  );
+  try {
+    if (!userId) {
+      logger.warn(
+        "User not authenticated for generateColorsAndTypographyController"
+      );
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+    if (!project.id) {
+      logger.warn(
+        "Project ID is required for generateColorsAndTypographyController"
+      );
+      res.status(400).json({ message: "Project ID is required" });
+      return;
+    }
+
+    const result = await brandingService.generateColorsAndTypography(
+      userId,
+      project
+    );
+
+    if (!result) {
+      logger.warn(
+        `Failed to generate colors and typography - UserId: ${userId}, ProjectId: ${project.id}`
+      );
+      res
+        .status(500)
+        .json({ message: "Failed to generate colors and typography" });
+      return;
+    }
+
+    logger.info(
+      `Successfully generated colors and typography - UserId: ${userId}, ProjectId: ${project.id}`
+    );
+    res.status(200).json(result);
+  } catch (error) {
+    logger.error(
+      `Error in generateColorsAndTypographyController - UserId: ${userId}, ProjectId: ${project?.id}`,
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+        body: req.body,
+      }
+    );
+    res.status(500).json({
+      message: "Internal server error",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const generateLogosController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const project = req.body.project;
+  const colors = req.body.colors;
+  const typography = req.body.typography;
+  const userId = req.user?.uid;
+  logger.info(
+    `generateLogosController called - UserId: ${userId}, ProjectId: ${project.id}`,
+    { body: req.body }
+  );
+  try {
+    if (!userId) {
+      logger.warn("User not authenticated for generateLogosController");
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+    if (!project.id) {
+      logger.warn("Project ID is required for generateLogosController");
+      res.status(400).json({ message: "Project ID is required" });
+      return;
+    }
+
+    const result = await brandingService.generateLogos(
+      userId,
+      project,
+      colors,
+      typography
+    );
+
+    if (!result) {
+      logger.warn(
+        `Failed to generate logos - UserId: ${userId}, ProjectId: ${project.id}`
+      );
+      res.status(500).json({ message: "Failed to generate logos" });
+      return;
+    }
+
+    logger.info(
+      `Successfully generated logos - UserId: ${userId}, ProjectId: ${project.id}`
+    );
+    res.status(200).json(result);
+  } catch (error) {
+    logger.error(
+      `Error in generateLogosController - UserId: ${userId}, ProjectId: ${project?.id}`,
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+        body: req.body,
+      }
+    );
+    res.status(500).json({
+      message: "Internal server error",
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };

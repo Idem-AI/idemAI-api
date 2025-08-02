@@ -5,6 +5,8 @@ import {
   updateBrandingController,
   deleteBrandingController,
   generateLogoColorsAndTypographyController,
+  generateColorsAndTypographyController,
+  generateLogosController,
   generateBrandingStreamingController,
 } from "../controllers/branding.controller";
 import { authenticate } from "../services/auth.service"; // Updated import path
@@ -129,8 +131,115 @@ brandingRoutes.get(
  *       '500':
  *         description: Internal server error.
  */
+// Generate colors and typography only
+/**
+ * @openapi
+ * /brandings/genColorsAndTypography:
+ *   post:
+ *     tags:
+ *       - Branding
+ *     summary: Generate colors and typography for a project
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       description: Project data for colors and typography generation.
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               project:
+ *                 type: object
+ *                 description: Project object containing project details.
+ *     responses:
+ *       '200':
+ *         description: Colors and typography generated successfully.
+ *       '400':
+ *         description: Bad request.
+ *       '401':
+ *         description: Unauthorized.
+ *       '500':
+ *         description: Internal server error.
+ */
 brandingRoutes.post(
   `/${resourceName}/genColorsAndTypography`,
+  authenticate,
+  checkQuota,
+  generateColorsAndTypographyController
+);
+
+// Generate logos only
+/**
+ * @openapi
+ * /brandings/genLogos:
+ *   post:
+ *     tags:
+ *       - Branding
+ *     summary: Generate logos for a project
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       description: Project data for logo generation.
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               project:
+ *                 type: object
+ *                 description: Project object containing project details.
+ *     responses:
+ *       '200':
+ *         description: Logos generated successfully.
+ *       '400':
+ *         description: Bad request.
+ *       '401':
+ *         description: Unauthorized.
+ *       '500':
+ *         description: Internal server error.
+ */
+brandingRoutes.post(
+  `/${resourceName}/genLogos`,
+  authenticate,
+  checkQuota,
+  generateLogosController
+);
+
+// Generate both logos, colors and typography (legacy endpoint)
+/**
+ * @openapi
+ * /brandings/genLogoColorsAndTypography:
+ *   post:
+ *     tags:
+ *       - Branding
+ *     summary: Generate logos, colors and typography for a project (legacy)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       description: Project data for complete branding generation.
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               project:
+ *                 type: object
+ *                 description: Project object containing project details.
+ *     responses:
+ *       '200':
+ *         description: Logo, colors and typography generated successfully.
+ *       '400':
+ *         description: Bad request.
+ *       '401':
+ *         description: Unauthorized.
+ *       '500':
+ *         description: Internal server error.
+ */
+brandingRoutes.post(
+  `/${resourceName}/genLogoColorsAndTypography`,
   authenticate,
   checkQuota,
   generateLogoColorsAndTypographyController

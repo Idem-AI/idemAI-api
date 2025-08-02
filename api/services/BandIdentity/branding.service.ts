@@ -187,6 +187,85 @@ export class BrandingService extends GenericService {
     }
   }
 
+  async generateColorsAndTypography(
+    userId: string,
+    project: ProjectModel
+  ): Promise<{
+    colors: ColorModel[];
+    typography: TypographyModel[];
+  }> {
+    logger.info(
+      `Generating colors and typography for userId: ${userId}, projectId: ${project.id}`
+    );
+
+    if (!project.id) {
+      throw new Error(`Project not found with ID: ${project.id}`);
+    }
+
+    const projectDescription = this.extractProjectDescription(project);
+
+    const steps: IPromptStep[] = [
+      {
+        promptConstant:
+          projectDescription + COLORS_TYPOGRAPHY_GENERATION_PROMPT,
+        stepName: "Colors and Typography Generation",
+        modelParser: (content) =>
+          this.parseSection(
+            content,
+            "Colors and Typography Generation",
+            project.id!
+          ),
+        hasDependencies: false,
+      },
+    ];
+    const sectionResults = await this.processSteps(steps, project);
+    const colorsTypographyResult = sectionResults[0];
+
+    return {
+      colors: colorsTypographyResult.parsedData.colors,
+      typography: colorsTypographyResult.parsedData.typography,
+    };
+  }
+
+  async generateLogos(
+    userId: string,
+    project: ProjectModel,
+    colors: ColorModel,
+    typography: TypographyModel
+  ): Promise<{
+    logos: LogoModel[];
+  }> {
+    logger.info(
+      `Generating logos for userId: ${userId}, projectId: ${project.id}`
+    );
+
+    if (!project.id) {
+      throw new Error(`Project not found with ID: ${project.id}`);
+    }
+
+    let projectDescription = this.extractProjectDescription(project);
+    projectDescription += `Colors: ${JSON.stringify(
+      colors
+    )} Typography: ${JSON.stringify(typography)}`;
+
+    const steps: IPromptStep[] = [
+      {
+        promptConstant: projectDescription + LOGO_GENERATION_PROMPT,
+        stepName: "Logo Generation",
+        modelParser: (content) =>
+          this.parseSection(content, "Logo Generation", project.id!),
+        hasDependencies: false,
+      },
+    ];
+    const sectionResults = await this.processSteps(steps, project);
+    const logoResult = sectionResults[0];
+    const parsedLogoContent = logoResult.parsedData;
+
+    return {
+      logos: parsedLogoContent,
+    };
+  }
+
   async generateLogoColorsAndTypography(
     userId: string,
     project: ProjectModel
