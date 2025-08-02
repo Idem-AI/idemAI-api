@@ -8,6 +8,7 @@ export interface UploadResult {
 }
 
 export interface LogoVariationsUpload {
+  primaryLogo?: UploadResult;
   lightBackground?: UploadResult;
   darkBackground?: UploadResult;
   monochrome?: UploadResult;
@@ -100,6 +101,7 @@ export class StorageService {
    * @returns Object with download URLs for each variation
    */
   async uploadLogoVariations(
+    primaryLogo: string,
     variations: {
       lightBackground?: string;
       darkBackground?: string;
@@ -118,6 +120,14 @@ export class StorageService {
         folderPath,
         variationsCount: Object.keys(variations).length,
       });
+
+      // Upload primary logo
+      results.primaryLogo = await this.uploadFile(
+        primaryLogo,
+        "logo-primary.svg",
+        folderPath,
+        "image/svg+xml"
+      );
 
       // Upload each variation if it exists
       if (variations.lightBackground) {

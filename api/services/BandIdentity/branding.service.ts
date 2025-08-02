@@ -80,6 +80,7 @@ export class BrandingService extends GenericService {
         {
           promptConstant: projectDescription + USAGE_GUIDELINES_SECTION_PROMPT,
           stepName: "Usage Guidelines",
+          hasDependencies: false,
         },
         {
           promptConstant: projectDescription + BRAND_FOOTER_SECTION_PROMPT,
@@ -222,6 +223,7 @@ export class BrandingService extends GenericService {
         stepName: "Logo Generation",
         modelParser: (content) =>
           this.parseSection(content, "Logo Generation", project.id!),
+        hasDependencies: false,
       },
     ];
     const sectionResults = await this.processSteps(steps, project);

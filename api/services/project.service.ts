@@ -46,12 +46,13 @@ class ProjectService {
       // Check if there are logo variations to upload
       const logoVariations =
         projectData.analysisResultModel?.branding?.logo?.variations;
-
+      const primaryLogo = projectData.analysisResultModel?.branding?.logo?.svg;
       if (
         logoVariations &&
         (logoVariations.lightBackground ||
           logoVariations.darkBackground ||
-          logoVariations.monochrome)
+          logoVariations.monochrome ||
+          primaryLogo)
       ) {
         logger.info(`Uploading logo variations to Firebase Storage`, {
           userId,
@@ -62,6 +63,7 @@ class ProjectService {
         try {
           // Upload logo variations to Firebase Storage
           const uploadResults = await storageService.uploadLogoVariations(
+            primaryLogo,
             logoVariations,
             userId,
             tempProjectId
@@ -83,6 +85,7 @@ class ProjectService {
                 ...projectToCreate.analysisResultModel?.branding,
                 logo: {
                   ...projectToCreate.analysisResultModel?.branding?.logo,
+                  svg: uploadResults.primaryLogo!.downloadURL,
                   variations: updatedVariations,
                 },
               },

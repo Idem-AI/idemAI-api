@@ -80,23 +80,13 @@ export class GenericService {
    * @returns Project description or empty string if not found
    */
   protected extractProjectDescription(project: ProjectModel): string {
-    let projectDescription = "";
+    const projectName = project.name || "Startup";
+    const projectDescription = project.description || "";
+    const projectType = project.type || "";
+    const projectScope = project.scope || "";
+    const projectTargets = project.targets || "";
 
-    if (project.analysisResultModel?.businessPlan?.sections) {
-      const descriptionSection =
-        project.analysisResultModel.businessPlan.sections.find(
-          (section) => section.name === "Project Description"
-        );
-
-      if (descriptionSection) {
-        projectDescription = descriptionSection.data;
-        logger.info(
-          `Found project description in business plan for projectId: ${project.id}`
-        );
-      }
-    }
-
-    return project.description + "\n\n" + projectDescription;
+    return `Project Name: ${projectName}\nProject Description: ${projectDescription}\nProject Type: ${projectType}\nProject Scope: ${projectScope}\nProject Targets: ${projectTargets}`;
   }
 
   /**
@@ -506,13 +496,20 @@ Please generate *only* the content for the '${
     userId?: string
   ): Promise<ISectionResult[]> {
     const results: ISectionResult[] = [];
-    const completedSteps: { name: string; content: string }[] = [];
+    const completedSteps = new Map<string, { name: string; content: string }>();
+    const stepPromises = new Map<string, Promise<ISectionResult>>();
+    const pendingSteps = [...steps];
 
-    for (const step of steps) {
+    logger.info(
+      `Starting processSteps for ${steps.length} steps in project ${project.id}`
+    );
+
+    // Helper function to execute a single step
+    const executeStep = async (step: IPromptStep): Promise<ISectionResult> => {
+      logger.info(`Starting execution of step: ${step.stepName}`);
+
       const hasDependencies =
         step.hasDependencies !== undefined ? step.hasDependencies : true;
-
-      // Construire le contexte des étapes précédentes si nécessaire
       let contextFromPreviousSteps = "";
 
       if (
@@ -520,11 +517,24 @@ Please generate *only* the content for the '${
         step.requiresSteps &&
         step.requiresSteps.length > 0
       ) {
-        // Filtrer et concaténer uniquement les étapes spécifiées
-        const requiredSteps = completedSteps.filter((s) =>
-          step.requiresSteps!.includes(s.name)
-        );
-        console.log("requiredSteps", requiredSteps);
+        // Wait for specific required steps to complete
+        const requiredPromises = step.requiresSteps
+          .map((stepName) => stepPromises.get(stepName))
+          .filter(
+            (promise) => promise !== undefined
+          ) as Promise<ISectionResult>[];
+
+        if (requiredPromises.length > 0) {
+          await Promise.all(requiredPromises);
+        }
+
+        // Build context from required steps
+        const requiredSteps = step.requiresSteps
+          .map((stepName) => completedSteps.get(stepName))
+          .filter((step) => step !== undefined) as {
+          name: string;
+          content: string;
+        }[];
 
         contextFromPreviousSteps = requiredSteps
           .map((s) => `## ${s.name}\n\n${s.content}\n\n---\n`)
@@ -539,20 +549,27 @@ Please generate *only* the content for the '${
         hasDependencies &&
         (!step.requiresSteps || step.requiresSteps.length === 0)
       ) {
-        // Inclure toutes les étapes précédentes si hasDependencies=true mais requiresSteps non spécifié
-        contextFromPreviousSteps = completedSteps
+        // Wait for all previous steps to complete (sequential behavior)
+        const allPreviousPromises = Array.from(stepPromises.values());
+        if (allPreviousPromises.length > 0) {
+          await Promise.all(allPreviousPromises);
+        }
+
+        // Build context from all completed steps
+        const allCompletedSteps = Array.from(completedSteps.values());
+        contextFromPreviousSteps = allCompletedSteps
           .map((s) => `## ${s.name}\n\n${s.content}\n\n---\n`)
           .join("\n");
 
         logger.info(
-          `Built context for step '${step.stepName}' from all ${completedSteps.length} previous steps`
+          `Built context for step '${step.stepName}' from all ${allCompletedSteps.length} previous steps`
         );
       } else {
-        // Aucune dépendance
         logger.info(
           `No context needed for step '${step.stepName}' (no dependencies)`
         );
       }
+
       const messages: AIChatMessage[] = [
         {
           role: "system",
@@ -563,50 +580,145 @@ Please generate *only* the content for the '${
           content: step.promptConstant,
         },
       ];
-      // Exécuter l'étape actuelle avec le contexte construit
-      const content = await this.runStepAndAppend(
-        step,
-        project,
-        true,
-        messages,
-        userId,
-        promptType || step.stepName,
-        contextFromPreviousSteps,
-        promptConfig
-      );
 
-      // Stocker le contenu de cette étape pour les étapes futures
-      completedSteps.push({
-        name: step.stepName,
-        content: content,
+      try {
+        // Execute the step
+        const content = await this.runStepAndAppend(
+          step,
+          project,
+          true,
+          messages,
+          userId,
+          promptType || step.stepName,
+          contextFromPreviousSteps,
+          promptConfig
+        );
+
+        // Store the completed step
+        completedSteps.set(step.stepName, {
+          name: step.stepName,
+          content: content,
+        });
+
+        // Parse the result if parser is provided
+        let parsedData = null;
+        if (step.modelParser) {
+          try {
+            parsedData = step.modelParser(content);
+            logger.info(
+              `Successfully parsed ${step.stepName} for projectId: ${project.id}`
+            );
+          } catch (error) {
+            logger.error(
+              `Error parsing ${step.stepName} for project ${project.id}:`,
+              error
+            );
+            parsedData = { error: "Parsing error", content };
+          }
+        }
+
+        const result: ISectionResult = {
+          name: step.stepName,
+          type: "text/markdown",
+          data: content,
+          summary: `${step.stepName} for Project ${project.id}`,
+          parsedData: parsedData,
+        };
+
+        logger.info(`Completed execution of step: ${step.stepName}`);
+        return result;
+      } catch (error) {
+        logger.error(`Error executing step ${step.stepName}:`, error);
+        throw error;
+      }
+    };
+
+    const areDependenciesSatisfied = (step: IPromptStep): boolean => {
+      const hasDependencies =
+        step.hasDependencies !== undefined ? step.hasDependencies : true;
+
+      if (!hasDependencies) {
+        return true;
+      }
+
+      if (step.requiresSteps && step.requiresSteps.length > 0) {
+        // Check if all required steps are completed
+        return step.requiresSteps.every((stepName) =>
+          completedSteps.has(stepName)
+        );
+      }
+
+      return true;
+    };
+
+    // Main execution loop
+    while (pendingSteps.length > 0) {
+      // Find steps that can be started now
+      const readySteps = pendingSteps.filter((step) => {
+        const hasDependencies =
+          step.hasDependencies !== undefined ? step.hasDependencies : true;
+
+        // Steps without dependencies can start immediately
+        if (!hasDependencies) {
+          return true;
+        }
+
+        // Steps with specific requirements
+        if (step.requiresSteps && step.requiresSteps.length > 0) {
+          return areDependenciesSatisfied(step);
+        }
+
+        // Steps with general dependencies (hasDependencies=true, no specific requiresSteps)
+        // These will be handled sequentially in executeStep
+        return true;
       });
 
-      let parsedData = null;
-      if (step.modelParser) {
-        try {
-          parsedData = step.modelParser(content);
-          logger.info(
-            `Successfully parsed ${step.stepName} for projectId: ${project.id}`
-          );
-        } catch (error) {
-          logger.error(
-            `Error parsing ${step.stepName} for project ${project.id}:`,
-            error
-          );
-          parsedData = { error: "Parsing error", content };
+      // Start execution of ready steps
+      for (const step of readySteps) {
+        if (!stepPromises.has(step.stepName)) {
+          logger.info(`Launching step: ${step.stepName}`);
+          const promise = executeStep(step);
+          stepPromises.set(step.stepName, promise);
+
+          // Remove from pending
+          const index = pendingSteps.indexOf(step);
+          if (index > -1) {
+            pendingSteps.splice(index, 1);
+          }
         }
       }
 
-      results.push({
-        name: step.stepName,
-        type: "text/markdown",
-        data: content,
-        summary: `${step.stepName} for Project ${project.id}`,
-        parsedData: parsedData,
-      });
+      // If no steps can be started and there are still pending steps,
+      // wait for at least one to complete
+      if (readySteps.length === 0 && pendingSteps.length > 0) {
+        if (stepPromises.size > 0) {
+          await Promise.race(Array.from(stepPromises.values()));
+        } else {
+          // This shouldn't happen, but prevent infinite loop
+          logger.error(
+            "No steps can be started and no steps are running. Breaking loop."
+          );
+          break;
+        }
+      }
     }
 
-    return results;
+    // Wait for all steps to complete
+    logger.info(`Waiting for all ${stepPromises.size} steps to complete`);
+    const completedResults = await Promise.all(
+      Array.from(stepPromises.values())
+    );
+
+    // Sort results to match the original step order
+    const stepOrder = steps.map((step) => step.stepName);
+    completedResults.sort((a, b) => {
+      const indexA = stepOrder.indexOf(a.name);
+      const indexB = stepOrder.indexOf(b.name);
+      return indexA - indexB;
+    });
+
+    logger.info(`All steps completed for project ${project.id}`);
+    return completedResults;
   }
 
   /**
