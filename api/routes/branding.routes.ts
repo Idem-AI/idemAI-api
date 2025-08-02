@@ -129,7 +129,7 @@ brandingRoutes.get(
  *       '500':
  *         description: Internal server error.
  */
-brandingRoutes.get(
+brandingRoutes.post(
   `/${resourceName}/genColorsAndTypography`,
   authenticate,
   checkQuota,

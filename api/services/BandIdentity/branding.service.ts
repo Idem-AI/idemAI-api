@@ -218,11 +218,10 @@ export class BrandingService extends GenericService {
         hasDependencies: false,
       },
       {
-        promptConstant: LOGO_GENERATION_PROMPT,
+        promptConstant: projectDescription + LOGO_GENERATION_PROMPT,
         stepName: "Logo Generation",
         modelParser: (content) =>
           this.parseSection(content, "Logo Generation", project.id!),
-        requiresSteps: ["Colors and Typography Generation"],
       },
     ];
     const sectionResults = await this.processSteps(steps, project);

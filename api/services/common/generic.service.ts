@@ -212,6 +212,7 @@ Please generate *only* the content for the '${
 
   /**
    * Process steps with streaming, calling a callback for each completed step
+   * Supports asynchronous execution of steps without dependencies
    * @param steps Array of prompt steps
    * @param project Project model
    * @param stepCallback Callback function called after each step completes
@@ -227,113 +228,267 @@ Please generate *only* the content for the '${
     promptType?: string,
     userId?: string
   ): Promise<void> {
-    const completedSteps: { name: string; content: string }[] = [];
+    const completedSteps: Map<string, { name: string; content: string }> =
+      new Map();
+    const runningSteps: Set<string> = new Set();
+    const stepPromises: Map<string, Promise<void>> = new Map();
 
-    for (const step of steps) {
-      // Send a "step_started" event before starting the step
-      const stepStartedResult: ISectionResult = {
-        name: step.stepName,
+    // Helper function to send progress updates
+    const sendProgressUpdate = async () => {
+      const progressResult: ISectionResult = {
+        name: "progress",
         type: "event",
-        data: "step_started",
-        summary: `Starting ${step.stepName}`,
-        parsedData: { status: "started", stepName: step.stepName },
+        data: "steps_in_progress",
+        summary: `Steps in progress: ${Array.from(runningSteps).join(", ")}`,
+        parsedData: {
+          status: "progress",
+          stepsInProgress: Array.from(runningSteps),
+          completedSteps: Array.from(completedSteps.keys()),
+        },
       };
-      await stepCallback(stepStartedResult);
-      
-      const hasDependencies = 
+      await stepCallback(progressResult);
+    };
+
+    // Helper function to execute a single step
+    const executeStep = async (step: IPromptStep): Promise<void> => {
+      try {
+        runningSteps.add(step.stepName);
+        await sendProgressUpdate();
+
+        logger.info(`Starting execution of step: ${step.stepName}`);
+
+        const hasDependencies =
+          step.hasDependencies !== undefined ? step.hasDependencies : true;
+
+        // Build context from previous steps if necessary
+        let contextFromPreviousSteps = "";
+
+        if (
+          hasDependencies &&
+          step.requiresSteps &&
+          step.requiresSteps.length > 0
+        ) {
+          // Filter and concatenate only the specified steps
+          const requiredSteps = Array.from(completedSteps.values()).filter(
+            (s) => step.requiresSteps!.includes(s.name)
+          );
+
+          contextFromPreviousSteps = requiredSteps
+            .map((s) => `## ${s.name}\n\n${s.content}\n\n---\n`)
+            .join("\n");
+
+          logger.info(
+            `Built context for step '${step.stepName}' from ${
+              requiredSteps.length
+            } required steps: [${requiredSteps.map((s) => s.name).join(", ")}]`
+          );
+        } else if (
+          hasDependencies &&
+          (!step.requiresSteps || step.requiresSteps.length === 0)
+        ) {
+          // Include all previous steps if hasDependencies=true but requiresSteps not specified
+          contextFromPreviousSteps = Array.from(completedSteps.values())
+            .map((s) => `## ${s.name}\n\n${s.content}\n\n---\n`)
+            .join("\n");
+
+          logger.info(
+            `Built context for step '${step.stepName}' from all ${completedSteps.size} previous steps`
+          );
+        } else {
+          logger.info(
+            `No context needed for step '${step.stepName}' (no dependencies)`
+          );
+        }
+
+        const messages: AIChatMessage[] = [
+          {
+            role: "system",
+            content: contextFromPreviousSteps,
+          },
+          {
+            role: "user",
+            content: step.promptConstant,
+          },
+        ];
+
+        // Execute the current step with the built context
+        const content = await this.runStepAndAppend(
+          step,
+          project,
+          true,
+          messages,
+          userId,
+          promptType || step.stepName,
+          contextFromPreviousSteps,
+          promptConfig
+        );
+
+        // Store the content of this step for future steps
+        completedSteps.set(step.stepName, {
+          name: step.stepName,
+          content: content,
+        });
+
+        let parsedData = null;
+        if (step.modelParser) {
+          try {
+            parsedData = step.modelParser(content);
+            logger.info(
+              `Successfully parsed ${step.stepName} for projectId: ${project.id}`
+            );
+          } catch (error) {
+            logger.error(
+              `Error parsing ${step.stepName} for project ${project.id}:`,
+              error
+            );
+            parsedData = { error: "Parsing error", content };
+          }
+        }
+
+        const sectionResult: ISectionResult = {
+          name: step.stepName,
+          type: "text/markdown",
+          data: content,
+          summary: `${step.stepName} for Project ${project.id}`,
+          parsedData: {
+            ...parsedData,
+            status: "completed",
+            stepName: step.stepName,
+          },
+        };
+
+        // Remove from running steps and update progress
+        runningSteps.delete(step.stepName);
+        await sendProgressUpdate();
+
+        // Call the callback with the completed result
+        await stepCallback(sectionResult);
+
+        logger.info(`Completed execution of step: ${step.stepName}`);
+      } catch (error) {
+        runningSteps.delete(step.stepName);
+        logger.error(`Error executing step ${step.stepName}:`, error);
+        throw error;
+      }
+    };
+
+    // Helper function to check if all dependencies are satisfied
+    const areDependenciesSatisfied = (step: IPromptStep): boolean => {
+      const hasDependencies =
         step.hasDependencies !== undefined ? step.hasDependencies : true;
 
-      // Build context from previous steps if necessary
-      let contextFromPreviousSteps = "";
+      if (!hasDependencies) {
+        return true; // No dependencies required
+      }
 
-      if (hasDependencies && step.requiresSteps && step.requiresSteps.length > 0) {
-        // Filter and concatenate only the specified steps
-        const requiredSteps = completedSteps.filter(s => 
-          step.requiresSteps!.includes(s.name)
-        );
-
-        contextFromPreviousSteps = requiredSteps
-          .map(s => `## ${s.name}\n\n${s.content}\n\n---\n`)
-          .join("\n");
-
-        logger.info(
-          `Built context for step '${step.stepName}' from ${requiredSteps.length} required steps: [${requiredSteps.map(s => s.name).join(", ")}]`
-        );
-      } else if (hasDependencies && (!step.requiresSteps || step.requiresSteps.length === 0)) {
-        // Include all previous steps if hasDependencies=true but requiresSteps not specified
-        contextFromPreviousSteps = completedSteps
-          .map(s => `## ${s.name}\n\n${s.content}\n\n---\n`)
-          .join("\n");
-
-        logger.info(
-          `Built context for step '${step.stepName}' from all ${completedSteps.length} previous steps`
-        );
-      } else {
-        logger.info(
-          `No context needed for step '${step.stepName}' (no dependencies)`
+      if (step.requiresSteps && step.requiresSteps.length > 0) {
+        // Check if all required steps are completed
+        return step.requiresSteps.every((requiredStep) =>
+          completedSteps.has(requiredStep)
         );
       }
-      
-      const messages: AIChatMessage[] = [
-        {
-          role: "system",
-          content: contextFromPreviousSteps,
-        },
-        {
-          role: "user",
-          content: step.promptConstant,
-        },
-      ];
-      
-      // Execute the current step with the built context
-      const content = await this.runStepAndAppend(
-        step,
-        project,
-        true,
-        messages,
-        userId,
-        promptType || step.stepName,
-        contextFromPreviousSteps,
-        promptConfig
+
+      // If hasDependencies=true but no specific requiresSteps,
+      // we need to wait for all previous steps in the array
+      const currentIndex = steps.findIndex((s) => s.stepName === step.stepName);
+      const previousSteps = steps.slice(0, currentIndex);
+
+      return previousSteps.every((prevStep) =>
+        completedSteps.has(prevStep.stepName)
+      );
+    };
+
+    // Main execution loop
+    const pendingSteps = [...steps];
+
+    while (pendingSteps.length > 0 || stepPromises.size > 0) {
+      // Find steps that can be started (dependencies satisfied)
+      const readySteps = pendingSteps.filter(
+        (step) =>
+          !stepPromises.has(step.stepName) &&
+          !runningSteps.has(step.stepName) &&
+          areDependenciesSatisfied(step)
       );
 
-      // Store the content of this step for future steps
-      completedSteps.push({
-        name: step.stepName,
-        content: content,
-      });
+      // Start execution of ready steps
+      for (const step of readySteps) {
+        const stepPromise = executeStep(step);
+        stepPromises.set(step.stepName, stepPromise);
 
-      let parsedData = null;
-      if (step.modelParser) {
-        try {
-          parsedData = step.modelParser(content);
-          logger.info(
-            `Successfully parsed ${step.stepName} for projectId: ${project.id}`
-          );
-        } catch (error) {
-          logger.error(
-            `Error parsing ${step.stepName} for project ${project.id}:`,
-            error
-          );
-          parsedData = { error: "Parsing error", content };
+        // Remove from pending steps
+        const index = pendingSteps.findIndex(
+          (s) => s.stepName === step.stepName
+        );
+        if (index !== -1) {
+          pendingSteps.splice(index, 1);
         }
       }
 
-      const sectionResult: ISectionResult = {
-        name: step.stepName,
-        type: "text/markdown",
-        data: content,
-        summary: `${step.stepName} for Project ${project.id}`,
-        parsedData: { 
-          ...parsedData, 
-          status: "completed", 
-          stepName: step.stepName 
-        },
-      };
+      // Wait for at least one step to complete if we have running steps
+      if (stepPromises.size > 0) {
+        await Promise.race(Array.from(stepPromises.values()));
 
-      // Call the callback with the completed result
-      await stepCallback(sectionResult);
+        // Clean up completed promises
+        for (const [stepName, promise] of stepPromises.entries()) {
+          try {
+            // Check if promise is resolved by trying to get its value with a 0 timeout
+            await Promise.race([
+              promise,
+              new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("timeout")), 0)
+              ),
+            ]);
+            // If we reach here, the promise is resolved
+            stepPromises.delete(stepName);
+          } catch (error) {
+            if ((error as Error).message !== "timeout") {
+              // Real error, remove the promise and re-throw
+              stepPromises.delete(stepName);
+              throw error;
+            }
+            // Timeout means promise is still pending, keep it
+          }
+        }
+      }
+
+      // Prevent infinite loop if no progress can be made
+      if (readySteps.length === 0 && pendingSteps.length > 0) {
+        const pendingStepNames = pendingSteps.map((s) => s.stepName);
+        logger.warn(
+          `No steps can be started. Pending steps: ${pendingStepNames.join(
+            ", "
+          )}`
+        );
+
+        // Check for circular dependencies or missing dependencies
+        for (const step of pendingSteps) {
+          if (step.requiresSteps) {
+            const missingDeps = step.requiresSteps.filter(
+              (dep) =>
+                !completedSteps.has(dep) &&
+                !steps.some((s) => s.stepName === dep)
+            );
+            if (missingDeps.length > 0) {
+              throw new Error(
+                `Step '${
+                  step.stepName
+                }' has missing dependencies: ${missingDeps.join(", ")}`
+              );
+            }
+          }
+        }
+
+        // Wait a bit before checking again
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
     }
+
+    // Wait for all remaining promises to complete
+    if (stepPromises.size > 0) {
+      await Promise.all(Array.from(stepPromises.values()));
+    }
+
+    logger.info(`All steps completed for project ${project.id}`);
   }
 
   /**
