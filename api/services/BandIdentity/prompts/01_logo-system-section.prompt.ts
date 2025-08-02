@@ -1,48 +1,62 @@
 export const LOGO_SYSTEM_SECTION_PROMPT = `
-You are a brand identity expert specializing in logo systems. Create a comprehensive logo system section that matches exactly the  branding template style.
+You are a brand identity expert specializing in logo systems. Create a comprehensive logo system section using only HTML with Tailwind CSS classes.
 
 STRICT OUTPUT REQUIREMENTS:
-1. Generate ONLY one <section> with this exact structure to match the  template. Note that all content will be inside a parent element with class 'branding-document':
-<section class="section">
-  <h2 class="section-title">Logo & Variations</h2>
-  <div class="logo-variants">
-    <div class="logo-card">
-      <h4>Primary Logo</h4>
-      <div class="logo-display">
+1. Generate ONLY HTML with Tailwind CSS classes
+2. Format optimized for A4 portrait (210mm x 297mm)
+3. No custom CSS, no JavaScript, only Tailwind utility classes
+4. Remove all line breaks in HTML output
+5. Escape " with \"
+
+HTML STRUCTURE:
+Create a logo system section with:
+
+<section class="w-full py-12 px-8">
+  <h2 class="text-3xl font-bold text-gray-800 mb-8 border-b-2 border-blue-600 pb-2">Logo & Variations</h2>
+  <div class="grid grid-cols-2 gap-8">
+    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+      <h4 class="text-lg font-semibold text-gray-700 mb-4">Primary Logo</h4>
+      <div class="bg-gray-50 rounded-lg p-8 mb-4 flex items-center justify-center min-h-32">
         <!-- SVG Logo Code Here -->
+        <div class="text-gray-400 text-sm">Primary Logo SVG</div>
       </div>
-      <div class="logo-description">
+      <div class="text-sm text-gray-600">
         <p>Primary version of the logo, used on white or light backgrounds. The symbol's gradient and typography create a strong and recognizable visual identity.</p>
       </div>
     </div>
     
-    <div class="logo-card">
-      <h4>Monochrome Version</h4>
-      <div class="logo-display">
+    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+      <h4 class="text-lg font-semibold text-gray-700 mb-4">Monochrome Version</h4>
+      <div class="bg-gray-50 rounded-lg p-8 mb-4 flex items-center justify-center min-h-32">
         <!-- SVG Monochrome Logo Code Here -->
+        <div class="text-gray-400 text-sm">Monochrome Logo SVG</div>
       </div>
-      <div class="logo-description">
+      <div class="text-sm text-gray-600">
         <p>Black version for applications where color is not possible. It maintains the visual identity while ensuring optimal readability.</p>
       </div>
     </div>
     
-    <div class="logo-card">
-      <h4>Negative Version</h4>
-      <div class="logo-display negative-bg">
+    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+      <h4 class="text-lg font-semibold text-gray-700 mb-4">Negative Version</h4>
+      <div class="bg-gray-800 rounded-lg p-8 mb-4 flex items-center justify-center min-h-32">
         <!-- SVG Negative Logo Code Here -->
+        <div class="text-gray-400 text-sm">White Logo SVG</div>
       </div>
-      <div class="logo-description">
-        <p>Version claire pour utilisation sur fonds sombres. Les éléments ont été optimisés pour maintenir l'impact visuel quelle que soit la couleur de fond.</p>
+      <div class="text-sm text-gray-600">
+        <p>White version for use on dark backgrounds. Elements have been optimized to maintain visual impact regardless of background color.</p>
       </div>
     </div>
     
-    <div class="logo-card">
-      <h4>Espace de Protection</h4>
-      <div class="logo-display clearzone">
+    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+      <h4 class="text-lg font-semibold text-gray-700 mb-4">Protection Space</h4>
+      <div class="bg-gray-50 rounded-lg p-8 mb-4 flex items-center justify-center min-h-32 relative">
         <!-- SVG Logo with Protection Space Visualization -->
+        <div class="border-2 border-dashed border-blue-300 p-4">
+          <div class="text-gray-400 text-sm">Logo with Clear Space</div>
+        </div>
       </div>
-      <div class="logo-description">
-        <p>Un espace minimal équivalent à la hauteur du symbole doit être maintenu autour du logo pour préserver son impact visuel.</p>
+      <div class="text-sm text-gray-600">
+        <p>A minimum space equivalent to the height of the symbol must be maintained around the logo to preserve its visual impact.</p>
       </div>
     </div>
   </div>

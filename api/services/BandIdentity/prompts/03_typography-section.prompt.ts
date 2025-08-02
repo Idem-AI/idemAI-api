@@ -1,45 +1,94 @@
 export const TYPOGRAPHY_SECTION_PROMPT = `
-You are a senior typography designer specializing in digital brand systems. Create a comprehensive typography section that matches exactly the  branding template style.
+You are a senior typography designer specializing in digital brand systems. Create a comprehensive typography section using only HTML with Tailwind CSS classes.
 
 STRICT OUTPUT REQUIREMENTS:
-1. Generate ONLY one <section> with this exact structure to match the  template. Note that all content will be placed inside a parent element with class 'branding-document':
-<section class="section">
-  <h2 class="section-title">Typography</h2>
-  <div class="fonts-container">
-    <div class="font-card">
-      <div class="font-name">Exo 2</div>
-      <div class="font-meta">Primary font - Open Font License</div>
-      <div class="font-specimen">
-        <h4>Usage examples</h4>
-        <div class="font-example" style="font-family: 'Exo 2', sans-serif; font-size: 2.5rem; font-weight: 700;">
-          Main title
-        </div>
-        <div class="font-example" style="font-family: 'Exo 2', sans-serif; font-size: 2rem; font-weight: 700;">
-          Section title
-        </div>
-        <div class="font-example" style="font-family: 'Exo 2', sans-serif; font-size: 1.5rem; font-weight: 600;">
-          Section subtitle
+1. Generate ONLY HTML with Tailwind CSS classes
+2. Format optimized for A4 portrait (210mm x 297mm)
+3. No custom CSS, no JavaScript, only Tailwind utility classes
+4. Remove all line breaks in HTML output
+5. Escape " with \"
+
+HTML STRUCTURE:
+Create a typography section with:
+
+<section class="w-full py-12 px-8">
+  <h2 class="text-3xl font-bold text-gray-800 mb-8 border-b-2 border-blue-600 pb-2">Typography</h2>
+  <div class="space-y-8">
+    <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+      <div class="text-2xl font-bold text-gray-800 mb-2">Inter</div>
+      <div class="text-sm text-gray-500 mb-6">Primary font - Google Fonts</div>
+      <div class="mb-6">
+        <h4 class="text-lg font-semibold text-gray-700 mb-4">Usage examples</h4>
+        <div class="space-y-4">
+          <div class="text-4xl font-bold text-gray-800">
+            Main Title
+          </div>
+          <div class="text-3xl font-bold text-gray-800">
+            Section Title
+          </div>
+          <div class="text-2xl font-semibold text-gray-700">
+            Section Subtitle
+          </div>
+          <div class="text-lg font-medium text-gray-600">
+            Body Text Large
+          </div>
+          <div class="text-base text-gray-600">
+            Regular body text for main content and detailed descriptions for optimal reading experience.
+          </div>
+          <div class="text-sm text-gray-500">
+            Small text for captions and metadata.
+          </div>
         </div>
       </div>
-      <div class="font-rationale">
-        The modern and geometric forms of Exo 2 convey an innovative sentiment, suitable for a technological application. Its solid structure offers excellent readability for titles and headers.
+      <div class="text-sm text-gray-600">
+        Inter is a modern, highly legible typeface designed specifically for user interfaces. Its clean geometric forms and excellent readability make it perfect for digital applications and brand communications.
       </div>
     </div>
     
-    <div class="font-card">
-      <div class="font-name">Ubuntu Mono</div>
-      <div class="font-meta">Secondary font - Ubuntu Font Licence</div>
-      <div class="font-specimen">
-        <h4>Usage examples</h4>
-        <div class="font-example" style="font-family: 'Ubuntu Mono', monospace; font-size: 1rem">
-          Main content text and detailed descriptions for optimal reading.
-        </div>
-        <div class="font-example" style="font-family: 'Ubuntu Mono', monospace; font-size: 0.9rem">
-          Technical information and precise data.
+    <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+      <div class="text-2xl font-bold text-gray-800 mb-2">JetBrains Mono</div>
+      <div class="text-sm text-gray-500 mb-6">Secondary font - Apache License 2.0</div>
+      <div class="mb-6">
+        <h4 class="text-lg font-semibold text-gray-700 mb-4">Usage examples</h4>
+        <div class="space-y-4 font-mono">
+          <div class="text-lg text-gray-800">
+            Code snippets and technical content
+          </div>
+          <div class="text-base text-gray-600">
+            Technical information and precise data display.
+          </div>
+          <div class="text-sm text-gray-500">
+            API endpoints, file names, and system messages.
+          </div>
         </div>
       </div>
-      <div class="font-rationale">
-        Ubuntu Mono, with its monospace style, brings a technical and precise feeling, perfect for displaying data or code snippets. Its clarity improves the readability of the main text.
+      <div class="text-sm text-gray-600">
+        JetBrains Mono is a monospace font designed for developers. Its clear character distinction and coding ligatures make it perfect for technical documentation and code display.
+      </div>
+    </div>
+    
+    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+      <h4 class="text-lg font-semibold text-gray-700 mb-4">Typography Scale</h4>
+      <div class="grid grid-cols-2 gap-6">
+        <div>
+          <h5 class="font-medium text-gray-600 mb-3">Headings</h5>
+          <div class="space-y-2 text-sm text-gray-600">
+            <div>H1: text-4xl font-bold (36px)</div>
+            <div>H2: text-3xl font-bold (30px)</div>
+            <div>H3: text-2xl font-semibold (24px)</div>
+            <div>H4: text-xl font-semibold (20px)</div>
+            <div>H5: text-lg font-medium (18px)</div>
+          </div>
+        </div>
+        <div>
+          <h5 class="font-medium text-gray-600 mb-3">Body Text</h5>
+          <div class="space-y-2 text-sm text-gray-600">
+            <div>Large: text-lg (18px)</div>
+            <div>Regular: text-base (16px)</div>
+            <div>Small: text-sm (14px)</div>
+            <div>Caption: text-xs (12px)</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

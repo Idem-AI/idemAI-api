@@ -12,7 +12,6 @@ import { COLOR_PALETTE_SECTION_PROMPT } from "./prompts/02_color-palette-section
 import { TYPOGRAPHY_SECTION_PROMPT } from "./prompts/03_typography-section.prompt";
 import { USAGE_GUIDELINES_SECTION_PROMPT } from "./prompts/04_usage-guidelines-section.prompt";
 import { VISUAL_EXAMPLES_SECTION_PROMPT } from "./prompts/05_visual-examples-section.prompt";
-import { GLOBAL_CSS_PROMPT } from "./prompts/06_global-css-section.prompt";
 import { BRAND_FOOTER_SECTION_PROMPT } from "./prompts/07_brand-footer-section.prompt";
 import logger from "../../config/logger";
 import { SectionModel } from "../../models/section.model";
@@ -85,11 +84,6 @@ export class BrandingService extends GenericService {
         {
           promptConstant: projectDescription + BRAND_FOOTER_SECTION_PROMPT,
           stepName: "Brand Footer",
-          hasDependencies: false,
-        },
-        {
-          promptConstant: GLOBAL_CSS_PROMPT,
-          stepName: "Global CSS",
           hasDependencies: false,
         },
       ];

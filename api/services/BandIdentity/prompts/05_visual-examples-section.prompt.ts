@@ -1,49 +1,81 @@
 export const VISUAL_EXAMPLES_SECTION_PROMPT = `
-You are a UI/UX expert creating brand-compliant application examples that match the  branding template style.
+You are a UI/UX expert creating brand-compliant application examples using only HTML with Tailwind CSS classes.
 
-STRICT REQUIREMENTS:
-1. Generate ONLY one <section> with this exact structure to match the  template. The content will be placed inside a parent element with class 'branding-document':
-<section class="section">
-  <h2 class="section-title">Visual Examples</h2>
-  <div class="visual-examples">
-    <div class="visual-card">
-      <h3 class="visual-title">Mobile Application</h3>
-      <div class="visual-representation">
-        <svg width="220" height="170" viewBox="0 0 220 170" xmlns="http://www.w3.org/2000/svg">
-          <!-- Phone frame -->
-          <rect x="70" y="10" width="80" height="150" rx="10" fill="white" stroke="#e6e6fa" stroke-width="2" />
-          <rect x="70" y="10" width="80" height="20" rx="10" fill="#191970" />
-          <!-- Screen content -->
-          <rect x="75" y="35" width="70" height="100" fill="#f8f9fa" />
-          <!-- App header -->
-          <rect x="75" y="35" width="70" height="15" fill="#191970" />
-          <circle cx="85" cy="42" r="5" fill="white" />
-          <rect x="95" y="40" width="30" height="4" rx="2" fill="white" />
-          <!-- Content -->
-          <rect x="80" y="55" width="60" height="25" rx="4" fill="white" stroke="#e6e6fa" stroke-width="1" />
-          <circle cx="90" cy="67" r="5" fill="#191970" />
-          <rect x="100" y="63" width="30" height="2" rx="1" fill="#191970" />
-          <rect x="100" y="68" width="25" height="2" rx="1" fill="#adb5bd" />
-          <rect x="100" y="72" width="20" height="2" rx="1" fill="#adb5bd" />
-          <rect x="80" y="85" width="60" height="25" rx="4" fill="white" stroke="#e6e6fa" stroke-width="1" />
-          <circle cx="90" cy="97" r="5" fill="#DDA0DD" />
-          <rect x="100" y="93" width="30" height="2" rx="1" fill="#191970" />
-          <rect x="100" y="98" width="25" height="2" rx="1" fill="#adb5bd" />
-          <rect x="100" y="102" width="20" height="2" rx="1" fill="#adb5bd" />
-          <!-- Bottom nav -->
-          <rect x="75" y="135" width="70" height="15" fill="white" stroke="#e6e6fa" stroke-width="1" />
-          <circle cx="90" cy="142" r="3" fill="#191970" />
-          <circle cx="110" cy="142" r="3" fill="#adb5bd" />
-          <circle cx="130" cy="142" r="3" fill="#adb5bd" />
-          <!-- Logo on screen -->
-          <g transform="translate(80, 125) scale(0.15)">
-            <path d="M10,20 C30,5 90,5 110,20 C90,35 30,35 10,20" stroke="#191970" stroke-width="4" fill="none" stroke-linecap="round" />
-            <circle cx="40" cy="20" r="7" fill="#191970" />
-            <circle cx="80" cy="20" r="7" fill="#191970" />
-          </g>
-        </svg>
+STRICT OUTPUT REQUIREMENTS:
+1. Generate ONLY HTML with Tailwind CSS classes
+2. Format optimized for A4 portrait (210mm x 297mm)
+3. No custom CSS, no JavaScript, only Tailwind utility classes
+4. Remove all line breaks in HTML output
+5. Escape " with \"
+
+HTML STRUCTURE:
+Create visual examples section with:
+
+<section class="w-full py-12 px-8">
+  <h2 class="text-3xl font-bold text-gray-800 mb-8 border-b-2 border-blue-600 pb-2">Visual Examples</h2>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+      <h3 class="text-xl font-bold text-gray-800 mb-6">Mobile Application</h3>
+      <div class="flex justify-center mb-6">
+        <div class="bg-gray-900 rounded-3xl p-2 shadow-lg">
+          <div class="bg-white rounded-2xl w-48 h-80 p-4 relative overflow-hidden">
+            <!-- Status bar -->
+            <div class="bg-gradient-to-r from-purple-600 to-blue-600 h-6 rounded-t-2xl -mx-4 -mt-4 mb-4 flex items-center justify-center">
+              <div class="text-white text-xs font-medium">9:41 AM</div>
+            </div>
+            
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <div class="w-4 h-4 bg-white rounded-full"></div>
+              </div>
+              <div class="text-lg font-bold text-gray-800">Dashboard</div>
+              <div class="w-6 h-6 bg-gray-300 rounded"></div>
+            </div>
+            
+            <!-- Content cards -->
+            <div class="space-y-3">
+              <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <div class="flex items-center space-x-3">
+                  <div class="w-8 h-8 bg-blue-600 rounded-full"></div>
+                  <div class="flex-1">
+                    <div class="h-2 bg-gray-800 rounded mb-1"></div>
+                    <div class="h-2 bg-gray-400 rounded w-3/4"></div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <div class="flex items-center space-x-3">
+                  <div class="w-8 h-8 bg-green-500 rounded-full"></div>
+                  <div class="flex-1">
+                    <div class="h-2 bg-gray-800 rounded mb-1"></div>
+                    <div class="h-2 bg-gray-400 rounded w-2/3"></div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <div class="flex items-center space-x-3">
+                  <div class="w-8 h-8 bg-purple-500 rounded-full"></div>
+                  <div class="flex-1">
+                    <div class="h-2 bg-gray-800 rounded mb-1"></div>
+                    <div class="h-2 bg-gray-400 rounded w-1/2"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Bottom navigation -->
+            <div class="absolute bottom-4 left-4 right-4 bg-white border border-gray-200 rounded-full p-2 flex justify-around">
+              <div class="w-6 h-6 bg-blue-600 rounded-full"></div>
+              <div class="w-6 h-6 bg-gray-300 rounded-full"></div>
+              <div class="w-6 h-6 bg-gray-300 rounded-full"></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="visual-description">
+      <div class="text-sm text-gray-600">
         Adaptive mobile interface preserving all the brand's visual codes. Intuitive navigation and optimized spacing for touch interaction.
       </div>
     </div>
@@ -129,19 +161,17 @@ STRICT REQUIREMENTS:
           <!-- Document content lines -->
           <rect x="45" y="135" width="60" height="2" rx="1" fill="#191970" />
           <rect x="45" y="140" width="120" height="1" rx="0.5" fill="#adb5bd" />
-          <rect x="45" y="144" width="120" height="1" rx="0.5" fill="#adb5bd" />
-        </svg>
-      </div>
-      <div class="visual-description">
-        Set of business stationery including business cards, letterheads, and official documents. Materializes the brand identity in professional communications.
       </div>
     </div>
   </div>
 </section>
 
-RULES:
-- MAX 2 core examples
-- 1-2 sentences per rationale
+CONTENT RULES:
+- Generate 2 core visual examples (mobile and web applications)
+- Include brief, practical descriptions for each example
+- Focus on brand consistency and user experience
+- Use modern UI patterns and layouts
+- Emphasize accessibility and usability principles
 - Essential styles only
 - No redundant elements
 

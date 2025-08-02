@@ -38,7 +38,7 @@ TECHNICAL REQUIREMENTS (apply to each of the 4 propositions):
 - No external resources or references
 
 2. DESIGN RULES (for each proposition):
-- Use a primary color and accent color that match the gradient style from the Sozy template (e.g., purple to blue gradient: #6a11cb to #2575fc)
+- Use a primary color and accent color that match the gradient style from the Sozy template (e.g.,  [primaryColor] to [secondaryColor])
 - 1 font family maximum, preferably 'Exo 2' to match the template, or another premium Google Font
 - Strong and creative use of **negative space** and **geometric balance**
 - Bold, recognizable shapes that remain legible and memorable at small sizes (minimum 16px)
@@ -71,7 +71,7 @@ CONTENT DETAILS (for each proposition object in the JSON array):
 - \"variations\": (Optional object) If included, provide full SVG code for each specified variant.
 
 PROJECT CONTEXT:
-The logo propositions are for a premium tech brand named Sozy that aims to communicate trust, simplicity, and forward-thinking. Each logo must feel high-end, unique, modern, sleek, and highly professional. The aesthetic should match the Sozy brand template style with modern gradients (purple to blue: #6a11cb to #2575fc), clean typography (using Exo 2 font), and premium design elements. The style should align with leading contemporary tech brands, suitable for premium digital products and global recognition.
+The logo propositions are for a premium tech brand named Sozy that aims to communicate trust, simplicity, and forward-thinking. Each logo must feel high-end, unique, modern, sleek, and highly professional. The aesthetic should match the Sozy brand template style with modern gradients ([primaryColor] to [secondaryColor]), clean typography (using Exo 2 font), and premium design elements. The style should align with leading contemporary tech brands, suitable for premium digital products and global recognition.
 
 EXAMPLE OUTPUT (structure for one proposition within the array of 4):
 [

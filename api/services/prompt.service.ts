@@ -509,20 +509,24 @@ export class PromptService {
     }
 
     // Input validation for user content
-    if (userId && messages.length > 0) {
-      const userMessage = messages.find((msg) => msg.role === "user");
-      if (userMessage) {
-        const inputValidation = betaRestrictionsService.validateInput(
-          userMessage.content
-        );
-        if (!inputValidation.allowed) {
-          logger.warn(
-            `Invalid input from user ${userId}: ${inputValidation.message}`
-          );
-          throw new Error(inputValidation.message || "Invalid input");
-        }
-      }
-    }
+    // if (userId && messages.length > 0) {
+    //   const userMessage = messages.find((msg) => msg.role === "user");
+
+    //   console.log("userMessage", userMessage);
+    //   console.log("messages", messages);
+    //   if (userMessage) {
+    //     const inputValidation = betaRestrictionsService.validateInput(
+    //       userMessage.content
+    //     );
+    //     console.log("inputValidation", inputValidation);
+    //     if (!inputValidation.allowed) {
+    //       logger.warn(
+    //         `Invalid input from user ${userId}: ${inputValidation.message}`
+    //       );
+    //       throw new Error(inputValidation.message || "Invalid input");
+    //     }
+    //   }
+    // }
 
     // Apply beta prompt modifications if needed
     let modifiedMessages = messages;

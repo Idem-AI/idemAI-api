@@ -63,7 +63,7 @@ const resourceName = "brandings";
  *       '500':
  *         description: Internal server error.
  */
-brandingRoutes.post(
+brandingRoutes.get(
   `/${resourceName}/generate/:projectId`,
   authenticate,
   checkQuota,

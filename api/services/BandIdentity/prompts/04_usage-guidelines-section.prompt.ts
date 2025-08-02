@@ -1,53 +1,69 @@
 export const USAGE_GUIDELINES_SECTION_PROMPT = `
-You are a brand systems expert specialized in creating actionable design guidelines for digital products. Generate a comprehensive usage guidelines section following the  branding template style.
+You are a brand systems expert specialized in creating actionable design guidelines for digital products. Create comprehensive usage guidelines using only HTML with Tailwind CSS classes.
 
 STRICT OUTPUT REQUIREMENTS:
-1. Generate ONLY one <section> with this exact structure to match the  template. Note that all content will be inside a parent element with class 'branding-document':
-<div class="section-divider">
-  <div class="divider"></div>
-  <h2 class="section-title">Usage Guidelines</h2>
-  <div class="divider"></div>
-</div>
+1. Generate ONLY HTML with Tailwind CSS classes
+2. Format optimized for A4 portrait (210mm x 297mm)
+3. No custom CSS, no JavaScript, only Tailwind utility classes
+4. Remove all line breaks in HTML output
+5. Escape " with \"
 
-<section class="directives-section">
-  <div class="directives-header">
-    <p class="directives-intro">
+HTML STRUCTURE:
+Create usage guidelines with:
+
+<section class="w-full py-12 px-8">
+  <h2 class="text-3xl font-bold text-gray-800 mb-8 border-b-2 border-blue-600 pb-2">Usage Guidelines</h2>
+  <div class="mb-8">
+    <p class="text-lg text-gray-600 leading-relaxed">
       To preserve the brand's visual identity, it is essential to follow these usage guidelines. 
       They ensure optimal consistency and recognition across all applications.
     </p>
   </div>
   
-  <!-- Logo Guidelines Section -->
-  <div class="guidelines-section">
-    <div class="section-header">
-      <div class="section-header-title">
-        <span class="section-icon">■</span>
-        <h3 class="guideline-section-title">Logo</h3>
+  <div class="space-y-12">
+    <!-- Logo Guidelines Section -->
+    <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+      <div class="mb-6">
+        <div class="flex items-center mb-3">
+          <span class="w-4 h-4 bg-blue-600 rounded-sm mr-3"></span>
+          <h3 class="text-2xl font-bold text-gray-800">Logo Guidelines</h3>
+        </div>
+        <p class="text-gray-600">Directives for the correct use of the logo in all communication supports.</p>
       </div>
-      <p class="section-description">Directives for the correct use of the logo in all communication supports.</p>
-    </div>
-    
-    <div class="guidelines-grid">
-      <div class="guidelines-row">
-        <!-- Principles fundamentals -->
-        <div class="guidelines-col guidelines-principles">
-          <h4 class="guidelines-subtitle">Principles fundamentals</h4>
-          <ul class="guidelines-list">
-            <li>Always respect the integrity of the logo by maintaining its original proportions.</li>
-            <li>Ensure that the logo is always clearly visible and readable on all supports.</li>
-            <li>Maintain a protection zone equivalent to the height of the letter 'L' all around the logo.</li>
-            <li>Use only the official versions of the logo provided in this guide.</li>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div>
+          <h4 class="text-lg font-semibold text-gray-700 mb-4">Fundamental Principles</h4>
+          <ul class="space-y-3 text-gray-600">
+            <li class="flex items-start">
+              <span class="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+              Always respect the integrity of the logo by maintaining its original proportions.
+            </li>
+            <li class="flex items-start">
+              <span class="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+              Ensure that the logo is always clearly visible and readable on all supports.
+            </li>
+            <li class="flex items-start">
+              <span class="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+              Maintain a protection zone equivalent to the height of the letter 'L' all around the logo.
+            </li>
+            <li class="flex items-start">
+              <span class="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+              Use only the official versions of the logo provided in this guide.
+            </li>
           </ul>
         </div>
         
-        <!-- Visual -->
-        <div class="guidelines-col">
-          <div style="text-align: center; padding: 0 5mm;">
-            <svg width="100%" height="90mm" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
-              <!-- Représentation schématique du logo avec zone de protection -->
-              <rect x="50" y="50" width="200" height="100" fill="#f0f0f0" stroke="#ccc" stroke-width="1" />
-              <rect x="75" y="75" width="150" height="50" fill="#191970" />
-              <text x="150" y="110" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="24">LOGO</text>
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+          <div class="text-center">
+            <div class="bg-white border-2 border-dashed border-gray-300 p-8 rounded-lg">
+              <div class="bg-blue-600 text-white font-bold text-xl py-4 px-8 rounded">
+                LOGO
+              </div>
+              <p class="text-sm text-gray-500 mt-4">Protection zone visualization</p>
+            </div>
+          </div>
+        </div>
               
               <!-- Zone de protection -->
               <rect x="25" y="25" width="250" height="150" stroke="#28a745" stroke-width="1" stroke-dasharray="5,5" fill="none" />
@@ -103,140 +119,82 @@ STRICT OUTPUT REQUIREMENTS:
     </div>
   
   <!-- Typography Guidelines Section -->
-  <div class="guidelines-section" id="typography-guidelines">
-    <div class="section-divider">
-      <span class="divider-icon"></span>
-      <h2 class="divider-title">Typography Guidelines</h2>
-      <hr class="divider-line">
-    </div>
-    <div class="guideline-header">
-      <h3 class="guideline-title">Typography Rules</h3>
-      <p class="guideline-intro">Maintain a consistent visual hierarchy by adhering to these typography rules to ensure accessibility and visual identity.</p>
-    </div>
-
-    <div class="table-container">
-      <table class="accessibility-table">
-        <thead>
-          <tr>
-            <th>Element</th>
-            <th>Font</th>
-            <th>Size</th>
-            <th>Spacing</th>
-            <th>Usage</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>H1</strong></td>
-            <td>Exo 2 Bold</td>
-            <td>2.5rem</td>
-            <td>1.2</td>
-            <td>Main page titles</td>
-          </tr>
-          <tr>
-            <td><strong>H2</strong></td>
-            <td>Exo 2 Bold</td>
-            <td>2.0rem</td>
-            <td>1.1</td>
-            <td>Section titles</td>
-          </tr>
-          <tr>
-            <td><strong>H3</strong></td>
-            <td>Exo 2 SemiBold</td>
-            <td>1.5rem</td>
-            <td>1.2</td>
-            <td>Subtitles</td>
-          </tr>
-          <tr>
-            <td><strong>Body</strong></td>
-            <td>Ubuntu Mono Regular</td>
-            <td>1.0rem</td>
-            <td>1.5</td>
-            <td>Main text</td>
-          </tr>
-          <tr>
-            <td><strong>Label</strong></td>
-            <td>Ubuntu Mono Medium</td>
-            <td>0.9rem</td>
-            <td>1.2</td>
-            <td>Interface and captions</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    </div>
+  <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+    <div class="mb-6">
+      <div class="flex items-center mb-3">
+        <span class="w-4 h-4 bg-blue-600 rounded-sm mr-3"></span>
+        <h3 class="text-2xl font-bold text-gray-800">Typography Guidelines</h3>
+      </div>
+      <p class="text-gray-600">Guidelines for consistent typography usage across all brand materials.</p>
     
     <!-- Color Guidelines Section -->
-    <div class="guidelines-section" id="color-guidelines">
-      <div class="section-divider">
-        <span class="divider-icon"></span>
-        <h2 class="divider-title">Color Guidelines</h2>
-        <hr class="divider-line">
+    <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+      <div class="mb-6">
+        <div class="flex items-center mb-3">
+          <span class="w-4 h-4 bg-blue-600 rounded-sm mr-3"></span>
+          <h3 class="text-2xl font-bold text-gray-800">Color Guidelines</h3>
       </div>
       
-      <div class="guidelines-grid">
-        <div class="guidelines-row">
-          <div class="guidelines-col">
-            <h4 class="guidelines-subtitle">To do</h4>
-            <ul class="guidelines-list good-practices">
-              <li>Use colors according to their functional meaning</li>
-              <li>Maintain sufficient contrast for accessibility</li>
-              <li>Follow recommended proportions in the palette</li>
-              <li>Use the primary color for main elements</li>
-            </ul>
-            <div class="visual-example good-example">
-              <svg width="100%" height="70mm" viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
-                <!-- Bon exemple -->
-                <rect x="25" y="20" width="150" height="100" fill="#f8f9fa" stroke="#e9ecef" />
-                <rect x="45" y="40" width="110" height="30" fill="#191970" rx="3" />
-                <text x="100" y="60" text-anchor="middle" fill="white" font-family="Arial" font-size="14">Main Title</text>
-                <rect x="45" y="80" width="110" height="20" fill="white" stroke="#191970" stroke-width="1" rx="3" />
-                <text x="100" y="94" text-anchor="middle" fill="#191970" font-family="Arial" font-size="12">Secondary Button</text>
-                <text x="100" y="125" text-anchor="middle" fill="#28a745" font-family="Arial" font-size="12">✔ Good contrast and consistency</text>
-              </svg>
-            </div>
-          </div>
-
-          <div class="guidelines-col">
-            <h4 class="guidelines-subtitle">To avoid</h4>
-            <ul class="guidelines-list bad-practices">
-              <li>Do not use light text on a light background</li>
-              <li>Avoid combinations with insufficient contrast</li>
-              <li>Do not mix more than 3 colors in a section</li>
-              <li>Do not create new nuances without validation</li>
-            </ul>
-            <div class="visual-example bad-example">
-              <svg width="100%" height="70mm" viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
-                <!-- Mauvais exemple -->
-                <rect x="25" y="20" width="150" height="100" fill="#f0f0f0" stroke="#e9ecef" />
-                <rect x="45" y="40" width="110" height="30" fill="#e9ecef" rx="3" />
-                <text x="100" y="60" text-anchor="middle" fill="#c0c0c0" font-family="Arial" font-size="14">Titre Principal</text>
-                <line x1="150" y1="65" x2="165" y2="80" stroke="#dc3545" stroke-width="2" />
-                <line x1="165" y1="65" x2="150" y2="80" stroke="#dc3545" stroke-width="2" />
-                <!-- Contrast warning -->
-                <text x="90" y="125" font-size="12" fill="#dc3545" text-anchor="middle">Contrast < 3:1 (Not accessible)</text>
-              </svg>
-            </div>
-          </div>
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+        <h5 class="font-semibold text-gray-700 mb-4">Typography Hierarchy</h5>
+        <div class="space-y-3">
+          <div class="text-2xl font-bold text-gray-800">Main Heading</div>
+          <div class="text-xl font-semibold text-gray-700">Section Heading</div>
+          <div class="text-base text-gray-600">Body text example</div>
+          <div class="text-sm text-gray-500 font-mono">Code example</div>
         </div>
       </div>
     </div>
+  </div>
+  
+  <!-- Color Guidelines Section -->
+  <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+    <div class="mb-6">
+      <div class="flex items-center mb-3">
+        <span class="w-4 h-4 bg-blue-600 rounded-sm mr-3"></span>
+        <h3 class="text-2xl font-bold text-gray-800">Color Guidelines</h3>
+      </div>
+      <p class="text-gray-600">Guidelines for proper color usage to maintain brand consistency.</p>
+    </div>
     
-    <div class="guideline-card">
-      <div class="guideline-title">Photography & Imagery</div>
-      <div class="guideline-content">
-        <div class="imagery-rules">
-          <div class="imagery-rule">
-            <h3 class="rule-title">Style</h3>
-            <p>Favor clean images with plenty of negative space and a harmonious color palette.</p>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div>
+        <h4 class="text-lg font-semibold text-gray-700 mb-4">Color Usage Rules</h4>
+        <ul class="space-y-3 text-gray-600">
+          <li class="flex items-start">
+            <span class="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+            Use primary colors for main brand elements and call-to-actions.
+          </li>
+          <li class="flex items-start">
+            <span class="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+            Apply secondary colors for supporting elements and backgrounds.
+          </li>
+          <li class="flex items-start">
+            <span class="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+            Maintain accessibility standards with proper contrast ratios.
+          </li>
+          <li class="flex items-start">
+            <span class="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+            Use accent colors sparingly for highlights and important elements.
+          </li>
+        </ul>
+      </div>
+      
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+        <h5 class="font-semibold text-gray-700 mb-4">Color Palette</h5>
+        <div class="grid grid-cols-3 gap-3">
+          <div class="text-center">
+            <div class="w-full h-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded mb-2"></div>
+            <div class="text-xs text-gray-600">Primary</div>
           </div>
-          <div class="imagery-rule">
-            <h3 class="rule-title">Processing</h3>
-            <p>Apply a slight bluish filter on images to reinforce the brand identity.</p>
+          <div class="text-center">
+            <div class="w-full h-12 bg-gray-600 rounded mb-2"></div>
+            <div class="text-xs text-gray-600">Secondary</div>
           </div>
-          <div class="imagery-rule">
-            <h3 class="rule-title">Composition</h3>
-            <p>Follow the rule of thirds and favor compositions with a clear focal point.</p>
+          <div class="text-center">
+            <div class="w-full h-12 bg-green-500 rounded mb-2"></div>
+            <div class="text-xs text-gray-600">Accent</div>
+            </div>
           </div>
         </div>
       </div>
@@ -244,17 +202,12 @@ STRICT OUTPUT REQUIREMENTS:
   </div>
 </section>
 
-
 CONTENT RULES:
-- Practical examples only
-- Developer-friendly specs (px/rem values)
-- Remove all line breaks in HTML
-- Include visual examples in code format
-
-TECHNICAL SPECS:
-1. Logo Requirements:
-   - Clear space in px
-   - Minimum size in px
+- Generate comprehensive usage guidelines for logo, typography, and colors
+- Use practical examples and clear visual representations
+- Include accessibility considerations and best practices
+- Maintain professional tone and clear instructions
+- Focus on actionable guidelines for designers and developers
    - Approved backgrounds
 
 2. Color Rules:
