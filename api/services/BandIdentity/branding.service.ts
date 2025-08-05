@@ -58,35 +58,35 @@ export class BrandingService extends GenericService {
       // Define branding steps
       const steps: IPromptStep[] = [
         {
-          promptConstant: projectDescription + BRAND_HEADER_SECTION_PROMPT,
+          promptConstant: BRAND_HEADER_SECTION_PROMPT + projectDescription,
           stepName: "Brand Header",
           hasDependencies: false,
         },
         {
-          promptConstant: projectDescription + LOGO_SYSTEM_SECTION_PROMPT,
+          promptConstant: LOGO_SYSTEM_SECTION_PROMPT + projectDescription,
           stepName: "Logo System",
           hasDependencies: false,
         },
         {
-          promptConstant: projectDescription + COLOR_PALETTE_SECTION_PROMPT,
+          promptConstant: COLOR_PALETTE_SECTION_PROMPT + projectDescription,
           stepName: "Color Palette",
           hasDependencies: false,
         },
         {
-          promptConstant: projectDescription + TYPOGRAPHY_SECTION_PROMPT,
+          promptConstant: TYPOGRAPHY_SECTION_PROMPT + projectDescription,
           stepName: "Typography",
           hasDependencies: false,
         },
-        {
-          promptConstant: projectDescription + USAGE_GUIDELINES_SECTION_PROMPT,
-          stepName: "Usage Guidelines",
-          hasDependencies: false,
-        },
-        {
-          promptConstant: projectDescription + BRAND_FOOTER_SECTION_PROMPT,
-          stepName: "Brand Footer",
-          hasDependencies: false,
-        },
+        // {
+        //   promptConstant: USAGE_GUIDELINES_SECTION_PROMPT + projectDescription,
+        //   stepName: "Usage Guidelines",
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: BRAND_FOOTER_SECTION_PROMPT + projectDescription,
+        //   stepName: "Brand Footer",
+        //   hasDependencies: false,
+        // },
       ];
 
       // Initialize empty sections array to collect results as they come in
@@ -109,7 +109,12 @@ export class BrandingService extends GenericService {
             };
 
             // Add to sections array
-            sections.push(section);
+            if (
+              result.data !== "steps_in_progress" &&
+              result.data !== "all_steps_completed"
+            ) {
+              sections.push(section);
+            }
 
             // Call the provided callback
             await streamCallback(result);

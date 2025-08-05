@@ -111,7 +111,12 @@ export class BusinessPlanService extends GenericService {
             };
 
             // Add to sections array
-            sectionResults.push(section);
+            if (
+              result.data !== "steps_in_progress" &&
+              result.data !== "all_steps_completed"
+            ) {
+              sectionResults.push(section);
+            }
 
             // Call the provided callback
             await streamCallback(result);

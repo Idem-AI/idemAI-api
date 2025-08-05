@@ -7,7 +7,11 @@ import { CLASS_DIAGRAM_PROMPT } from "./prompts/02_class-diagram.prompt";
 import { ENTITY_DIAGRAM_PROMPT } from "./prompts/03_entity_diagram.prompt";
 import { SEQUENCE_DIAGRAM_PROMPT } from "./prompts/04_sequence_diagram.prompt";
 import { USE_CASE_DIAGRAM_PROMPT } from "./prompts/01_use-case-diagram.prompt";
-import { GenericService, IPromptStep, ISectionResult } from "../common/generic.service";
+import {
+  GenericService,
+  IPromptStep,
+  ISectionResult,
+} from "../common/generic.service";
 import { SectionModel } from "../../models/section.model";
 import { EventEmitter } from "events";
 
@@ -49,33 +53,35 @@ export class DiagramService extends GenericService {
           stepName: "Class Diagram",
           hasDependencies: false,
         },
-        // {
-        //   promptConstant: ARCHITECTURE_DIAGRAM_PROMPT,
-        //   stepName: "Architecture Diagram",
-        //   requiresSteps: ["Uses Cases Diagram"],
-        // },
+        {
+          promptConstant: ARCHITECTURE_DIAGRAM_PROMPT,
+          stepName: "Architecture Diagram",
+          hasDependencies: false,
+        },
         // {
         //   promptConstant: ENTITY_DIAGRAM_PROMPT,
         //   stepName: "Entity Relationship Diagram",
         //   requiresSteps: ["Uses Cases Diagram"],
+        //   hasDependencies: false,
         // },
         // {
         //   promptConstant: SEQUENCE_DIAGRAM_PROMPT,
         //   stepName: "Sequence Diagram",
         //   requiresSteps: ["Uses Cases Diagram"],
+        //   hasDependencies: false,
         // },
       ];
 
       // Initialize empty sections array to collect results as they come in
       let sections: SectionModel[] = [];
-      
+
       // Process steps one by one with streaming
       await this.processStepsWithStreaming(
-        steps, 
+        steps,
         project,
         async (result: ISectionResult) => {
           logger.info(`Received streamed result for step: ${result.name}`);
-          
+
           // Convert result to section model
           const section: SectionModel = {
             name: result.name,
@@ -83,28 +89,39 @@ export class DiagramService extends GenericService {
             data: result.data,
             summary: result.summary,
           };
-          
+
           // Add to our local collection
-          sections.push(section);
-          
+          if (
+            result.data !== "steps_in_progress" &&
+            result.data !== "all_steps_completed"
+          ) {
+            sections.push(section);
+          }
+
           // Get the latest project version
-          const currentProject = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+          const currentProject = await this.projectRepository.findById(
+            projectId,
+            `users/${userId}/projects`
+          );
           if (!currentProject) {
-            logger.warn(`Project not found with ID: ${projectId} for user: ${userId} during streaming update`);
+            logger.warn(
+              `Project not found with ID: ${projectId} for user: ${userId} during streaming update`
+            );
             return;
           }
-          
+
           // Get existing diagrams
-          const existingDiagrams = currentProject.analysisResultModel?.design?.sections || [];
-          
+          const existingDiagrams =
+            currentProject.analysisResultModel?.design?.sections || [];
+
           // Filter out diagrams that need to be updated
           const updatedDiagrams = [
-            ...existingDiagrams.filter((d: SectionModel) => 
-              !sections.some((s) => s.name === d.name)
+            ...existingDiagrams.filter(
+              (d: SectionModel) => !sections.some((s) => s.name === d.name)
             ),
             ...sections,
           ];
-          
+
           // Create updated project with new diagram sections
           const updatedProject = {
             ...currentProject,
@@ -113,30 +130,35 @@ export class DiagramService extends GenericService {
               design: {
                 sections: updatedDiagrams,
                 id: `diagram_${projectId}_${Date.now()}`,
-                createdAt: currentProject.analysisResultModel?.design?.createdAt || new Date(),
+                createdAt:
+                  currentProject.analysisResultModel?.design?.createdAt ||
+                  new Date(),
                 updatedAt: new Date(),
               },
             },
           };
-          
+
           // Update project in the database after each step
           await this.projectRepository.update(
             projectId,
             updatedProject,
             `users/${userId}/projects`
           );
-          
+
           logger.info(`Updated project with new diagram: ${result.name}`);
-          
+
           // Call the stream callback if provided
           if (streamCallback) {
             await streamCallback(result);
           }
         }
       );
-      
+
       // Get the final updated project
-      const updatedProject = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+      const updatedProject = await this.projectRepository.findById(
+        projectId,
+        `users/${userId}/projects`
+      );
 
       if (updatedProject) {
         logger.info(
@@ -166,7 +188,10 @@ export class DiagramService extends GenericService {
     logger.info(
       `Fetching diagrams for projectId: ${projectId}, userId: ${userId}`
     );
-    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    const project = await this.projectRepository.findById(
+      projectId,
+      `users/${userId}/projects`
+    );
     if (!project) {
       logger.warn(
         `Project not found with ID: ${projectId} for user: ${userId} when fetching diagrams.`
@@ -184,7 +209,9 @@ export class DiagramService extends GenericService {
     logger.info(`Getting diagram by ID: ${diagramId} for userId: ${userId}`);
 
     // Look through all projects for this user to find a diagram with matching ID
-    const projects = await this.projectRepository.findAll(`users/${userId}/projects`);
+    const projects = await this.projectRepository.findAll(
+      `users/${userId}/projects`
+    );
 
     for (const project of projects) {
       if (project.analysisResultModel?.design) {
@@ -214,7 +241,9 @@ export class DiagramService extends GenericService {
     );
 
     // Find which project contains this diagram
-    const projects = await this.projectRepository.findAll(`users/${userId}/projects`);
+    const projects = await this.projectRepository.findAll(
+      `users/${userId}/projects`
+    );
     let targetProject: ProjectModel | null = null;
     let diagramIndex = -1;
 
@@ -266,7 +295,9 @@ export class DiagramService extends GenericService {
     );
 
     // Find which project contains this diagram
-    const projects = await this.projectRepository.findAll(`users/${userId}/projects`);
+    const projects = await this.projectRepository.findAll(
+      `users/${userId}/projects`
+    );
     let targetProject: ProjectModel | null = null;
 
     for (const project of projects) {

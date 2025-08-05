@@ -1,92 +1,177 @@
 export const TYPOGRAPHY_SECTION_PROMPT = `
-You are a senior typography designer specializing in digital brand systems. Create a comprehensive typography section using only HTML with Tailwind CSS classes.
+You are a senior typography designer and brand systems expert. Generate a comprehensive, professional typography section using only HTML with Tailwind CSS classes, optimized for A4 portrait layout (210mm × 297mm).
 
-STRICT OUTPUT REQUIREMENTS:
-1. Generate ONLY HTML with Tailwind CSS classes
-2. Format optimized for A4 portrait (210mm x 297mm)
-3. No custom CSS, no JavaScript, only Tailwind utility classes
-4. Remove all line breaks in HTML output
-5. Escape " with \"
+OUTPUT RULES:
+- HTML only, using Tailwind utility classes exclusively
+- No custom CSS or JavaScript
+- One-line minified HTML output
+- Escape all " as \\"
+- Include responsive design considerations
 
-HTML STRUCTURE:
-Create a typography section with:
+USE PROJECT CONTEXT:
+- Extract font families, weights, and hierarchy from project description
+- Use only English language
+- Maintain premium, accessible design standards
+- Ensure WCAG AA compliance and print readiness
+- Reflect modern digital brand identity
 
-<section class="w-full py-12 px-8">
-  <h2 class="text-3xl font-bold text-gray-800 mb-8 border-b-2 border-blue-600 pb-2">Typography</h2>
-  <div class="space-y-8">
-    <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
-      <div class="text-2xl font-bold text-gray-800 mb-2">Inter</div>
-      <div class="text-sm text-gray-500 mb-6">Primary font - Google Fonts</div>
-      <div class="mb-6">
-        <h4 class="text-lg font-semibold text-gray-700 mb-4">Usage examples</h4>
-        <div class="space-y-4">
-          <div class="text-4xl font-bold text-gray-800">
-            Main Title
+COMPREHENSIVE STRUCTURE:
+<section class="w-full py-16 px-8 bg-gradient-to-b from-white to-gray-50">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl font-black text-gray-900 mb-4 tracking-tight">Typography System</h2>
+      <div class="w-24 h-1 bg-gradient-to-r from-purple-600 to-blue-600 mx-auto mb-6 rounded-full"></div>
+      <p class="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">Our typography creates hierarchy, enhances readability, and reinforces brand personality across all communications.</p>
+    </div>
+    
+    <!-- Primary Font Family -->
+    <div class="mb-16 bg-white rounded-3xl p-10 shadow-lg border border-gray-100">
+      <div class="flex items-center gap-4 mb-8">
+        <div class="w-4 h-4 bg-purple-600 rounded-full"></div>
+        <h3 class="text-2xl font-bold text-gray-900">Primary Typeface</h3>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div>
+          <div class="mb-6">
+            <h4 class="text-6xl font-black text-gray-900 leading-none mb-2">[Primary Font Name]</h4>
+            <p class="text-lg text-gray-600 font-medium">[Font Description & Character]</p>
           </div>
-          <div class="text-3xl font-bold text-gray-800">
-            Section Title
-          </div>
-          <div class="text-2xl font-semibold text-gray-700">
-            Section Subtitle
-          </div>
-          <div class="text-lg font-medium text-gray-600">
-            Body Text Large
-          </div>
-          <div class="text-base text-gray-600">
-            Regular body text for main content and detailed descriptions for optimal reading experience.
-          </div>
-          <div class="text-sm text-gray-500">
-            Small text for captions and metadata.
+          <div class="space-y-4">
+            <div class="flex items-center gap-4">
+              <span class="text-sm font-semibold text-gray-700 w-20">Regular</span>
+              <span class="text-lg font-normal text-gray-900">The quick brown fox jumps over the lazy dog</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="text-sm font-semibold text-gray-700 w-20">Medium</span>
+              <span class="text-lg font-medium text-gray-900">The quick brown fox jumps over the lazy dog</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="text-sm font-semibold text-gray-700 w-20">Bold</span>
+              <span class="text-lg font-bold text-gray-900">The quick brown fox jumps over the lazy dog</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="text-sm font-semibold text-gray-700 w-20">Black</span>
+              <span class="text-lg font-black text-gray-900">The quick brown fox jumps over the lazy dog</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="text-sm text-gray-600">
-        Inter is a modern, highly legible typeface designed specifically for user interfaces. Its clean geometric forms and excellent readability make it perfect for digital applications and brand communications.
+        <div class="space-y-6">
+          <div>
+            <h5 class="text-lg font-bold text-gray-800 mb-3">Usage Guidelines</h5>
+            <ul class="space-y-2 text-sm text-gray-600">
+              <li class="flex items-start gap-2"><span class="text-purple-500 mt-1">▪</span>Headlines and primary messaging</li>
+              <li class="flex items-start gap-2"><span class="text-purple-500 mt-1">▪</span>Brand names and key identifiers</li>
+              <li class="flex items-start gap-2"><span class="text-purple-500 mt-1">▪</span>Call-to-action buttons and emphasis</li>
+              <li class="flex items-start gap-2"><span class="text-purple-500 mt-1">▪</span>Digital and print headers</li>
+            </ul>
+          </div>
+          <div class="bg-gray-50 rounded-2xl p-6">
+            <h5 class="text-sm font-bold text-gray-800 mb-3">Technical Specifications</h5>
+            <div class="grid grid-cols-2 gap-4 text-xs">
+              <div><span class="text-gray-500">Format:</span> <span class="font-mono text-gray-700">OpenType, WOFF2</span></div>
+              <div><span class="text-gray-500">Weights:</span> <span class="font-mono text-gray-700">400, 500, 700, 900</span></div>
+              <div><span class="text-gray-500">Styles:</span> <span class="font-mono text-gray-700">Normal, Italic</span></div>
+              <div><span class="text-gray-500">Support:</span> <span class="font-mono text-gray-700">Latin Extended</span></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     
-    <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
-      <div class="text-2xl font-bold text-gray-800 mb-2">JetBrains Mono</div>
-      <div class="text-sm text-gray-500 mb-6">Secondary font - Apache License 2.0</div>
-      <div class="mb-6">
-        <h4 class="text-lg font-semibold text-gray-700 mb-4">Usage examples</h4>
-        <div class="space-y-4 font-mono">
-          <div class="text-lg text-gray-800">
-            Code snippets and technical content
+    <!-- Secondary Font Family -->
+    <div class="mb-16 bg-white rounded-3xl p-10 shadow-lg border border-gray-100">
+      <div class="flex items-center gap-4 mb-8">
+        <div class="w-4 h-4 bg-blue-600 rounded-full"></div>
+        <h3 class="text-2xl font-bold text-gray-900">Secondary Typeface</h3>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div>
+          <div class="mb-6">
+            <h4 class="text-4xl font-normal text-gray-900 leading-relaxed mb-2">[Secondary Font Name]</h4>
+            <p class="text-lg text-gray-600">[Font Description & Purpose]</p>
           </div>
-          <div class="text-base text-gray-600">
-            Technical information and precise data display.
-          </div>
-          <div class="text-sm text-gray-500">
-            API endpoints, file names, and system messages.
+          <div class="space-y-4">
+            <div class="flex items-center gap-4">
+              <span class="text-sm font-semibold text-gray-700 w-20">Light</span>
+              <span class="text-lg font-light text-gray-900">The quick brown fox jumps over the lazy dog</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="text-sm font-semibold text-gray-700 w-20">Regular</span>
+              <span class="text-lg font-normal text-gray-900">The quick brown fox jumps over the lazy dog</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="text-sm font-semibold text-gray-700 w-20">Medium</span>
+              <span class="text-lg font-medium text-gray-900">The quick brown fox jumps over the lazy dog</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="text-sm text-gray-600">
-        JetBrains Mono is a monospace font designed for developers. Its clear character distinction and coding ligatures make it perfect for technical documentation and code display.
+        <div class="space-y-6">
+          <div>
+            <h5 class="text-lg font-bold text-gray-800 mb-3">Usage Guidelines</h5>
+            <ul class="space-y-2 text-sm text-gray-600">
+              <li class="flex items-start gap-2"><span class="text-blue-500 mt-1">▪</span>Body text and paragraphs</li>
+              <li class="flex items-start gap-2"><span class="text-blue-500 mt-1">▪</span>Captions and supporting text</li>
+              <li class="flex items-start gap-2"><span class="text-blue-500 mt-1">▪</span>Navigation and interface elements</li>
+              <li class="flex items-start gap-2"><span class="text-blue-500 mt-1">▪</span>Long-form content and readability</li>
+            </ul>
+          </div>
+          <div class="bg-gray-50 rounded-2xl p-6">
+            <h5 class="text-sm font-bold text-gray-800 mb-3">Optimal Readability</h5>
+            <div class="space-y-2 text-xs text-gray-600">
+              <div class="flex justify-between"><span>Line Height:</span><span class="font-mono">1.6 - 1.8</span></div>
+              <div class="flex justify-between"><span>Letter Spacing:</span><span class="font-mono">0 - 0.02em</span></div>
+              <div class="flex justify-between"><span>Min Size:</span><span class="font-mono">14px / 0.875rem</span></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     
-    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
-      <h4 class="text-lg font-semibold text-gray-700 mb-4">Typography Scale</h4>
-      <div class="grid grid-cols-2 gap-6">
-        <div>
-          <h5 class="font-medium text-gray-600 mb-3">Headings</h5>
-          <div class="space-y-2 text-sm text-gray-600">
-            <div>H1: text-4xl font-bold (36px)</div>
-            <div>H2: text-3xl font-bold (30px)</div>
-            <div>H3: text-2xl font-semibold (24px)</div>
-            <div>H4: text-xl font-semibold (20px)</div>
-            <div>H5: text-lg font-medium (18px)</div>
+    <!-- Typography Scale -->
+    <div class="bg-gradient-to-br from-slate-50 to-gray-100 rounded-3xl p-10 border border-gray-200">
+      <div class="flex items-center gap-4 mb-8">
+        <div class="w-4 h-4 bg-slate-700 rounded-full"></div>
+        <h3 class="text-2xl font-bold text-gray-900">Typography Scale</h3>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div class="space-y-6">
+          <div class="space-y-4">
+            <div class="border-b border-gray-200 pb-4">
+              <h1 class="text-6xl font-black text-gray-900 leading-none mb-2">Heading 1</h1>
+              <p class="text-sm text-gray-500 font-mono">60px / 3.75rem / font-black</p>
+            </div>
+            <div class="border-b border-gray-200 pb-4">
+              <h2 class="text-4xl font-bold text-gray-900 leading-tight mb-2">Heading 2</h2>
+              <p class="text-sm text-gray-500 font-mono">36px / 2.25rem / font-bold</p>
+            </div>
+            <div class="border-b border-gray-200 pb-4">
+              <h3 class="text-2xl font-semibold text-gray-900 leading-snug mb-2">Heading 3</h3>
+              <p class="text-sm text-gray-500 font-mono">24px / 1.5rem / font-semibold</p>
+            </div>
+            <div class="border-b border-gray-200 pb-4">
+              <h4 class="text-xl font-medium text-gray-900 leading-relaxed mb-2">Heading 4</h4>
+              <p class="text-sm text-gray-500 font-mono">20px / 1.25rem / font-medium</p>
+            </div>
           </div>
         </div>
-        <div>
-          <h5 class="font-medium text-gray-600 mb-3">Body Text</h5>
-          <div class="space-y-2 text-sm text-gray-600">
-            <div>Large: text-lg (18px)</div>
-            <div>Regular: text-base (16px)</div>
-            <div>Small: text-sm (14px)</div>
-            <div>Caption: text-xs (12px)</div>
+        <div class="space-y-6">
+          <div class="space-y-4">
+            <div class="border-b border-gray-200 pb-4">
+              <p class="text-lg text-gray-900 leading-relaxed mb-2">Body Large - Perfect for introductory paragraphs and important content that needs emphasis.</p>
+              <p class="text-sm text-gray-500 font-mono">18px / 1.125rem / font-normal</p>
+            </div>
+            <div class="border-b border-gray-200 pb-4">
+              <p class="text-base text-gray-900 leading-relaxed mb-2">Body Regular - The standard text size for most content, optimized for readability and user experience.</p>
+              <p class="text-sm text-gray-500 font-mono">16px / 1rem / font-normal</p>
+            </div>
+            <div class="border-b border-gray-200 pb-4">
+              <p class="text-sm text-gray-700 leading-relaxed mb-2">Body Small - Used for captions, metadata, and supporting information that complements the main content.</p>
+              <p class="text-sm text-gray-500 font-mono">14px / 0.875rem / font-normal</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-600 leading-relaxed mb-2">Caption - Minimal text for fine print, legal information, and micro-interactions.</p>
+              <p class="text-sm text-gray-500 font-mono">12px / 0.75rem / font-normal</p>
+            </div>
           </div>
         </div>
       </div>
@@ -94,33 +179,10 @@ Create a typography section with:
   </div>
 </section>
 
-DESIGN RULES:
-- Use exactly these fonts to match the  template:
-  • Primary font: Exo 2 (300 Light, 400 Regular, 600 SemiBold, 700 Bold)
-  • Secondary font: Roboto (300 Light, 400 Regular, 500 Medium)
-- Show exactly the hierarchy samples and weights as shown in the template
-- Use English language for all labels and text to match the template
-- Maintain the exact HTML structure of the template
-- Remove all line breaks in HTML when generating
-- Escape " with \"
-
-TECHNICAL SPECS (to be included in the usage rules):
-1. Web Font Integration:
-   - Use Google Fonts for optimal loading
-   - Load only the necessary weight variants
-
-2. Accessibility Rules:
-   - Minimum 16px for the main text
-   - Line height 1.5 for the body text
-   - WCAG AA contrast compliance
-
-3. Usage Guidelines:
-   - Precise title hierarchy (H1-H3)
-   - Adaptive sizes for mobile screens
-   - Consistent use of weights according to the hierarchy
-
-CONTEXT:
-- The brand identity is for "", a premium tech company
-- The typography should evoke innovation, trust, and a high-end user experience
-- The typography system should be consistent with the modern and minimal design language shown in the template
-- Use English language for all text content to match the template`;
+CONTENT REQUIREMENTS:
+- Replace [Primary Font Name] and [Secondary Font Name] with actual fonts from project
+- Include font descriptions that reflect brand personality
+- Ensure all typography choices support brand messaging
+- Maintain consistency with overall brand color palette
+- Focus on clarity, elegance, and modern digital standards
+`;
