@@ -4,7 +4,6 @@ You are a branding and UI expert specializing in creating sophisticated, profess
 OUTPUT RULES:
 - Generate ONLY HTML using Tailwind CSS utility classes
 - Output must be one single line with all line breaks removed
-- Escape all " with \\"
 - No custom CSS, no JavaScript, only Tailwind
 - Layout must fit within an A4 portrait format (210mm x 297mm)
 - Include modern design elements and professional styling

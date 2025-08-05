@@ -3,9 +3,8 @@ You are a brand identity expert and color theorist. Based on the project descrip
 
 STRICT OUTPUT RULES:
 - Output: HTML only, NO custom CSS or JS
-- Use Tailwind utility classes ONLY (including arbitrary values like bg-[#hex])
+- Use Tailwind utility classes ONLY (including arbitrary values like bg-[#hex] for use project colors)
 - Remove all line breaks (output must be one single line)
-- Escape all " with \\"
 - Layout must fit an A4 portrait (210mm x 297mm)
 
 GOAL:
@@ -43,10 +42,10 @@ TEMPLATE STRUCTURE:
       <!-- Primary Color Card -->
       <div class="group bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 hover:border-gray-200">
         <div class="relative mb-6">
-          <div class="w-full h-32 rounded-2xl bg-[#hex] shadow-lg relative overflow-hidden">
+          <div class="w-full h-32 rounded-2xl bg-[primary-color] shadow-lg relative overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
             <div class="absolute bottom-3 right-3 bg-black/20 backdrop-blur-sm rounded-lg px-3 py-1">
-              <span class="text-white text-xs font-mono">#HEX</span>
+              <span class="text-white text-xs font-mono">primary-color</span>
             </div>
           </div>
         </div>
@@ -128,5 +127,4 @@ CONSTRAINTS:
 - Provide comprehensive usage guidelines
 
 PROJECT DESCRIPTION:
-"{{ insert project description here }}"
 `;

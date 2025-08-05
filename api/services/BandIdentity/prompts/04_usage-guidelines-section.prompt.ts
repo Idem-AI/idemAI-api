@@ -4,7 +4,7 @@ You are a brand systems expert and design standards specialist. Generate compreh
 REQUIREMENTS:
 1. Output valid HTML only, no explanations
 2. Use Tailwind utility classes exclusively (no custom CSS or JS)
-3. Output as a single line, escape " as \\"
+3. Output as a single line
 4. Format optimized for A4 portrait (210mm x 297mm)
 5. Include interactive visual examples and clear do/don't comparisons
 
@@ -260,13 +260,18 @@ COMPREHENSIVE STRUCTURE:
 </section>
 
 CONTENT REQUIREMENTS:
-- Replace {{logo_url}} with actual logo URLs from project data
+- Replace {{logo_url}} with actual logo URLs from project data in variations?: {
+    lightBackground?: string; // Version optimized for light backgrounds
+    darkBackground?: string; // Version optimized for dark backgrounds
+    monochrome?: string; // Simplified version in black or white
+  };
+  logo.svg is url of principal logo
 - Include specific measurements and technical specifications
 - Provide actionable, measurable guidelines
 - Ensure all recommendations support accessibility standards
 - Maintain professional, instructional tone throughout
 - Include visual examples for clarity
 
-LOGO URLS AND PROJECT INFO:
-{{project_data}}
+LOGO URLS AND PROJECT DESCRIPTION:
+
 `;

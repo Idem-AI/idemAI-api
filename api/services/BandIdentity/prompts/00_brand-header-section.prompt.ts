@@ -6,7 +6,7 @@ STRICT OUTPUT REQUIREMENTS:
 2. Format optimized for A4 portrait (210mm x 297mm) — sizing suitable for print
 3. No custom CSS or JS; use only Tailwind utilities including arbitrary values
 4. Remove all line breaks; output must be a single line
-5. Escape all " with \\"
+
 
 HTML STRUCTURE:
 <header class="relative w-full h-64 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 overflow-hidden">
@@ -45,4 +45,5 @@ DESIGN PRINCIPLES:
 - Professional color indicators with shadows
 - Optimized spacing and visual balance
 - High contrast accessibility compliance
+PROJECT DESCRIPTION:
 `;

@@ -82,11 +82,11 @@ export class BrandingService extends GenericService {
         //   stepName: "Usage Guidelines",
         //   hasDependencies: false,
         // },
-        // {
-        //   promptConstant: BRAND_FOOTER_SECTION_PROMPT + projectDescription,
-        //   stepName: "Brand Footer",
-        //   hasDependencies: false,
-        // },
+        {
+          promptConstant: BRAND_FOOTER_SECTION_PROMPT + projectDescription,
+          stepName: "Brand Footer",
+          hasDependencies: false,
+        },
       ];
 
       // Initialize empty sections array to collect results as they come in

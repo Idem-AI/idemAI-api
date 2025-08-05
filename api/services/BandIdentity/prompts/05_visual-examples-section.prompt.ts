@@ -5,7 +5,6 @@ REQUIREMENTS:
 - Output: raw HTML only, no explanation
 - Use ONLY Tailwind CSS utility classes (no custom CSS, JS, or external styles)
 - Format as a single-line string (no line breaks)
-- Escape all " with \\"
 - Layout must fit within A4 portrait (210mm x 297mm)
 - Create detailed, realistic UI mockups that demonstrate brand application
 
@@ -335,5 +334,4 @@ STYLE & CONTENT RULES:
 - Replace {{Brand Name}}, {{Brand}}, {{brand-domain}} with actual project data
 
 PROJECT INPUT:
-{{project_context}}
 `;

@@ -5,7 +5,6 @@ OUTPUT RULES:
 - HTML only, using Tailwind utility classes exclusively
 - No custom CSS or JavaScript
 - One-line minified HTML output
-- Escape all " as \\"
 - Include responsive design considerations
 
 USE PROJECT CONTEXT:
@@ -185,4 +184,5 @@ CONTENT REQUIREMENTS:
 - Ensure all typography choices support brand messaging
 - Maintain consistency with overall brand color palette
 - Focus on clarity, elegance, and modern digital standards
+PROJECT DESCRIPTION:
 `;
