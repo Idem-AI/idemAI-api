@@ -10,54 +10,6 @@ import { ISectionResult } from "../services/common/generic.service";
 const promptService = new PromptService();
 const businessPlanService = new BusinessPlanService(promptService);
 
-export const generateBusinessPlanController = async (
-  req: CustomRequest,
-  res: Response
-): Promise<void> => {
-  const userId = req.user?.uid;
-  const { projectId } = req.params;
-  logger.info(
-    `generateBusinessPlanController called - UserId (from token): ${userId}, ProjectId: ${projectId}`
-  );
-  try {
-    if (!userId) {
-      logger.warn("User not authenticated for generateBusinessPlanController");
-      res.status(401).json({ message: "User not authenticated" });
-      return;
-    }
-    if (!projectId) {
-      logger.warn("Project ID is required for generateBusinessPlanController");
-      res.status(400).json({ message: "Project ID is required" });
-      return;
-    }
-    const item = await businessPlanService.generateBusinessPlanWithStreaming(
-      userId, // Use userId from token
-      projectId
-    );
-    if (item) {
-      logger.info(
-        `Business plan generated successfully (Project updated) - UserId: ${userId}, ProjectId: ${projectId}, UpdatedProjectId: ${item.id}`
-      );
-      userService.incrementUsage(userId,1);
-      res.status(201).json(item);
-    } else {
-      logger.warn(
-        `Business plan generation returned null (Project not updated) - UserId: ${userId}, ProjectId: ${projectId}`
-      );
-      res.status(500).json({
-        message: "Failed to generate business plan and update project",
-      });
-    }
-  } catch (error: any) {
-    logger.error(
-      `Error in generateBusinessPlanController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
-      { stack: error.stack, params: req.params }
-    );
-    res.status(500).json({
-      message: error.message || "Failed to generate business plan item",
-    });
-  }
-};
 
 export const getBusinessPlansByProjectController = async (
   req: CustomRequest,

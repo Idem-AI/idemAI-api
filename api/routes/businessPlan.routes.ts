@@ -1,9 +1,9 @@
 import { Router } from "express";
 import {
-  generateBusinessPlanController,
   getBusinessPlanByIdController,
   updateBusinessPlanController,
   deleteBusinessPlanController,
+  generateBusinessPlanStreamingController,
 } from "../controllers/businessPlan.controller";
 import { authenticate } from "../services/auth.service";
 import { checkQuota } from "../middleware/quota.middleware";
@@ -61,10 +61,10 @@ const resourceName = "businessPlans";
  *         description: Internal server error.
  */
 businessPlanRoutes.get(
-  `/${resourceName}/:projectId`,
+  `/${resourceName}/generate/:projectId`,
   authenticate,
   checkQuota,
-  generateBusinessPlanController
+  generateBusinessPlanStreamingController
 );
 
 // Get a specific business plan by its project ID
