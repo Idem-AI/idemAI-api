@@ -10,4 +10,5 @@ export enum TargetModelType {
   BUSINESS_PLAN = 'businessPlans', 
   DEPLOYMENT = 'deployments',
   WEBCONTAINER = 'webcontainers',
+  ARCHETYPE = 'archetypes',
 }

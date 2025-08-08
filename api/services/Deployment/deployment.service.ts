@@ -14,6 +14,7 @@ import {
   CreateDeploymentPayload,
   DeploymentFormData,
   DeploymentValidators,
+  ArchitectureTemplate,
 } from "../../models/deployment.model";
 import logger from "../../config/logger";
 import {
@@ -39,66 +40,6 @@ export class DeploymentService extends GenericService {
   constructor(promptService: PromptService) {
     super(promptService);
     logger.info("DeploymentService initialized.");
-  }
-
-  /**
-   * Validate deployment form data
-   * @param formData DeploymentFormData to validate
-   * @returns Array of validation error messages
-   */
-  private validateDeploymentData(formData: DeploymentFormData): string[] {
-    const errors: string[] = [];
-
-    if (!formData.name) {
-      errors.push("Deployment name is required");
-    }
-
-    if (!formData.environment) {
-      errors.push("Environment is required");
-    }
-
-    return errors;
-  }
-
-  /**
-   * Initialize pipeline steps for a new deployment
-   * @returns Array of pipeline steps
-   */
-  private initializePipelineSteps(): PipelineStep[] {
-    return [
-      {
-        name: "Generate Infrastructure Code",
-        status: "pending",
-        logs: "",
-      },
-      {
-        name: "Validate Configuration",
-        status: "pending",
-        logs: "",
-      },
-      {
-        name: "Provision Resources",
-        status: "pending",
-        logs: "",
-      },
-    ];
-  }
-
-  /**
-   * Get default cloud component structure
-   * @returns Default cloud component object
-   */
-  private getDefaultCloudComponent(): CloudComponentDetailed {
-    return {
-      id: "",
-      name: "",
-      description: "",
-      category: "",
-      provider: "aws",
-      icon: "",
-      pricing: "$0.00/month",
-      options: [],
-    };
   }
 
   async createDeployment(
@@ -260,68 +201,69 @@ export class DeploymentService extends GenericService {
   }
 
   // Legacy method for backward compatibility
-  /**
-   * Generate the deployment including Terraform tfvars file
-   * @param userId User ID
-   * @param projectId Project ID
-   * @param deploymentId Deployment ID
-   * @returns Updated deployment model
-   */
   async generateDeployment(
     userId: string,
     projectId: string,
     deploymentId: string
   ): Promise<DeploymentModel> {
     logger.info(
-      `generateDeployment called for userId: ${userId}, projectId: ${projectId}, deploymentId: ${deploymentId}`
+      `generateDeployment called for userId: ${userId}, projectId: ${projectId}`
     );
 
     try {
       // Get project information
       const project = await this.getProject(projectId, userId);
       if (!project) {
-        throw new Error(`Project ${projectId} not found`);
+        throw new Error("Project not found");
       }
 
-      // Find the deployment in the project
-      const deploymentIndex = project.deployments.findIndex(
+      // Create a basic deployment configuration
+      const deployment = project.deployments.find(
         (deployment) => deployment.id === deploymentId
       );
-
-      if (deploymentIndex === -1) {
-        throw new Error(
-          `Deployment ${deploymentId} not found in project ${projectId}`
-        );
+      if (!deployment) {
+        throw new Error("Deployment not found");
       }
 
-      // Get the deployment
-      const deployment = project.deployments[deploymentIndex];
+      // Generate Terraform files based on the deployment configuration
+      // For now, we'll create a basic architecture template from deployment data
+      const architectureTemplate: ArchitectureTemplate = {
+        id: `template-${deployment.id}`,
+        archetype_id: deployment.mode === 'template' ? (deployment as any).templateId || 'default-archetype' : 'default-archetype',
+        provider: 'aws', // Default provider, should be configurable
+        category: 'web-application',
+        name: `Template for ${deployment.name}`,
+        description: `Auto-generated template for deployment ${deployment.name}`,
+        tags: ['auto-generated'],
+        icon: 'default-icon'
+      };
 
-      // Generate Terraform tfvars file based on the deployment configuration
-      await this.generateTerraformTfvarsFile(deployment, userId);
-
-      // Get the updated project to return the updated deployment
-      const updatedProject = await this.getProject(projectId, userId);
-      if (!updatedProject) {
-        throw new Error(`Updated project ${projectId} not found`);
-      }
-
-      // Find the updated deployment
-      const updatedDeployment = updatedProject.deployments.find(
-        (d) => d.id === deploymentId
+      const generatedFile = await this.generateTerraformTfvarsFile(
+        architectureTemplate,
+        deployment,
+        userId
       );
 
-      if (!updatedDeployment) {
-        throw new Error(`Updated deployment ${deploymentId} not found`);
+      // Add the deployment to the project
+      if (!project.deployments) {
+        project.deployments = [];
       }
+      project.deployments.push(deployment);
+
+      // Update the project with the new deployment
+      await this.projectRepository.update(
+        projectId,
+        project,
+        `users/${userId}/projects`
+      );
 
       logger.info(
-        `Successfully generated deployment with tfvars for userId: ${userId}, projectId: ${projectId}, deploymentId: ${deploymentId}`
+        `Successfully generated deployment for userId: ${userId}, projectId: ${projectId}, deploymentId: ${deploymentId}`
       );
-      return updatedDeployment;
+      return deployment;
     } catch (error: any) {
       logger.error(
-        `Error generating deployment for userId: ${userId}, projectId: ${projectId}, deploymentId: ${deploymentId}. Error: ${error.message}`,
+        `Error generating deployment for userId: ${userId}, projectId: ${projectId}. Error: ${error.message}`,
         { error: error.stack }
       );
       throw error;
@@ -329,104 +271,88 @@ export class DeploymentService extends GenericService {
   }
 
   /**
-   * Generate Terraform tfvars file for a deployment
+   * Generate Terraform files for a deployment
    * @param deployment Deployment model
-   * @returns Generated tfvars file content
+   * @returns Array of file contents with name and content
    */
   private async generateTerraformTfvarsFile(
+    architectureTemplate: ArchitectureTemplate,
     deployment: DeploymentModel,
-    userId: string
+    userId: string,
+    customValues: Record<string, any> = {}
   ): Promise<string> {
     logger.info(
-      `Generating Terraform tfvars file for deploymentId: ${deployment.id}`
+      `Generating Terraform tfvars file for deployment: ${deployment.id} using template: ${architectureTemplate.id}`
     );
 
     try {
-      const project = await this.getProject(deployment.projectId, userId);
+      // Import ArchetypeService to get archetype by template
+      const { ArchetypeService } = await import("../archetype.service");
+      const archetypeService = new ArchetypeService();
 
-      if (!project) {
-        logger.error(`Project ${deployment.projectId} not found`);
-        throw new Error(`Project ${deployment.projectId} not found`);
-      }
-
-      // Prepare the architecture data for the prompt
-      const architectureData = this.prepareContextData(deployment, project);
-
-      logger.debug(
-        `Architecture data prepared for tfvars generation: ${JSON.stringify(
-          architectureData,
-          null,
-          2
-        )}`
+      // Get the archetype based on the architecture template
+      const archetype = await archetypeService.getArchetypeById(
+        userId,
+        architectureTemplate.archetype_id
       );
 
-      // Call the prompt service to generate the tfvars file
-      const promptConfig: PromptConfig = {
-        modelName: "gemini-1.5-pro-latest",
-        provider: LLMProvider.GEMINI,
-        userId: userId,
-        llmOptions: {
-          temperature: 0.2,
-          maxOutputTokens: 4096,
-        },
+      if (!archetype) {
+        logger.error(
+          `Archetype ${architectureTemplate.archetype_id} not found for template ${architectureTemplate.id}`
+        );
+        return "";
+      }
+
+      logger.info(
+        `Found archetype: ${archetype.name} for template: ${architectureTemplate.name}`
+      );
+
+      // Prepare default values from deployment and environment variables
+      const deploymentValues: Record<string, any> = {
+        deployment_name: deployment.name,
+        environment: deployment.environment,
+        project_id: deployment.projectId,
+        ...customValues,
       };
 
-      // Convert architecture data to a clear instruction for tfvars generation
-      const userInstruction = `
-Based on the following project and architecture information, please generate a terraform.tfvars file that will work with the specified archetype. 
+      // Add environment variables as terraform variables
+      if (deployment.environmentVariables) {
+        deployment.environmentVariables.forEach((envVar) => {
+          if (!envVar.isSecret) {
+            // Only include non-secret environment variables
+            deploymentValues[`env_${envVar.key.toLowerCase()}`] = envVar.value;
+          }
+        });
+      }
 
-Project Information:
-${JSON.stringify(architectureData.projectInfo, null, 2)}
-
-Deployment Information:
-${JSON.stringify(architectureData.deploymentInfo, null, 2)}
-
-Architecture Components:
-${JSON.stringify(architectureData.architectureComponents, null, 2)}
-
-Environment Variables:
-${JSON.stringify(architectureData.environmentVariables, null, 2)}
-
-Git Repository:
-${JSON.stringify(architectureData.gitRepository, null, 2)}
-
-Please generate ONLY the terraform.tfvars file content.
-`;
-
-      // Create the AI messages array with the main prompt and user instruction
-      const messages: AIChatMessage[] = [
-        {
-          role: "user",
-          content: MAIN_TF_PROMPT + "\n\n" + userInstruction,
-        },
-      ];
-
-      // Call prompt service with the correct parameters
-      const result = await this.promptService.runPrompt(promptConfig, messages);
-
-      // The result is already a string, no need to access .content
-      let tfvarsContent = result;
-      // Clean the response to extract just the tfvars content
-      tfvarsContent = this.extractTfvarsContent(tfvarsContent);
-
-      // Update the deployment with the generated tfvars content
-      await this.updateDeploymentTfvarsContent(
-        deployment.id,
-        userId,
-        tfvarsContent
+      // Generate tfvars content using the archetype service
+      const tfvarsContent = archetypeService.generateTerraformTfvars(
+        archetype,
+        deploymentValues
       );
 
       logger.info(
-        `Successfully generated Terraform tfvars file for deploymentId: ${deployment.id}`
+        `Generated Terraform tfvars file for deployment: ${deployment.id}`,
+        {
+          deploymentId: deployment.id,
+          archetypeId: archetype.id,
+          archetypeName: archetype.name,
+          contentLength: tfvarsContent.length,
+        }
       );
 
       return tfvarsContent;
-    } catch (error: any) {
+    } catch (error) {
       logger.error(
-        `Error in Terraform tfvars file generation for deployment ${deployment.id}:`,
-        { error: error.message, stack: error.stack }
+        `Error generating Terraform tfvars file for deployment ${deployment.id}:`,
+        {
+          error: error instanceof Error ? error.message : error,
+          stack: error instanceof Error ? error.stack : undefined,
+          deploymentId: deployment.id,
+          templateId: architectureTemplate.id,
+        }
       );
-      throw error;
+      return "";
     }
   }
 
@@ -434,13 +360,13 @@ Please generate ONLY the terraform.tfvars file content.
    * Prepare context data for Terraform generation
    * @param deployment The deployment model
    * @param project The project model
-   * @returns Context data object with all necessary architecture details
+   * @returns Context data object
    */
   private prepareContextData(
     deployment: DeploymentModel,
     project: ProjectModel
   ): any {
-    // Prepare the components for the prompt based on deployment mode
+    // Prepare the components for the prompt
     let architectureComponents: any[] = [];
 
     // Extract components based on deployment mode
@@ -448,59 +374,19 @@ Please generate ONLY the terraform.tfvars file content.
       deployment.mode === "expert" &&
       "architectureComponents" in deployment
     ) {
-      // Expert mode has directly defined architecture components
-      architectureComponents =
-        (deployment as ExpertDeploymentModel).architectureComponents || [];
+      architectureComponents = (deployment as any).architectureComponents || [];
     } else if (
       deployment.mode === "ai-assistant" &&
       "generatedComponents" in deployment
     ) {
-      // AI Assistant mode has generated components
-      architectureComponents =
-        (deployment as AiAssistantDeploymentModel).generatedComponents || [];
-    } else if (deployment.mode === "template" && "templateId" in deployment) {
-      // Template mode references a predefined template
-      // We don't have the actual template data here, so we'll provide the template ID
-      architectureComponents = [
-        {
-          instanceId: (deployment as TemplateDeploymentModel).templateId,
-          type: "template",
-          name: (deployment as TemplateDeploymentModel).templateName,
-          description: `Template deployment using ${
-            (deployment as TemplateDeploymentModel).templateName
-          }`,
-          category: "template",
-          provider: "aws", // Default provider, could be extracted from template if available
-        },
-      ];
+      architectureComponents = (deployment as any).generatedComponents || [];
     }
-
-    // Include analysis results if available
-    let analysisResults = {};
-    if (
-      project.analysisResultModel &&
-      typeof project.analysisResultModel === "object" &&
-      project.analysisResultModel !== null &&
-      "deployment" in project.analysisResultModel
-    ) {
-      analysisResults = (project.analysisResultModel as any).deployment || {};
-    }
-
-    // Gather services information if present in the project
-    const services: any[] = [];
-
-    // Extract application details that might be useful for deployment
-    const applicationDetails: Record<string, any> = {
-      appType: project.type,
-    };
 
     return {
       projectInfo: {
         name: project.name,
         description: project.description,
         type: project.type,
-        applicationDetails: applicationDetails,
-        services: services,
       },
       deploymentInfo: {
         id: deployment.id,
@@ -512,136 +398,583 @@ Please generate ONLY the terraform.tfvars file content.
       architectureComponents,
       environmentVariables: deployment.environmentVariables || [],
       gitRepository: deployment.gitRepository || {},
-      analysisResults,
     };
   }
 
-  /**
-   * Extract the tfvars content from the AI response
-   * @param response The raw AI response
-   * @returns Cleaned tfvars content
-   */
-  private extractTfvarsContent(response: string): string {
-    // Look for code block indicators
-    const tfvarsRegex =
-      /```(?:terraform|hcl|terraform-vars|tfvars)?\s*([\s\S]*?)```/;
-    const matches = response.match(tfvarsRegex);
+  async getDeploymentsByProject(
+    userId: string,
+    projectId: string
+  ): Promise<DeploymentModel[]> {
+    logger.info(
+      `getDeploymentsByProject called for userId: ${userId}, projectId: ${projectId}`
+    );
+    try {
+      const project = await this.getProject(projectId, userId);
+      if (!project) {
+        throw new Error("Project not found");
+      }
+      const deployments = project.deployments || [];
 
-    if (matches && matches[1]) {
-      // Return just the content inside the code block
-      return matches[1].trim();
+      logger.info(
+        `Found ${deployments.length} deployments for userId: ${userId}, projectId: ${projectId}`
+      );
+      return deployments;
+    } catch (error: any) {
+      logger.error(
+        `Error getting deployments for userId: ${userId}, projectId: ${projectId}. Error: ${error.message}`,
+        { error: error.stack }
+      );
+      throw error;
     }
-
-    // If no code block found, try to extract the tfvars content by removing explanations
-    // First, remove any markdown headings
-    const noHeadings = response.replace(/^#+\s+.*$/gm, "");
-
-    // Remove any other explanatory text that doesn't look like tfvars syntax
-    // (This is a simple approach - tfvars typically has variable assignments with = signs)
-    const lines = noHeadings.split("\n");
-    const tfvarsLines = lines.filter((line) => {
-      const trimmed = line.trim();
-      // Keep variable assignments, comments, and empty lines
-      return trimmed.includes("=") || trimmed.startsWith("#") || trimmed === "";
-    });
-
-    return tfvarsLines.join("\n").trim();
   }
 
-  /**
-   * Update the deployment with generated terraform.tfvars content
-   * @param deploymentId Deployment ID
-   * @param userId User ID
-   * @param tfvarsContent The generated tfvars content
-   */
-  private async updateDeploymentTfvarsContent(
-    deploymentId: string,
+  async getDeploymentById(
     userId: string,
-    tfvarsContent: string
-  ): Promise<void> {
+    deploymentId: string
+  ): Promise<DeploymentModel | null> {
+    logger.info(
+      `getDeploymentById called for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
     try {
-      // Get the project containing the deployment
-      const project = await this.findProjectByDeploymentId(
-        userId,
-        deploymentId
-      );
+      // First try to find the project directly by deploymentId (if deploymentId is actually a projectId)
+      let project = await this.getProject(deploymentId, userId);
 
+      // If not found, we need to search through all projects to find the one containing this deployment
       if (!project) {
-        throw new Error(`Project with deployment ID ${deploymentId} not found`);
+        const allProjects = await this.projectRepository.findAll(
+          `users/${userId}/projects`
+        );
+        for (const proj of allProjects) {
+          if (
+            proj.deployments &&
+            proj.deployments.some((d) => d.id === deploymentId)
+          ) {
+            project = proj;
+            break;
+          }
+        }
+
+        if (!project) {
+          throw new Error("Project containing deployment not found");
+        }
       }
 
-      // Find and update the specific deployment
-      const deploymentIndex = project.deployments.findIndex(
+      const deployment = (project.deployments || []).find(
+        (deployment) => deployment.id === deploymentId
+      );
+      if (deployment) {
+        logger.info(
+          `Deployment found - UserId: ${userId}, DeploymentId: ${deploymentId}`
+        );
+      } else {
+        logger.warn(
+          `Deployment not found - UserId: ${userId}, DeploymentId: ${deploymentId}`
+        );
+        throw new Error("Deployment not found");
+      }
+      return deployment;
+    } catch (error: any) {
+      logger.error(
+        `Error getting deployment for userId: ${userId}, deploymentId: ${deploymentId}. Error: ${error.message}`,
+        { error: error.stack }
+      );
+      throw error;
+    }
+  }
+
+  async updateDeployment(
+    userId: string,
+    deploymentId: string,
+    updateData: Partial<DeploymentModel>
+  ): Promise<DeploymentModel> {
+    logger.info(
+      `updateDeployment called for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+    try {
+      // First try to find the project directly by deploymentId (if deploymentId is actually a projectId)
+      let project = await this.getProject(deploymentId, userId);
+      let projectId = deploymentId;
+
+      // If not found, we need to search through all projects to find the one containing this deployment
+      if (!project) {
+        const allProjects = await this.projectRepository.findAll(
+          `users/${userId}/projects`
+        );
+        for (const proj of allProjects) {
+          if (
+            proj.deployments &&
+            proj.deployments.some((d) => d.id === deploymentId)
+          ) {
+            project = proj;
+            projectId = proj.id!;
+            break;
+          }
+        }
+
+        if (!project) {
+          throw new Error("Project containing deployment not found");
+        }
+      }
+
+      const existingDeploymentIndex = (project.deployments || []).findIndex(
         (deployment) => deployment.id === deploymentId
       );
 
-      if (deploymentIndex === -1) {
-        throw new Error(
-          `Deployment ${deploymentId} not found in project ${project.id}`
+      if (existingDeploymentIndex === -1) {
+        logger.warn(
+          `Deployment not found for update - UserId: ${userId}, DeploymentId: ${deploymentId}`
         );
+        throw new Error("Deployment not found");
       }
 
-      // Update the deployment with the generated tfvars content
-      project.deployments[deploymentIndex].generatedTerraformTfvarsFileContent =
-        tfvarsContent;
-      project.deployments[deploymentIndex].updatedAt = new Date();
+      const existingDeployment = project.deployments[existingDeploymentIndex];
 
-      // Save the updated project
-      await this.projectRepository.update(
-        project.id!,
-        project,
+      // Create a type-safe updated deployment object
+      const updatedDeployment: DeploymentModel = {
+        ...existingDeployment,
+        ...updateData,
+        updatedAt: new Date(),
+        // Ensure required fields are present
+        id: existingDeployment.id,
+        projectId: existingDeployment.projectId,
+        name: existingDeployment.name,
+        environment: existingDeployment.environment,
+        status: existingDeployment.status || "configuring",
+        mode: existingDeployment.mode,
+        createdAt: existingDeployment.createdAt,
+      } as DeploymentModel;
+
+      // Create a new deployments array with the updated deployment
+      const updatedDeployments = [...project.deployments];
+      updatedDeployments[existingDeploymentIndex] = updatedDeployment;
+
+      const updatedProject = await this.projectRepository.update(
+        projectId,
+        { deployments: updatedDeployments },
+        `users/${userId}/projects`
+      );
+      if (!updatedProject) {
+        throw new Error("Project not found");
+      }
+
+      // Find the updated deployment in the updated project
+      const resultDeployment = updatedProject.deployments?.find(
+        (deployment) => deployment.id === deploymentId
+      );
+      if (!resultDeployment) {
+        throw new Error("Deployment not found");
+      }
+
+      logger.info(
+        `Deployment updated successfully - UserId: ${userId}, DeploymentId: ${deploymentId}`
+      );
+      return resultDeployment;
+    } catch (error: any) {
+      logger.error(
+        `Error updating deployment for userId: ${userId}, deploymentId: ${deploymentId}. Error: ${error.message}`,
+        { error: error.stack }
+      );
+      throw error;
+    }
+  }
+
+  async deleteDeployment(
+    userId: string,
+    deploymentId: string
+  ): Promise<boolean> {
+    logger.info(
+      `deleteDeployment called for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+    try {
+      // First try to find the project directly by deploymentId (if deploymentId is actually a projectId)
+      let project = await this.getProject(deploymentId, userId);
+      let projectId = deploymentId;
+
+      // If not found, we need to search through all projects to find the one containing this deployment
+      if (!project) {
+        const allProjects = await this.projectRepository.findAll(
+          `users/${userId}/projects`
+        );
+        for (const proj of allProjects) {
+          if (
+            proj.deployments &&
+            proj.deployments.some((d) => d.id === deploymentId)
+          ) {
+            project = proj;
+            projectId = proj.id!;
+            break;
+          }
+        }
+
+        if (!project) {
+          logger.warn(
+            `Project containing deployment not found - UserId: ${userId}, DeploymentId: ${deploymentId}`
+          );
+          return false;
+        }
+      }
+
+      // If we found the project by deploymentId, it means the deploymentId is actually a projectId
+      // and we should delete the entire project
+      if (projectId === deploymentId) {
+        const success = await this.projectRepository.delete(projectId, userId);
+        if (success) {
+          logger.info(
+            `Project deleted successfully - UserId: ${userId}, ProjectId: ${projectId}`
+          );
+        } else {
+          logger.warn(
+            `Project not found for deletion - UserId: ${userId}, ProjectId: ${projectId}`
+          );
+        }
+        return success;
+      }
+
+      // Otherwise, we need to remove just the deployment from the project
+      const updatedDeployments = (project.deployments || []).filter(
+        (deployment) => deployment.id !== deploymentId
+      );
+
+      if (updatedDeployments.length === (project.deployments || []).length) {
+        logger.warn(
+          `Deployment not found for deletion - UserId: ${userId}, DeploymentId: ${deploymentId}`
+        );
+        return false;
+      }
+
+      const updatedProject = await this.projectRepository.update(
+        projectId,
+        { deployments: updatedDeployments },
         `users/${userId}/projects`
       );
 
-      logger.debug(
-        `Updated deployment ${deploymentId} with generated tfvars content`
-      );
+      if (updatedProject) {
+        logger.info(
+          `Deployment deleted successfully - UserId: ${userId}, DeploymentId: ${deploymentId}`
+        );
+        return true;
+      } else {
+        logger.warn(
+          `Failed to update project after deployment deletion - UserId: ${userId}, DeploymentId: ${deploymentId}`
+        );
+        return false;
+      }
     } catch (error: any) {
       logger.error(
-        `Error updating deployment ${deploymentId} with tfvars content:`,
-        { error: error.message, stack: error.stack }
+        `Error deleting deployment for userId: ${userId}, deploymentId: ${deploymentId}. Error: ${error.message}`,
+        { error: error.stack }
+      );
+      throw error;
+    }
+  }
+
+  // Configuration Management Methods
+  async updateGitRepository(
+    userId: string,
+    deploymentId: string,
+    gitConfig: GitRepository
+  ): Promise<DeploymentModel | null> {
+    logger.info(
+      `updateGitRepository called for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+
+    try {
+      const validationErrors =
+        DeploymentValidators.validateGitRepository(gitConfig);
+      if (validationErrors.length > 0) {
+        throw new Error(
+          `Git repository validation failed: ${validationErrors.join(", ")}`
+        );
+      }
+
+      return await this.updateDeployment(userId, deploymentId, {
+        gitRepository: gitConfig,
+      });
+    } catch (error: any) {
+      logger.error(
+        `Error updating git repository for deployment ${deploymentId}: ${error.message}`,
+        { error: error.stack }
+      );
+      throw error;
+    }
+  }
+
+  async updateEnvironmentVariables(
+    userId: string,
+    deploymentId: string,
+    environmentVariables: EnvironmentVariable[]
+  ): Promise<DeploymentModel | null> {
+    logger.info(
+      `updateEnvironmentVariables called for userId: ${userId}, deploymentId: ${deploymentId}, count: ${environmentVariables.length}`
+    );
+
+    try {
+      return await this.updateDeployment(userId, deploymentId, {
+        environmentVariables,
+      });
+    } catch (error: any) {
+      logger.error(
+        `Error updating environment variables for deployment ${deploymentId}: ${error.message}`,
+        { error: error.stack }
+      );
+      throw error;
+    }
+  }
+
+  async updateArchitectureComponents(
+    userId: string,
+    deploymentId: string,
+    components: ArchitectureComponent[]
+  ): Promise<DeploymentModel | null> {
+    logger.info(
+      `updateArchitectureComponents called for userId: ${userId}, deploymentId: ${deploymentId}, count: ${components.length}`
+    );
+
+    try {
+      const deployment = await this.getDeploymentById(userId, deploymentId);
+      if (!deployment) {
+        return null;
+      }
+
+      const validationErrors =
+        DeploymentValidators.validateArchitectureComponents(components);
+      if (validationErrors.length > 0) {
+        throw new Error(
+          `Architecture components validation failed: ${validationErrors.join(
+            ", "
+          )}`
+        );
+      }
+
+      // Update based on deployment mode
+      if (deployment.mode === "expert") {
+        return await this.updateDeployment(userId, deploymentId, {
+          architectureComponents: components,
+        } as Partial<ExpertDeploymentModel>);
+      } else if (deployment.mode === "ai-assistant") {
+        return await this.updateDeployment(userId, deploymentId, {
+          generatedComponents: components,
+        } as Partial<AiAssistantDeploymentModel>);
+      } else {
+        logger.warn(
+          `Cannot update architecture components for deployment mode: ${deployment.mode}`
+        );
+        return deployment;
+      }
+    } catch (error: any) {
+      logger.error(
+        `Error updating architecture components for deployment ${deploymentId}: ${error.message}`,
+        { error: error.stack }
+      );
+      throw error;
+    }
+  }
+
+  async addChatMessage(
+    userId: string,
+    projectId: string,
+    message: ChatMessage
+  ): Promise<ChatMessage | null> {
+    logger.info(
+      `addChatMessage called for userId: ${userId}, projectId: ${projectId}, sender: ${message.sender}`
+    );
+
+    try {
+      const project = await this.getProject(projectId, userId);
+      if (!project) {
+        logger.warn(`Project not found: ${projectId}`);
+        return null;
+      }
+      // If the message is from a user, generate an AI response
+      if (message.sender === "user") {
+        logger.info(
+          `Generating AI response for user message in deployment ${projectId}`
+        );
+
+        try {
+          // Convert chat messages to the format expected by PromptService
+          project.activeChatMessages.push(message);
+          const promptMessages = this.convertToPromptMessages(
+            project.activeChatMessages,
+            project
+          );
+
+          // Call the PromptService to generate a response
+          const aiResponse = await this.promptService.runPrompt(
+            {
+              provider: LLMProvider.GEMINI,
+              modelName: "gemini-2.5-flash",
+              llmOptions: {
+                temperature: 0.7,
+                maxOutputTokens: 1024,
+              },
+            },
+            promptMessages
+          );
+          console.log("aiResponse", aiResponse);
+
+          // Create an AI message and parse the response as JSON if possible
+
+          try {
+            // Try to extract JSON from the response (it might be wrapped in markdown code blocks)
+            const jsonMatch = aiResponse.match(
+              /```(?:json)?\s*([\s\S]*?)\s*```/
+            ) || [null, aiResponse];
+            const jsonContent = jsonMatch[1].trim();
+            const parsedResponse = JSON.parse(jsonContent);
+
+            // Create an AI message from the structured response
+            const aiMessage = {
+              sender: "ai",
+              text: parsedResponse.message || aiResponse, // Fallback to raw response if message field missing
+              timestamp: new Date(),
+              isRequestingDetails: parsedResponse.isRequestingDetails || false,
+              isProposingArchitecture:
+                parsedResponse.isProposingArchitecture || false,
+              proposedComponents: parsedResponse.proposedComponents || [],
+            };
+
+            logger.info(
+              `Successfully parsed AI response as structured JSON for project ${projectId}`
+            );
+          } catch (error: unknown) {
+            // Type guard for error.message
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            logger.warn(
+              `Failed to parse AI response as JSON for project ${projectId}: ${errorMessage}`
+            );
+
+            // Fallback to treating the response as plain text
+            message = {
+              sender: "ai",
+              text: aiResponse,
+              timestamp: new Date(),
+              isRequestingDetails: false,
+              isProposingArchitecture: false,
+            };
+          }
+
+          // Add the AI message to the chat history
+          if (!project.activeChatMessages) {
+            project.activeChatMessages = [];
+          }
+          project.activeChatMessages.push(message);
+        } catch (promptError: any) {
+          logger.error(
+            `Error generating AI response for project ${projectId}: ${promptError.message}`,
+            { error: promptError.stack }
+          );
+
+          // Add a fallback AI message indicating the error
+          if (!project.activeChatMessages) {
+            project.activeChatMessages = [];
+          }
+          project.activeChatMessages.push({
+            sender: "ai",
+            text: "I'm sorry, I encountered an error while processing your request. Please try again later.",
+            timestamp: new Date(),
+            isRequestingDetails: false,
+            isProposingArchitecture: false,
+          });
+        }
+      }
+      await this.projectRepository.update(
+        projectId,
+        project,
+        `users/${userId}/projects`
+      );
+      // Update the deployment with the new messages
+      return project.activeChatMessages[project.activeChatMessages.length - 1];
+    } catch (error: any) {
+      logger.error(
+        `Error adding chat message for project ${projectId}: ${error.message}`,
+        { error: error.stack }
       );
       throw error;
     }
   }
 
   /**
-   * Find the project associated with a deployment
-   * @param userId User ID
-   * @param deploymentId Deployment ID
-   * @returns ProjectModel or null if not found
+   * Converts deployment chat messages to the format expected by PromptService
    */
-  private async findProjectByDeploymentId(
-    userId: string,
-    deploymentId: string
-  ): Promise<ProjectModel | null> {
-    try {
-      // Get all projects for the user
-      const projects = await this.projectRepository.findAll(
-        `users/${userId}/projects`
-      );
+  private convertToPromptMessages(
+    chatMessages: ChatMessage[],
+    project: ProjectModel
+  ): { role: "user" | "assistant" | "system"; content: string }[] {
+    logger.info(
+      `Converting prompt messages for project: ${project.id}, deployment chat`
+    );
 
-      // Find the project containing the deployment
-      const project = projects.find(
-        (project) =>
-          project.deployments &&
-          project.deployments.some(
-            (deployment) => deployment.id === deploymentId
-          )
-      );
+    // Extract deployment information from project
+    const deploymentInfo =
+      project.deployments && project.deployments.length > 0
+        ? project.deployments[project.deployments.length - 1]
+        : null;
 
-      return project || null;
-    } catch (error: any) {
-      logger.error(`Error finding project by deployment ID ${deploymentId}:`, {
-        error: error.message,
-        stack: error.stack,
-      });
-      throw error;
+    // Create project context string
+    let projectContext = `
+      Project Name: ${project.name}
+      Project ID: ${project.id}
+      Description: ${project.description}
+      Type: ${project.type}
+      Constraints: ${project.constraints}
+      Team Size: ${project.teamSize}
+      Scope: ${project.scope}
+      Budget: ${project.budgetIntervals || "Not specified"}
+      Targets: ${project.targets}
+    `;
+
+    // Add deployment specific context if available
+    if (deploymentInfo) {
+      projectContext += `
+        Current Deployment Information:
+        - Name: ${deploymentInfo.name}
+        - Status: ${deploymentInfo.status}
+        - Environment: ${deploymentInfo.environment}
+        - Mode: ${deploymentInfo.mode}
+        ${
+          deploymentInfo.gitRepository
+            ? `- Git Repository: ${deploymentInfo.gitRepository.provider} (${deploymentInfo.gitRepository.url})`
+            : ""
+        }
+        ${deploymentInfo.url ? `- Deployed URL: ${deploymentInfo.url}` : ""}
+        ${
+          deploymentInfo.pipelines && deploymentInfo.pipelines.length > 0
+            ? `- Current Pipeline Stage: ${
+                deploymentInfo.pipelines[deploymentInfo.pipelines.length - 1].id
+              }`
+            : ""
+        }
+      `;
     }
+
+    // Start with a system message that provides context about the deployment
+    const promptMessages: {
+      role: "user" | "assistant" | "system";
+      content: string;
+    }[] = [
+      {
+        role: "system",
+        content: `${AI_CHAT_INITIAL_PROMPT}\n\n${projectContext}`,
+      },
+    ];
+
+    // Add all conversation history if less than 5 messages, otherwise limit to last 5
+    const messagesToInclude =
+      chatMessages.length <= 5 ? chatMessages : chatMessages.slice(-5);
+
+    messagesToInclude.forEach((msg) => {
+      promptMessages.push({
+        role: msg.sender === "user" ? "user" : "assistant",
+        content: msg.text,
+      });
+    });
+
+    return promptMessages;
   }
 
-  // ...
-
+  // Pipeline Management Methods
   async startDeploymentPipeline(
     userId: string,
     deploymentId: string
@@ -659,9 +992,6 @@ Please generate ONLY the terraform.tfvars file content.
       // Validate deployment is ready for pipeline execution
       const validationErrors = this.validateDeploymentForPipeline(deployment);
       if (validationErrors.length > 0) {
-        logger.warn(
-          `Pipeline validation failed: ${validationErrors.join(", ")}`
-        );
         throw new Error(
           `Pipeline validation failed: ${validationErrors.join(", ")}`
         );
@@ -806,132 +1136,29 @@ Please generate ONLY the terraform.tfvars file content.
     }
   }
 
-  /**
-   * Retrieve a deployment by its ID
-   * @param userId User ID
-   * @param deploymentId Deployment ID
-   * @returns DeploymentModel or null if not found
-   */
-  private async getDeploymentById(
-    userId: string,
-    deploymentId: string
-  ): Promise<DeploymentModel | null> {
-    try {
-      // Find the project containing the deployment
-      const project = await this.findProjectByDeploymentId(
-        userId,
-        deploymentId
-      );
+  // Validation Methods
+  private validateDeploymentData(formData: DeploymentFormData): string[] {
+    const errors: string[] = [];
 
-      if (!project) {
-        logger.warn(`Project with deployment ID ${deploymentId} not found`);
-        return null;
-      }
+    errors.push(...DeploymentValidators.validateBasicInfo(formData));
 
-      // Find the specific deployment
-      const deployment = project.deployments.find((d) => d.id === deploymentId);
-
-      if (!deployment) {
-        logger.warn(`Deployment with ID ${deploymentId} not found`);
-        return null;
-      }
-
-      return deployment;
-    } catch (error: any) {
-      logger.error(`Error retrieving deployment with ID ${deploymentId}:`, {
-        error: error.message,
-        stack: error.stack,
-      });
-      throw error;
+    if (formData.repoUrl || formData.branch) {
+      const gitRepo = {
+        url: formData.repoUrl,
+        branch: formData.branch,
+      };
+      errors.push(...DeploymentValidators.validateGitRepository(gitRepo));
     }
-  }
 
-  /**
-   * Update a deployment with new data
-   * @param userId User ID
-   * @param deploymentId Deployment ID
-   * @param updateData Partial deployment data to update
-   * @returns Updated deployment or null if not found
-   */
-  private async updateDeployment(
-    userId: string,
-    deploymentId: string,
-    updateData: Partial<DeploymentModel>
-  ): Promise<DeploymentModel | null> {
-    try {
-      // Find the project containing the deployment
-      const project = await this.findProjectByDeploymentId(
-        userId,
-        deploymentId
+    if (formData.customComponents) {
+      errors.push(
+        ...DeploymentValidators.validateArchitectureComponents(
+          formData.customComponents
+        )
       );
-
-      if (!project) {
-        logger.warn(`Project with deployment ID ${deploymentId} not found`);
-        return null;
-      }
-
-      // Find the index of the deployment to update
-      const deploymentIndex = project.deployments.findIndex(
-        (d) => d.id === deploymentId
-      );
-
-      if (deploymentIndex === -1) {
-        logger.warn(`Deployment with ID ${deploymentId} not found`);
-        return null;
-      }
-
-      // Create updated deployment by merging existing with update data
-      const existingDeployment = project.deployments[deploymentIndex];
-      const updatedDeployment = {
-        ...existingDeployment,
-        ...updateData,
-        updatedAt: new Date(),
-        // Preserve the original mode to maintain type safety
-        mode: existingDeployment.mode
-      } as DeploymentModel;
-
-      // Replace the deployment in the project
-      project.deployments[deploymentIndex] = updatedDeployment;
-
-      // Save the updated project
-      await this.projectRepository.update(
-        project.id!,
-        project,
-        `users/${userId}/projects`
-      );
-
-      return updatedDeployment;
-    } catch (error: any) {
-      logger.error(`Error updating deployment with ID ${deploymentId}:`, {
-        error: error.message,
-        stack: error.stack,
-      });
-      throw error;
     }
-  }
 
-  /**
-   * Get a project by its ID
-   * @param projectId Project ID
-   * @param userId User ID
-   * @returns ProjectModel or null if not found
-   */
-  protected async getProject(
-    projectId: string,
-    userId: string
-  ): Promise<ProjectModel | null> {
-    try {
-      return await this.projectRepository.findById(
-        projectId,
-        `users/${userId}/projects`
-      );
-    } catch (error: any) {
-      logger.error(`Error retrieving project with ID ${projectId}:`, {
-        error: error.message,
-        stack: error.stack,
-      });
-      throw error;
-    }
+    return errors;
   }
 
   private validateDeploymentForPipeline(deployment: DeploymentModel): string[] {
@@ -988,7 +1215,48 @@ Please generate ONLY the terraform.tfvars file content.
     return errors;
   }
 
-  // Helper Methods - moved to their appropriate locations or removed if duplicated
+  // Helper Methods
+  private initializePipelineSteps(): PipelineStep[] {
+    return [
+      {
+        name: "Code Analysis",
+        status: "pending",
+      },
+      {
+        name: "Security Scan",
+        status: "pending",
+      },
+      {
+        name: "Build",
+        status: "pending",
+      },
+      {
+        name: "Infrastructure Provisioning",
+        status: "pending",
+      },
+      {
+        name: "Deployment",
+        status: "pending",
+      },
+      {
+        name: "Post-deployment Tests",
+        status: "pending",
+      },
+    ];
+  }
+
+  private getDefaultCloudComponent(): CloudComponentDetailed {
+    return {
+      id: "",
+      name: "",
+      description: "",
+      category: "",
+      provider: "aws",
+      icon: "",
+      pricing: "$0.00/month",
+      options: [],
+    };
+  }
 
   private async executePipeline(
     userId: string,

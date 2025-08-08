@@ -51,6 +51,7 @@ export interface ChatMessage {
 
 export interface ArchitectureTemplate {
   id: string;
+  archetype_id: string;
   provider: "aws" | "gcp" | "azure";
   category: string;
   name: string;

@@ -7,7 +7,6 @@ import {
   UpdateDeploymentController,
   DeleteDeploymentController,
   UpdateGitConfigController,
-  UpdateEnvironmentVariablesController,
   UpdateArchitectureComponentsController,
   AddChatMessageController,
   StartPipelineController,
@@ -71,10 +70,7 @@ const resourceName = "/deployments";
  *       500:
  *         description: Internal server error
  */
-deploymentRoutes.post(
-  `${resourceName}/generate`,
-  generateDeploymentController
-);
+deploymentRoutes.post(`${resourceName}/generate`, generateDeploymentController);
 
 /**
  * @openapi
@@ -291,55 +287,6 @@ deploymentRoutes.put(
   UpdateGitConfigController
 );
 
-/**
- * @openapi
- * /deployments/updateEnvVars/{deploymentId}:
- *   put:
- *     tags:
- *       - Deployments Configuration
- *     summary: Update environment variables
- *     description: Updates the environment variables for a specific deployment
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: deploymentId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the deployment to update
- *         example: "deployment_123456789"
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/UpdateEnvironmentVariablesDto'
- *     responses:
- *       200:
- *         description: Environment variables updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/BaseResponseDto'
- *       400:
- *         description: Bad request - validation error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/BaseResponseDto'
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Deployment not found
- *       500:
- *         description: Internal server error
- */
-deploymentRoutes.put(
-  `${resourceName}/updateEnvVars/:deploymentId`,
-  authenticate,
-  UpdateEnvironmentVariablesController
-);
 
 /**
  * @openapi
@@ -643,7 +590,7 @@ deploymentRoutes.post(
  *             type: string
  *           description: Array of error messages
  *           example: ["Validation failed", "Required field missing"]
- *     
+ *
  *     CreateDeploymentDto:
  *       type: object
  *       required:
@@ -689,7 +636,7 @@ deploymentRoutes.post(
  *           type: string
  *           description: ID of the architecture template to use
  *           example: "template_web_app"
- *     
+ *
  *     UpdateDeploymentDto:
  *       type: object
  *       properties:
@@ -723,7 +670,7 @@ deploymentRoutes.post(
  *           items:
  *             $ref: '#/components/schemas/ChatMessageDto'
  *           description: Chat messages for the deployment
- *     
+ *
  *     GitRepositoryDto:
  *       type: object
  *       required:
@@ -752,7 +699,7 @@ deploymentRoutes.post(
  *           type: string
  *           description: Webhook ID for repository integration
  *           example: "webhook_123456789"
- *     
+ *
  *     UpdateGitRepositoryDto:
  *       type: object
  *       properties:
@@ -768,7 +715,7 @@ deploymentRoutes.post(
  *           type: string
  *           description: Access token for repository access
  *           example: "ghp_xxxxxxxxxxxxxxxx"
- *     
+ *
  *     EnvironmentVariableDto:
  *       type: object
  *       required:
@@ -788,7 +735,7 @@ deploymentRoutes.post(
  *           type: boolean
  *           description: Whether this is a secret variable
  *           example: true
- *     
+ *
  *     UpdateEnvironmentVariablesDto:
  *       type: object
  *       required:
@@ -799,7 +746,7 @@ deploymentRoutes.post(
  *           items:
  *             $ref: '#/components/schemas/EnvironmentVariableDto'
  *           description: Array of environment variables
- *     
+ *
  *     ArchitectureComponentDto:
  *       type: object
  *       required:
@@ -825,7 +772,7 @@ deploymentRoutes.post(
  *             type: string
  *           description: Array of component dependencies
  *           example: ["comp_987654321"]
- *     
+ *
  *     UpdateArchitectureComponentsDto:
  *       type: object
  *       required:
@@ -836,7 +783,7 @@ deploymentRoutes.post(
  *           items:
  *             $ref: '#/components/schemas/ArchitectureComponentDto'
  *           description: Array of architecture components
- *     
+ *
  *     ChatMessageDto:
  *       type: object
  *       required:
@@ -852,7 +799,7 @@ deploymentRoutes.post(
  *           type: string
  *           description: Message content
  *           example: "How do I configure the database?"
- *     
+ *
  *     UpdateChatMessagesDto:
  *       type: object
  *       required:
@@ -863,7 +810,7 @@ deploymentRoutes.post(
  *           items:
  *             $ref: '#/components/schemas/ChatMessageDto'
  *           description: Array of chat messages
- *     
+ *
  *     PipelineStepDto:
  *       type: object
  *       required:
@@ -901,7 +848,7 @@ deploymentRoutes.post(
  *           type: string
  *           description: AI recommendation for the step
  *           example: "Consider optimizing the build process"
- *     
+ *
  *     PipelineStatusDto:
  *       type: object
  *       required:
@@ -927,7 +874,7 @@ deploymentRoutes.post(
  *           format: date-time
  *           description: Estimated completion time
  *           example: "2024-01-15T10:30:00Z"
- *     
+ *
  *     CostEstimationDto:
  *       type: object
  *       required:
@@ -986,4 +933,3 @@ deploymentRoutes.post(
  *                 description: Description of the cost
  *                 example: "Monthly cost for Lambda function"
  */
-
