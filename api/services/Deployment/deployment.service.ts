@@ -229,13 +229,16 @@ export class DeploymentService extends GenericService {
       // For now, we'll create a basic architecture template from deployment data
       const architectureTemplate: ArchitectureTemplate = {
         id: `template-${deployment.id}`,
-        archetype_id: deployment.mode === 'template' ? (deployment as any).templateId || 'default-archetype' : 'default-archetype',
-        provider: 'aws', // Default provider, should be configurable
-        category: 'web-application',
+        archetype_id:
+          deployment.mode === "template"
+            ? (deployment as any).templateId || "default-archetype"
+            : "default-archetype",
+        provider: "aws", // Default provider, should be configurable
+        category: "web-application",
         name: `Template for ${deployment.name}`,
         description: `Auto-generated template for deployment ${deployment.name}`,
-        tags: ['auto-generated'],
-        icon: 'default-icon'
+        tags: ["auto-generated"],
+        icon: "default-icon",
       };
 
       const generatedFile = await this.generateTerraformTfvarsFile(
@@ -282,69 +285,133 @@ export class DeploymentService extends GenericService {
     customValues: Record<string, any> = {}
   ): Promise<string> {
     logger.info(
-      `Generating Terraform tfvars file for deployment: ${deployment.id} using template: ${architectureTemplate.id}`
+      `Generating Terraform tfvars file using AI for deployment: ${deployment.id} with template: ${architectureTemplate.id}`
     );
 
     try {
-      // Import ArchetypeService to get archetype by template
+      // Import ArchetypeService to get all archetypes
       const { ArchetypeService } = await import("../archetype.service");
       const archetypeService = new ArchetypeService();
 
-      // Get the archetype based on the architecture template
-      const archetype = await archetypeService.getArchetypeById(
-        userId,
-        architectureTemplate.archetype_id
+      // Get all available archetypes to include in the AI prompt
+      const allArchetypes = await archetypeService.getArchetypes(userId);
+
+      logger.info(
+        `Retrieved ${allArchetypes.length} archetypes for AI context`,
+        {
+          deploymentId: deployment.id,
+          archetypeCount: allArchetypes.length,
+        }
       );
 
-      if (!archetype) {
+      // Prepare deployment context for AI
+      const deploymentContext = {
+        deployment: {
+          id: deployment.id,
+          name: deployment.name,
+          environment: deployment.environment,
+          projectId: deployment.projectId,
+          mode: deployment.mode,
+          environmentVariables:
+            deployment.environmentVariables?.filter((env) => !env.isSecret) ||
+            [],
+        },
+        architectureTemplate,
+        customValues,
+      };
+
+      // Format archetypes for AI prompt
+      const archetypesForPrompt = allArchetypes.map((archetype) => ({
+        archetype_id: archetype.id,
+        name: archetype.name,
+        description: archetype.description,
+        provider: archetype.provider,
+        category: archetype.category,
+        tags: archetype.tags,
+        terraformVariables: archetype.terraformVariables.map((variable) => ({
+          name: variable.name,
+          type: variable.type,
+          description: variable.description,
+          default: variable.default,
+          required: variable.required,
+          sensitive: variable.sensitive,
+          allowed_values: variable.allowed_values,
+          validation: variable.validation,
+        })),
+        defaultValues: archetype.defaultValues,
+      }));
+
+      // Build the AI prompt with system prompt and context
+      const systemPrompt = MAIN_TF_PROMPT;
+      const userPrompt = `
+Please generate a terraform.tfvars file for the following deployment:
+
+**Deployment Information:**
+${JSON.stringify(deploymentContext, null, 2)}
+
+**Available Archetypes:**
+${JSON.stringify(archetypesForPrompt, null, 2)}
+
+**Instructions:**
+1. Analyze the deployment requirements and architecture template
+2. Select the most appropriate archetype from the available list
+3. Generate a complete terraform.tfvars file based on the selected archetype
+4. Include all required variables with appropriate values
+5. Use deployment-specific information (name, environment, etc.) in the variable values
+6. Include environment variables as terraform variables where appropriate
+7. Follow the archetype's variable definitions strictly
+
+Please provide only the terraform.tfvars file content as output.`;
+
+      // Use AI to generate the tfvars content
+      const promptConfig: PromptConfig = {
+        provider: LLMProvider.GEMINI,
+        modelName: "gemini-1.5-flash",
+        llmOptions: {
+          temperature: 0.3,
+          maxOutputTokens: 4000,
+        },
+        userId,
+        promptType: "terraform_tfvars_generation",
+      };
+
+      const messages: AIChatMessage[] = [
+        {
+          role: "system",
+          content: systemPrompt,
+        },
+        {
+          role: "user",
+          content: userPrompt,
+        },
+      ];
+
+      const aiResponse = await this.promptService.runPrompt(
+        promptConfig,
+        messages
+      );
+
+      if (!aiResponse || aiResponse.trim().length === 0) {
         logger.error(
-          `Archetype ${architectureTemplate.archetype_id} not found for template ${architectureTemplate.id}`
+          `AI failed to generate tfvars content for deployment ${deployment.id}`
         );
         return "";
       }
 
       logger.info(
-        `Found archetype: ${archetype.name} for template: ${architectureTemplate.name}`
-      );
-
-      // Prepare default values from deployment and environment variables
-      const deploymentValues: Record<string, any> = {
-        deployment_name: deployment.name,
-        environment: deployment.environment,
-        project_id: deployment.projectId,
-        ...customValues,
-      };
-
-      // Add environment variables as terraform variables
-      if (deployment.environmentVariables) {
-        deployment.environmentVariables.forEach((envVar) => {
-          if (!envVar.isSecret) {
-            // Only include non-secret environment variables
-            deploymentValues[`env_${envVar.key.toLowerCase()}`] = envVar.value;
-          }
-        });
-      }
-
-      // Generate tfvars content using the archetype service
-      const tfvarsContent = archetypeService.generateTerraformTfvars(
-        archetype,
-        deploymentValues
-      );
-
-      logger.info(
-        `Generated Terraform tfvars file for deployment: ${deployment.id}`,
+        `AI generated Terraform tfvars file for deployment: ${deployment.id}`,
         {
           deploymentId: deployment.id,
-          archetypeId: archetype.id,
-          archetypeName: archetype.name,
-          contentLength: tfvarsContent.length,
+          templateId: architectureTemplate.id,
+          contentLength: aiResponse.length,
+          archetypesUsed: allArchetypes.length,
         }
       );
 
-      return tfvarsContent;
+      return aiResponse;
     } catch (error) {
       logger.error(
-        `Error generating Terraform tfvars file for deployment ${deployment.id}:`,
+        `Error generating Terraform tfvars file with AI for deployment ${deployment.id}:`,
         {
           error: error instanceof Error ? error.message : error,
           stack: error instanceof Error ? error.stack : undefined,
