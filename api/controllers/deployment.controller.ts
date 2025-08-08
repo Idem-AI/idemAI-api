@@ -26,7 +26,7 @@ export const CreateDeploymentController = async (
     const userId = req.user?.uid;
 
     const payload: CreateDeploymentPayload = req.body;
-
+    
 
     if (!userId) {
       res.status(401).json({
@@ -318,59 +318,6 @@ export const UpdateGitConfigController = async (
     });
   } catch (error: any) {
     logger.error(`Error updating git config: ${error.message}`, {
-      error: error.stack,
-    });
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: error.message,
-    });
-  }
-};
-
-// Update environment variables
-export const UpdateEnvironmentVariablesController = async (
-  req: CustomRequest,
-  res: Response
-): Promise<void> => {
-  try {
-    const userId = req.user?.uid;
-    const { deploymentId } = req.params;
-    const environmentVariables: EnvironmentVariable[] = req.body;
-
-    if (!userId) {
-      res.status(401).json({
-        success: false,
-        message: "User not authenticated",
-      });
-      return;
-    }
-
-    logger.info(
-      `Updating environment variables for userId: ${userId}, deploymentId: ${deploymentId}`
-    );
-
-    const deployment = await deploymentService.updateEnvironmentVariables(
-      userId,
-      deploymentId,
-      environmentVariables
-    );
-
-    if (!deployment) {
-      res.status(404).json({
-        success: false,
-        message: "Deployment not found",
-      });
-      return;
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Environment variables updated successfully",
-      data: deployment,
-    });
-  } catch (error: any) {
-    logger.error(`Error updating environment variables: ${error.message}`, {
       error: error.stack,
     });
     res.status(500).json({
@@ -723,31 +670,12 @@ export const generateDeploymentController = async (
       deploymentId
     );
 
-    // Count generated Terraform files for the response message
-    const hasGeneratedFiles =
-      deployment.generatedTerraformFiles &&
-      (deployment.generatedTerraformFiles.main ||
-        deployment.generatedTerraformFiles.variables ||
-        deployment.generatedTerraformFiles.variablesMap);
-
-    // Count non-empty files
-    let fileCount = 0;
-    if (deployment.generatedTerraformFiles) {
-      if (deployment.generatedTerraformFiles.main) fileCount++;
-      if (deployment.generatedTerraformFiles.variables) fileCount++;
-      if (deployment.generatedTerraformFiles.variablesMap) fileCount++;
-    }
-
     // Customize the message based on whether we generated for an existing deployment or created a new one
     let message;
     if (deploymentId) {
-      message = hasGeneratedFiles
-        ? `Generated ${fileCount} Terraform files for existing deployment ${deploymentId}`
-        : `No Terraform files generated for deployment ${deploymentId}`;
+      message = `Generated Terraform files for existing deployment ${deploymentId}`;
     } else {
-      message = hasGeneratedFiles
-        ? `New deployment created successfully with ${fileCount} Terraform files generated`
-        : "New deployment created successfully";
+      message = `New deployment created successfully with tfvars generated`;
     }
     userService.incrementUsage(userId,1);
 

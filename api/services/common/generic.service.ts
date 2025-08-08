@@ -56,6 +56,8 @@ export class GenericService {
     projectId: string,
     userId: string
   ): Promise<ProjectModel | null> {
+    console.log("==========projectId", projectId);
+    console.log("==========userId", userId);
     const project = await this.projectRepository.findById(
       projectId,
       `users/${userId}/projects`
@@ -70,7 +72,7 @@ export class GenericService {
       );
       return null;
     }
-
+    console.log("==========project", project);
     return project;
   }
 
