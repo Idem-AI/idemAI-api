@@ -294,7 +294,7 @@ export class DeploymentService extends GenericService {
       const archetypeService = new ArchetypeService();
 
       // Get all available archetypes to include in the AI prompt
-      const allArchetypes = await archetypeService.getArchetypes(userId);
+      const allArchetypes = await archetypeService.getArchetypes();
 
       logger.info(
         `Retrieved ${allArchetypes.length} archetypes for AI context`,
@@ -366,7 +366,7 @@ Please provide only the terraform.tfvars file content as output.`;
       // Use AI to generate the tfvars content
       const promptConfig: PromptConfig = {
         provider: LLMProvider.GEMINI,
-        modelName: "gemini-1.5-flash",
+        modelName: "gemini-2.0-flash",
         llmOptions: {
           temperature: 0.3,
           maxOutputTokens: 4000,

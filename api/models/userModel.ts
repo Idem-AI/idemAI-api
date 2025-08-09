@@ -16,7 +16,6 @@ export interface UserModel {
   subscription: "free" | "pro" | "enterprise";
   createdAt: Date;
   lastLogin: Date;
-
-  // Quota-related fields
   quota: Partial<QuotaData>;
+  roles: string[];
 }

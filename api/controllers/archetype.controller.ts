@@ -16,27 +16,25 @@ export const createArchetypeController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const userId = req.user?.uid;
-  
-  if (!userId) {
-    res.status(401).json({
-      success: false,
-      message: "Unauthorized",
-    });
-    return;
-  }
+  // const userId = req.user?.uid;
+
+  // if (!userId) {
+  //   res.status(401).json({
+  //     success: false,
+  //     message: "Unauthorized",
+  //   });
+  //   return;
+  // }
   const payload: CreateArchetypePayload = req.body;
 
-  logger.info(`Creating archetype for user: ${userId}`, {
-    userId,
+  logger.info(`Creating archetype...`, {
     payload,
   });
 
   try {
-    const archetype = await archetypeService.createArchetype(userId, payload);
+    const archetype = await archetypeService.createArchetype(payload);
 
     logger.info(`Archetype created successfully:`, {
-      userId,
       archetypeId: archetype.id,
       name: archetype.name,
     });
@@ -48,16 +46,17 @@ export const createArchetypeController = async (
     });
     return;
   } catch (error) {
-    logger.error(`Error creating archetype for user ${userId}:`, {
+    logger.error(`Error creating archetype:`, {
       error: error instanceof Error ? error.message : error,
       stack: error instanceof Error ? error.stack : undefined,
-      userId,
+
       payload,
     });
 
     res.status(400).json({
       success: false,
-      message: error instanceof Error ? error.message : "Failed to create archetype",
+      message:
+        error instanceof Error ? error.message : "Failed to create archetype",
     });
     return;
   }
@@ -71,7 +70,7 @@ export const getArchetypesController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  
+
   if (!userId) {
     res.status(401).json({
       success: false,
@@ -80,15 +79,12 @@ export const getArchetypesController = async (
     return;
   }
 
-  logger.info(`Retrieving archetypes for user: ${userId}`, { userId });
+  logger.info(`Retrieving archetypes`);
 
   try {
-    const archetypes = await archetypeService.getArchetypes(userId);
+    const archetypes = await archetypeService.getArchetypes();
 
-    logger.info(`Retrieved ${archetypes.length} archetypes for user: ${userId}`, {
-      userId,
-      count: archetypes.length,
-    });
+    logger.info(`Retrieved ${archetypes.length} archetypes`);
 
     res.status(200).json({
       success: true,
@@ -100,7 +96,6 @@ export const getArchetypesController = async (
     logger.error(`Error retrieving archetypes for user ${userId}:`, {
       error: error instanceof Error ? error.message : error,
       stack: error instanceof Error ? error.stack : undefined,
-      userId,
     });
 
     res.status(500).json({
@@ -119,7 +114,7 @@ export const getArchetypeByIdController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  
+
   if (!userId) {
     res.status(401).json({
       success: false,
@@ -129,16 +124,13 @@ export const getArchetypeByIdController = async (
   }
   const archetypeId = req.params.archetypeId;
 
-  logger.info(`Retrieving archetype: ${archetypeId} for user: ${userId}`, {
-    userId,
-    archetypeId,
-  });
+  logger.info(`Retrieving archetype: ${archetypeId}`);
 
   try {
-    const archetype = await archetypeService.getArchetypeById(userId, archetypeId);
+    const archetype = await archetypeService.getArchetypeById(archetypeId);
 
     if (!archetype) {
-      logger.warn(`Archetype not found:`, { userId, archetypeId });
+      logger.warn(`Archetype not found: ${archetypeId}`);
       res.status(404).json({
         success: false,
         message: "Archetype not found",
@@ -147,7 +139,6 @@ export const getArchetypeByIdController = async (
     }
 
     logger.info(`Archetype retrieved successfully:`, {
-      userId,
       archetypeId,
       name: archetype.name,
     });
@@ -159,10 +150,10 @@ export const getArchetypeByIdController = async (
     });
     return;
   } catch (error) {
-    logger.error(`Error retrieving archetype ${archetypeId} for user ${userId}:`, {
+    logger.error(`Error retrieving archetype ${archetypeId}:`, {
       error: error instanceof Error ? error.message : error,
       stack: error instanceof Error ? error.stack : undefined,
-      userId,
+
       archetypeId,
     });
 
@@ -182,7 +173,7 @@ export const updateArchetypeController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  
+
   if (!userId) {
     res.status(401).json({
       success: false,
@@ -193,17 +184,16 @@ export const updateArchetypeController = async (
   const archetypeId = req.params.archetypeId;
   const payload: UpdateArchetypePayload = req.body;
 
-  logger.info(`Updating archetype: ${archetypeId} for user: ${userId}`, {
-    userId,
-    archetypeId,
-    payload,
-  });
+  logger.info(`Updating archetype: ${archetypeId}`);
 
   try {
-    const archetype = await archetypeService.updateArchetype(userId, archetypeId, payload);
+    const archetype = await archetypeService.updateArchetype(
+      archetypeId,
+      payload
+    );
 
     if (!archetype) {
-      logger.warn(`Archetype not found for update:`, { userId, archetypeId });
+      logger.warn(`Archetype not found for update: ${archetypeId}`);
       res.status(404).json({
         success: false,
         message: "Archetype not found",
@@ -212,7 +202,6 @@ export const updateArchetypeController = async (
     }
 
     logger.info(`Archetype updated successfully:`, {
-      userId,
       archetypeId,
       name: archetype.name,
     });
@@ -224,17 +213,18 @@ export const updateArchetypeController = async (
     });
     return;
   } catch (error) {
-    logger.error(`Error updating archetype ${archetypeId} for user ${userId}:`, {
+    logger.error(`Error updating archetype ${archetypeId}:`, {
       error: error instanceof Error ? error.message : error,
       stack: error instanceof Error ? error.stack : undefined,
-      userId,
+
       archetypeId,
       payload,
     });
 
     res.status(400).json({
       success: false,
-      message: error instanceof Error ? error.message : "Failed to update archetype",
+      message:
+        error instanceof Error ? error.message : "Failed to update archetype",
     });
     return;
   }
@@ -248,7 +238,7 @@ export const deleteArchetypeController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  
+
   if (!userId) {
     res.status(401).json({
       success: false,
@@ -258,16 +248,13 @@ export const deleteArchetypeController = async (
   }
   const archetypeId = req.params.archetypeId;
 
-  logger.info(`Deleting archetype: ${archetypeId} for user: ${userId}`, {
-    userId,
-    archetypeId,
-  });
+  logger.info(`Deleting archetype: ${archetypeId}`);
 
   try {
-    const deleted = await archetypeService.deleteArchetype(userId, archetypeId);
+    const deleted = await archetypeService.deleteArchetype(archetypeId);
 
     if (!deleted) {
-      logger.warn(`Archetype not found for deletion:`, { userId, archetypeId });
+      logger.warn(`Archetype not found for deletion: ${archetypeId}`);
       res.status(404).json({
         success: false,
         message: "Archetype not found",
@@ -276,7 +263,6 @@ export const deleteArchetypeController = async (
     }
 
     logger.info(`Archetype deleted successfully:`, {
-      userId,
       archetypeId,
     });
 
@@ -286,10 +272,10 @@ export const deleteArchetypeController = async (
     });
     return;
   } catch (error) {
-    logger.error(`Error deleting archetype ${archetypeId} for user ${userId}:`, {
+    logger.error(`Error deleting archetype ${archetypeId}:`, {
       error: error instanceof Error ? error.message : error,
       stack: error instanceof Error ? error.stack : undefined,
-      userId,
+
       archetypeId,
     });
 
@@ -309,7 +295,7 @@ export const getArchetypesByProviderController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  
+
   if (!userId) {
     res.status(401).json({
       success: false,
@@ -319,19 +305,14 @@ export const getArchetypesByProviderController = async (
   }
   const provider = req.params.provider as "aws" | "gcp" | "azure";
 
-  logger.info(`Retrieving archetypes by provider: ${provider} for user: ${userId}`, {
-    userId,
-    provider,
-  });
+  logger.info(`Retrieving archetypes by provider: ${provider}`);
 
   try {
-    const archetypes = await archetypeService.getArchetypesByProvider(userId, provider);
+    const archetypes = await archetypeService.getArchetypesByProvider(provider);
 
-    logger.info(`Retrieved ${archetypes.length} archetypes for provider ${provider} and user: ${userId}`, {
-      userId,
-      provider,
-      count: archetypes.length,
-    });
+    logger.info(
+      `Retrieved ${archetypes.length} archetypes for provider ${provider}`
+    );
 
     res.status(200).json({
       success: true,
@@ -340,10 +321,10 @@ export const getArchetypesByProviderController = async (
     });
     return;
   } catch (error) {
-    logger.error(`Error retrieving archetypes by provider ${provider} for user ${userId}:`, {
+    logger.error(`Error retrieving archetypes by provider ${provider}:`, {
       error: error instanceof Error ? error.message : error,
       stack: error instanceof Error ? error.stack : undefined,
-      userId,
+
       provider,
     });
 
@@ -363,7 +344,7 @@ export const getArchetypesByCategoryController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  
+
   if (!userId) {
     res.status(401).json({
       success: false,
@@ -373,19 +354,14 @@ export const getArchetypesByCategoryController = async (
   }
   const category = req.params.category;
 
-  logger.info(`Retrieving archetypes by category: ${category} for user: ${userId}`, {
-    userId,
-    category,
-  });
+  logger.info(`Retrieving archetypes by category: ${category}`);
 
   try {
-    const archetypes = await archetypeService.getArchetypesByCategory(userId, category);
+    const archetypes = await archetypeService.getArchetypesByCategory(category);
 
-    logger.info(`Retrieved ${archetypes.length} archetypes for category ${category} and user: ${userId}`, {
-      userId,
-      category,
-      count: archetypes.length,
-    });
+    logger.info(
+      `Retrieved ${archetypes.length} archetypes for category ${category}`
+    );
 
     res.status(200).json({
       success: true,
@@ -394,10 +370,10 @@ export const getArchetypesByCategoryController = async (
     });
     return;
   } catch (error) {
-    logger.error(`Error retrieving archetypes by category ${category} for user ${userId}:`, {
+    logger.error(`Error retrieving archetypes by category ${category}:`, {
       error: error instanceof Error ? error.message : error,
       stack: error instanceof Error ? error.stack : undefined,
-      userId,
+
       category,
     });
 
@@ -417,7 +393,7 @@ export const generateTerraformTfvarsController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  
+
   if (!userId) {
     res.status(401).json({
       success: false,
@@ -428,18 +404,16 @@ export const generateTerraformTfvarsController = async (
   const archetypeId = req.params.archetypeId;
   const customValues = req.body.customValues || {};
 
-  logger.info(`Generating Terraform tfvars for archetype: ${archetypeId} and user: ${userId}`, {
-    userId,
-    archetypeId,
-    customValuesKeys: Object.keys(customValues),
-  });
+  logger.info(`Generating Terraform tfvars for archetype: ${archetypeId}`);
 
   try {
     // Get the archetype
-    const archetype = await archetypeService.getArchetypeById(userId, archetypeId);
+    const archetype = await archetypeService.getArchetypeById(archetypeId);
 
     if (!archetype) {
-      logger.warn(`Archetype not found for tfvars generation:`, { userId, archetypeId });
+      logger.warn(`Archetype not found for tfvars generation:`, {
+        archetypeId,
+      });
       res.status(404).json({
         success: false,
         message: "Archetype not found",
@@ -448,13 +422,18 @@ export const generateTerraformTfvarsController = async (
     }
 
     // Generate tfvars content
-    const tfvarsContent = archetypeService.generateTerraformTfvars(archetype, customValues);
+    const tfvarsContent = archetypeService.generateTerraformTfvars(
+      archetype,
+      customValues
+    );
 
-    logger.info(`Terraform tfvars generated successfully for archetype: ${archetypeId}`, {
-      userId,
-      archetypeId,
-      contentLength: tfvarsContent.length,
-    });
+    logger.info(
+      `Terraform tfvars generated successfully for archetype: ${archetypeId}`,
+      {
+        archetypeId,
+        contentLength: tfvarsContent.length,
+      }
+    );
 
     res.status(200).json({
       success: true,
@@ -468,12 +447,15 @@ export const generateTerraformTfvarsController = async (
     });
     return;
   } catch (error) {
-    logger.error(`Error generating Terraform tfvars for archetype ${archetypeId} and user ${userId}:`, {
-      error: error instanceof Error ? error.message : error,
-      stack: error instanceof Error ? error.stack : undefined,
-      userId,
-      archetypeId,
-    });
+    logger.error(
+      `Error generating Terraform tfvars for archetype ${archetypeId}:`,
+      {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+
+        archetypeId,
+      }
+    );
 
     res.status(500).json({
       success: false,

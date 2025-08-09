@@ -124,6 +124,7 @@ class UserService {
                 .toISOString()
                 .split("T")[0],
             },
+            roles: ["user"],
           },
           "users",
           uid

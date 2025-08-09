@@ -15,7 +15,6 @@ export interface ArchetypeModel {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
-  createdBy: string;
 }
 
 /**

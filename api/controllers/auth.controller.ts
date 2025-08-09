@@ -42,6 +42,7 @@ export const sessionLoginController = async (
       lastResetDaily: new Date().toISOString().split("T")[0],
       lastResetWeekly: new Date().toISOString().split("T")[0],
     },
+    roles: ["user"],
   };
   const expiresIn = 14 * 24 * 60 * 60 * 1000; // 14 Days
   const isProduction = process.env.NODE_ENV === "production";

@@ -21,10 +21,9 @@ export class ArchetypeService {
    * Create a new archetype
    */
   async createArchetype(
-    userId: string,
     payload: CreateArchetypePayload
   ): Promise<ArchetypeModel> {
-    logger.info(`Creating archetype for user: ${userId}`, { payload });
+    logger.info(`Creating archetype`, { payload });
 
     try {
       // Validate payload
@@ -52,23 +51,21 @@ export class ArchetypeService {
         terraformVariables: payload.terraformVariables,
         defaultValues: payload.defaultValues || {},
         isActive: payload.isActive !== undefined ? payload.isActive : true,
-        createdBy: userId,
       };
 
       const createdArchetype = await this.archetypeRepository.create(
         archetypeData,
-        `users/${userId}/archetypes`
+        `archetypes`
       );
 
       logger.info(`Archetype created successfully:`, {
         archetypeId: createdArchetype.id,
-        userId,
         name: createdArchetype.name,
       });
 
       return createdArchetype;
     } catch (error) {
-      logger.error(`Error creating archetype for user ${userId}:`, {
+      logger.error(`Error creating archetype:`, {
         error: error instanceof Error ? error.message : error,
         stack: error instanceof Error ? error.stack : undefined,
         payload,
@@ -80,20 +77,16 @@ export class ArchetypeService {
   /**
    * Get all archetypes for a user
    */
-  async getArchetypes(userId: string): Promise<ArchetypeModel[]> {
-    logger.info(`Retrieving archetypes for user: ${userId}`);
+  async getArchetypes(): Promise<ArchetypeModel[]> {
+    logger.info(`Retrieving archetypes`);
 
     try {
-      const archetypes = await this.archetypeRepository.findAll(
-        `users/${userId}/archetypes`
-      );
+      const archetypes = await this.archetypeRepository.findAll(`archetypes`);
 
-      logger.info(
-        `Retrieved ${archetypes.length} archetypes for user: ${userId}`
-      );
+      logger.info(`Retrieved ${archetypes.length} archetypes`);
       return archetypes;
     } catch (error) {
-      logger.error(`Error retrieving archetypes for user ${userId}:`, {
+      logger.error(`Error retrieving archetypes:`, {
         error: error instanceof Error ? error.message : error,
         stack: error instanceof Error ? error.stack : undefined,
       });
@@ -104,38 +97,31 @@ export class ArchetypeService {
   /**
    * Get archetype by ID
    */
-  async getArchetypeById(
-    userId: string,
-    archetypeId: string
-  ): Promise<ArchetypeModel | null> {
-    logger.info(`Retrieving archetype: ${archetypeId} for user: ${userId}`);
+  async getArchetypeById(archetypeId: string): Promise<ArchetypeModel | null> {
+    logger.info(`Retrieving archetype: ${archetypeId}`);
 
     try {
       const archetype = await this.archetypeRepository.findById(
         archetypeId,
-        `users/${userId}/archetypes`
+        `archetypes`
       );
 
       if (archetype) {
         logger.info(`Archetype found:`, {
           archetypeId,
-          userId,
           name: archetype.name,
         });
       } else {
-        logger.warn(`Archetype not found:`, { archetypeId, userId });
+        logger.warn(`Archetype not found:`, { archetypeId });
       }
 
       return archetype;
     } catch (error) {
-      logger.error(
-        `Error retrieving archetype ${archetypeId} for user ${userId}:`,
-        {
-          error: error instanceof Error ? error.message : error,
-          stack: error instanceof Error ? error.stack : undefined,
-          archetypeId,
-        }
-      );
+      logger.error(`Error retrieving archetype ${archetypeId}:`, {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        archetypeId,
+      });
       throw error;
     }
   }
@@ -144,11 +130,10 @@ export class ArchetypeService {
    * Update archetype
    */
   async updateArchetype(
-    userId: string,
     archetypeId: string,
     payload: UpdateArchetypePayload
   ): Promise<ArchetypeModel | null> {
-    logger.info(`Updating archetype: ${archetypeId} for user: ${userId}`, {
+    logger.info(`Updating archetype: ${archetypeId}`, {
       payload,
     });
 
@@ -156,10 +141,10 @@ export class ArchetypeService {
       // Check if archetype exists
       const existingArchetype = await this.archetypeRepository.findById(
         archetypeId,
-        `users/${userId}/archetypes`
+        `archetypes`
       );
       if (!existingArchetype) {
-        logger.warn(`Archetype not found for update:`, { archetypeId, userId });
+        logger.warn(`Archetype not found for update:`, { archetypeId });
         return null;
       }
 
@@ -186,28 +171,24 @@ export class ArchetypeService {
       const updatedArchetype = await this.archetypeRepository.update(
         archetypeId,
         payload,
-        `users/${userId}/archetypes`
+        `archetypes`
       );
 
       if (updatedArchetype) {
         logger.info(`Archetype updated successfully:`, {
           archetypeId,
-          userId,
           name: updatedArchetype.name,
         });
       }
 
       return updatedArchetype;
     } catch (error) {
-      logger.error(
-        `Error updating archetype ${archetypeId} for user ${userId}:`,
-        {
-          error: error instanceof Error ? error.message : error,
-          stack: error instanceof Error ? error.stack : undefined,
-          archetypeId,
-          payload,
-        }
-      );
+      logger.error(`Error updating archetype ${archetypeId}:`, {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        archetypeId,
+        payload,
+      });
       throw error;
     }
   }
@@ -215,19 +196,18 @@ export class ArchetypeService {
   /**
    * Delete archetype
    */
-  async deleteArchetype(userId: string, archetypeId: string): Promise<boolean> {
-    logger.info(`Deleting archetype: ${archetypeId} for user: ${userId}`);
+  async deleteArchetype(archetypeId: string): Promise<boolean> {
+    logger.info(`Deleting archetype: ${archetypeId}`);
 
     try {
       // Check if archetype exists
       const existingArchetype = await this.archetypeRepository.findById(
         archetypeId,
-        `users/${userId}/archetypes`
+        `archetypes`
       );
       if (!existingArchetype) {
         logger.warn(`Archetype not found for deletion:`, {
           archetypeId,
-          userId,
         });
         return false;
       }
@@ -235,27 +215,23 @@ export class ArchetypeService {
       // Delete archetype
       const deleted = await this.archetypeRepository.delete(
         archetypeId,
-        `users/${userId}/archetypes`
+        `archetypes`
       );
 
       if (deleted) {
         logger.info(`Archetype deleted successfully:`, {
           archetypeId,
-          userId,
           name: existingArchetype.name,
         });
       }
 
       return deleted;
     } catch (error) {
-      logger.error(
-        `Error deleting archetype ${archetypeId} for user ${userId}:`,
-        {
-          error: error instanceof Error ? error.message : error,
-          stack: error instanceof Error ? error.stack : undefined,
-          archetypeId,
-        }
-      );
+      logger.error(`Error deleting archetype ${archetypeId}:`, {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        archetypeId,
+      });
       throw error;
     }
   }
@@ -264,32 +240,28 @@ export class ArchetypeService {
    * Get archetypes by provider
    */
   async getArchetypesByProvider(
-    userId: string,
     provider: "aws" | "gcp" | "azure"
   ): Promise<ArchetypeModel[]> {
-    logger.info(
-      `Retrieving archetypes by provider: ${provider} for user: ${userId}`
-    );
+    logger.info(`Retrieving archetypes by provider: ${provider}`);
 
     try {
-      const allArchetypes = await this.archetypeRepository.findAll(userId);
+      const allArchetypes = await this.archetypeRepository.findAll(
+        `archetypes`
+      );
       const filteredArchetypes = allArchetypes.filter(
         (archetype) => archetype.provider === provider && archetype.isActive
       );
 
       logger.info(
-        `Retrieved ${filteredArchetypes.length} archetypes for provider ${provider} and user: ${userId}`
+        `Retrieved ${filteredArchetypes.length} archetypes for provider ${provider}`
       );
       return filteredArchetypes;
     } catch (error) {
-      logger.error(
-        `Error retrieving archetypes by provider ${provider} for user ${userId}:`,
-        {
-          error: error instanceof Error ? error.message : error,
-          stack: error instanceof Error ? error.stack : undefined,
-          provider,
-        }
-      );
+      logger.error(`Error retrieving archetypes by provider ${provider}:`, {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        provider,
+      });
       throw error;
     }
   }
@@ -297,33 +269,27 @@ export class ArchetypeService {
   /**
    * Get archetypes by category
    */
-  async getArchetypesByCategory(
-    userId: string,
-    category: string
-  ): Promise<ArchetypeModel[]> {
-    logger.info(
-      `Retrieving archetypes by category: ${category} for user: ${userId}`
-    );
+  async getArchetypesByCategory(category: string): Promise<ArchetypeModel[]> {
+    logger.info(`Retrieving archetypes by category: ${category}`);
 
     try {
-      const allArchetypes = await this.archetypeRepository.findAll(userId);
+      const allArchetypes = await this.archetypeRepository.findAll(
+        `archetypes`
+      );
       const filteredArchetypes = allArchetypes.filter(
         (archetype) => archetype.category === category && archetype.isActive
       );
 
       logger.info(
-        `Retrieved ${filteredArchetypes.length} archetypes for category ${category} and user: ${userId}`
+        `Retrieved ${filteredArchetypes.length} archetypes for category ${category}`
       );
       return filteredArchetypes;
     } catch (error) {
-      logger.error(
-        `Error retrieving archetypes by category ${category} for user ${userId}:`,
-        {
-          error: error instanceof Error ? error.message : error,
-          stack: error instanceof Error ? error.stack : undefined,
-          category,
-        }
-      );
+      logger.error(`Error retrieving archetypes by category ${category}:`, {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        category,
+      });
       throw error;
     }
   }
