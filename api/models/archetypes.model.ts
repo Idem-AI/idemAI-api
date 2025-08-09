@@ -23,7 +23,7 @@ export interface ArchetypeModel {
 export interface TerraformVariable {
   name: string;
   type: "string" | "number" | "bool" | "list(string)" | "list(number)" | "map(string)" | "map(number)" | "object";
-  description: string;
+  description?: string;
   default?: any;
   required: boolean;
   sensitive: boolean;
@@ -124,9 +124,6 @@ export class ArchetypeValidators {
         }
         if (!variable.type) {
           errors.push(`Terraform variable '${variable.name}' must have a type`);
-        }
-        if (!variable.description || variable.description.trim().length === 0) {
-          errors.push(`Terraform variable '${variable.name}' must have a description`);
         }
       });
     }
