@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { ArchetypeService } from "../services/archetype.service";
 import {
   CreateArchetypePayload,
@@ -71,13 +71,13 @@ export const getArchetypesController = async (
 ): Promise<void> => {
   const userId = req.user?.uid;
 
-  if (!userId) {
-    res.status(401).json({
-      success: false,
-      message: "Unauthorized",
-    });
-    return;
-  }
+  // if (!userId) {
+  //   res.status(401).json({
+  //     success: false,
+  //     message: "Unauthorized",
+  //   });
+  //   return;
+  // }
 
   logger.info(`Retrieving archetypes`);
 

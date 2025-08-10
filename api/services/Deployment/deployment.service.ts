@@ -29,14 +29,9 @@ import { promisify } from "util";
 import { ProjectModel } from "../../models/project.model";
 import { AI_CHAT_INITIAL_PROMPT } from "./prompts/ai-chat.prompt";
 
-import * as fs from "fs-extra";
-import * as path from "path";
-import * as os from "os";
 import { MAIN_TF_PROMPT } from "./prompts/terraform/00_main.prompt";
 
 export class DeploymentService extends GenericService {
-  private contextFilePath?: string;
-
   constructor(promptService: PromptService) {
     super(promptService);
     logger.info("DeploymentService initialized.");
@@ -120,7 +115,7 @@ export class DeploymentService extends GenericService {
             chatMessages: project.activeChatMessages,
             aiGeneratedArchitecture: !!payload.aiGeneratedConfig,
             aiRecommendations: [],
-            generatedComponents: payload.generatedComponents!,
+            architectureComponents: payload.generatedComponents!,
           };
 
           newDeployment = aiDeployment;
@@ -134,17 +129,6 @@ export class DeploymentService extends GenericService {
             architectureComponents: payload.architectureComponents!,
             customInfrastructureCode: false,
           };
-
-          // Add custom architecture components if specified
-          if (payload.customArchitecture?.components) {
-            expertDeployment.architectureComponents =
-              payload.customArchitecture.components.map((comp) => ({
-                ...this.getDefaultCloudComponent(),
-                instanceId: comp.instanceId,
-                type: comp.type,
-                configuration: comp.config,
-              }));
-          }
 
           newDeployment = expertDeployment;
           break;
@@ -182,12 +166,12 @@ export class DeploymentService extends GenericService {
 
       const generatedDeployment = await this.generateDeployment(
         userId,
-        projectId,
-        newDeployment.id
+        updatedProject,
+        newDeployment
       );
 
       logger.info(
-        `Deployment generated successfully - UserId: ${userId}, ProjectId: ${projectId}, DeploymentId: ${generatedDeployment.id}`
+        `Deployment generated successfully - UserId: ${userId}, ProjectId: ${updatedProject.id}, DeploymentId: ${generatedDeployment.id}`
       );
 
       return generatedDeployment;
@@ -203,49 +187,23 @@ export class DeploymentService extends GenericService {
   // Legacy method for backward compatibility
   async generateDeployment(
     userId: string,
-    projectId: string,
-    deploymentId: string
+    project: ProjectModel,
+    deployment: DeploymentModel
   ): Promise<DeploymentModel> {
     logger.info(
-      `generateDeployment called for userId: ${userId}, projectId: ${projectId}`
+      `generateDeployment called for userId: ${userId}, projectId: ${project.id}`
     );
 
     try {
-      // Get project information
-      const project = await this.getProject(projectId, userId);
-      if (!project) {
-        throw new Error("Project not found");
-      }
-
-      // Create a basic deployment configuration
-      const deployment = project.deployments.find(
-        (deployment) => deployment.id === deploymentId
-      );
-      if (!deployment) {
-        throw new Error("Deployment not found");
-      }
-
-      // Generate Terraform files based on the deployment configuration
-      // For now, we'll create a basic architecture template from deployment data
-      const architectureTemplate: ArchitectureTemplate = {
-        id: `template-${deployment.id}`,
-        archetype_id:
-          deployment.mode === "template"
-            ? (deployment as any).templateId || "default-archetype"
-            : "default-archetype",
-        provider: "aws", // Default provider, should be configurable
-        category: "web-application",
-        name: `Template for ${deployment.name}`,
-        description: `Auto-generated template for deployment ${deployment.name}`,
-        tags: ["auto-generated"],
-        icon: "default-icon",
-      };
-
       const generatedFile = await this.generateTerraformTfvarsFile(
-        architectureTemplate,
         deployment,
+        project,
         userId
       );
+      if (!generatedFile) {
+        throw new Error("Terraform tfvars file not generated");
+      }
+      deployment.generatedTerraformTfvarsFileContent = generatedFile;
 
       // Add the deployment to the project
       if (!project.deployments) {
@@ -255,18 +213,18 @@ export class DeploymentService extends GenericService {
 
       // Update the project with the new deployment
       await this.projectRepository.update(
-        projectId,
+        project.id!,
         project,
         `users/${userId}/projects`
       );
 
       logger.info(
-        `Successfully generated deployment for userId: ${userId}, projectId: ${projectId}, deploymentId: ${deploymentId}`
+        `Successfully generated deployment for userId: ${userId}, projectId: ${project.id}, deploymentId: ${deployment.id}`
       );
       return deployment;
     } catch (error: any) {
       logger.error(
-        `Error generating deployment for userId: ${userId}, projectId: ${projectId}. Error: ${error.message}`,
+        `Error generating deployment for userId: ${userId}, projectId: ${project.id}. Error: ${error.message}`,
         { error: error.stack }
       );
       throw error;
@@ -279,13 +237,13 @@ export class DeploymentService extends GenericService {
    * @returns Array of file contents with name and content
    */
   private async generateTerraformTfvarsFile(
-    architectureTemplate: ArchitectureTemplate,
     deployment: DeploymentModel,
+    Project: ProjectModel,
     userId: string,
     customValues: Record<string, any> = {}
   ): Promise<string> {
     logger.info(
-      `Generating Terraform tfvars file using AI for deployment: ${deployment.id} with template: ${architectureTemplate.id}`
+      `Generating Terraform tfvars file using AI for deployment: ${deployment.id}`
     );
 
     try {
@@ -306,17 +264,12 @@ export class DeploymentService extends GenericService {
 
       // Prepare deployment context for AI
       const deploymentContext = {
+        projectName: Project.name,
         deployment: {
-          id: deployment.id,
           name: deployment.name,
           environment: deployment.environment,
-          projectId: deployment.projectId,
-          mode: deployment.mode,
-          environmentVariables:
-            deployment.environmentVariables?.filter((env) => !env.isSecret) ||
-            [],
         },
-        architectureTemplate,
+        architectureTemplate: deployment.architectureComponents,
         customValues,
       };
 
@@ -402,7 +355,6 @@ Please provide only the terraform.tfvars file content as output.`;
         `AI generated Terraform tfvars file for deployment: ${deployment.id}`,
         {
           deploymentId: deployment.id,
-          templateId: architectureTemplate.id,
           contentLength: aiResponse.length,
           archetypesUsed: allArchetypes.length,
         }
@@ -416,56 +368,10 @@ Please provide only the terraform.tfvars file content as output.`;
           error: error instanceof Error ? error.message : error,
           stack: error instanceof Error ? error.stack : undefined,
           deploymentId: deployment.id,
-          templateId: architectureTemplate.id,
         }
       );
       return "";
     }
-  }
-
-  /**
-   * Prepare context data for Terraform generation
-   * @param deployment The deployment model
-   * @param project The project model
-   * @returns Context data object
-   */
-  private prepareContextData(
-    deployment: DeploymentModel,
-    project: ProjectModel
-  ): any {
-    // Prepare the components for the prompt
-    let architectureComponents: any[] = [];
-
-    // Extract components based on deployment mode
-    if (
-      deployment.mode === "expert" &&
-      "architectureComponents" in deployment
-    ) {
-      architectureComponents = (deployment as any).architectureComponents || [];
-    } else if (
-      deployment.mode === "ai-assistant" &&
-      "generatedComponents" in deployment
-    ) {
-      architectureComponents = (deployment as any).generatedComponents || [];
-    }
-
-    return {
-      projectInfo: {
-        name: project.name,
-        description: project.description,
-        type: project.type,
-      },
-      deploymentInfo: {
-        id: deployment.id,
-        name: deployment.name,
-        mode: deployment.mode,
-        environment: deployment.environment,
-        status: deployment.status,
-      },
-      architectureComponents,
-      environmentVariables: deployment.environmentVariables || [],
-      gitRepository: deployment.gitRepository || {},
-    };
   }
 
   async getDeploymentsByProject(
@@ -729,108 +635,6 @@ Please provide only the terraform.tfvars file content as output.`;
     } catch (error: any) {
       logger.error(
         `Error deleting deployment for userId: ${userId}, deploymentId: ${deploymentId}. Error: ${error.message}`,
-        { error: error.stack }
-      );
-      throw error;
-    }
-  }
-
-  // Configuration Management Methods
-  async updateGitRepository(
-    userId: string,
-    deploymentId: string,
-    gitConfig: GitRepository
-  ): Promise<DeploymentModel | null> {
-    logger.info(
-      `updateGitRepository called for userId: ${userId}, deploymentId: ${deploymentId}`
-    );
-
-    try {
-      const validationErrors =
-        DeploymentValidators.validateGitRepository(gitConfig);
-      if (validationErrors.length > 0) {
-        throw new Error(
-          `Git repository validation failed: ${validationErrors.join(", ")}`
-        );
-      }
-
-      return await this.updateDeployment(userId, deploymentId, {
-        gitRepository: gitConfig,
-      });
-    } catch (error: any) {
-      logger.error(
-        `Error updating git repository for deployment ${deploymentId}: ${error.message}`,
-        { error: error.stack }
-      );
-      throw error;
-    }
-  }
-
-  async updateEnvironmentVariables(
-    userId: string,
-    deploymentId: string,
-    environmentVariables: EnvironmentVariable[]
-  ): Promise<DeploymentModel | null> {
-    logger.info(
-      `updateEnvironmentVariables called for userId: ${userId}, deploymentId: ${deploymentId}, count: ${environmentVariables.length}`
-    );
-
-    try {
-      return await this.updateDeployment(userId, deploymentId, {
-        environmentVariables,
-      });
-    } catch (error: any) {
-      logger.error(
-        `Error updating environment variables for deployment ${deploymentId}: ${error.message}`,
-        { error: error.stack }
-      );
-      throw error;
-    }
-  }
-
-  async updateArchitectureComponents(
-    userId: string,
-    deploymentId: string,
-    components: ArchitectureComponent[]
-  ): Promise<DeploymentModel | null> {
-    logger.info(
-      `updateArchitectureComponents called for userId: ${userId}, deploymentId: ${deploymentId}, count: ${components.length}`
-    );
-
-    try {
-      const deployment = await this.getDeploymentById(userId, deploymentId);
-      if (!deployment) {
-        return null;
-      }
-
-      const validationErrors =
-        DeploymentValidators.validateArchitectureComponents(components);
-      if (validationErrors.length > 0) {
-        throw new Error(
-          `Architecture components validation failed: ${validationErrors.join(
-            ", "
-          )}`
-        );
-      }
-
-      // Update based on deployment mode
-      if (deployment.mode === "expert") {
-        return await this.updateDeployment(userId, deploymentId, {
-          architectureComponents: components,
-        } as Partial<ExpertDeploymentModel>);
-      } else if (deployment.mode === "ai-assistant") {
-        return await this.updateDeployment(userId, deploymentId, {
-          generatedComponents: components,
-        } as Partial<AiAssistantDeploymentModel>);
-      } else {
-        logger.warn(
-          `Cannot update architecture components for deployment mode: ${deployment.mode}`
-        );
-        return deployment;
-      }
-    } catch (error: any) {
-      logger.error(
-        `Error updating architecture components for deployment ${deploymentId}: ${error.message}`,
         { error: error.stack }
       );
       throw error;
@@ -1180,29 +984,6 @@ Please provide only the terraform.tfvars file content as output.`;
     }
   }
 
-  // Cost Estimation Methods
-  async updateCostEstimation(
-    userId: string,
-    deploymentId: string,
-    costEstimation: CostEstimation
-  ): Promise<DeploymentModel | null> {
-    logger.info(
-      `updateCostEstimation called for userId: ${userId}, deploymentId: ${deploymentId}, cost: ${costEstimation.monthlyCost}`
-    );
-
-    try {
-      return await this.updateDeployment(userId, deploymentId, {
-        costEstimation,
-      });
-    } catch (error: any) {
-      logger.error(
-        `Error updating cost estimation for deployment ${deploymentId}: ${error.message}`,
-        { error: error.stack }
-      );
-      throw error;
-    }
-  }
-
   // Validation Methods
   private validateDeploymentData(formData: DeploymentFormData): string[] {
     const errors: string[] = [];
@@ -1310,19 +1091,6 @@ Please provide only the terraform.tfvars file content as output.`;
         status: "pending",
       },
     ];
-  }
-
-  private getDefaultCloudComponent(): CloudComponentDetailed {
-    return {
-      id: "",
-      name: "",
-      description: "",
-      category: "",
-      provider: "aws",
-      icon: "",
-      pricing: "$0.00/month",
-      options: [],
-    };
   }
 
   private async executePipeline(
@@ -1497,101 +1265,5 @@ Please provide only the terraform.tfvars file content as output.`;
     });
 
     logger.info(`Pipeline execution completed for deployment ${deploymentId}`);
-  }
-
-  async estimateDeploymentCost(
-    userId: string,
-    deploymentId: string
-  ): Promise<CostEstimation | null> {
-    logger.info(
-      `estimateDeploymentCost called for userId: ${userId}, deploymentId: ${deploymentId}`
-    );
-
-    try {
-      const deployment = await this.getDeploymentById(userId, deploymentId);
-      if (!deployment) {
-        return null;
-      }
-
-      // Get architecture components based on deployment mode
-      let components: ArchitectureComponent[] = [];
-
-      if (deployment.mode === "expert") {
-        const expertDeployment = deployment as ExpertDeploymentModel;
-        components = expertDeployment.architectureComponents || [];
-      } else if (deployment.mode === "ai-assistant") {
-        const aiDeployment = deployment as AiAssistantDeploymentModel;
-        components = aiDeployment.generatedComponents || [];
-      }
-
-      // Calculate cost based on architecture components
-      const costEstimation = this.calculateCostEstimation(components);
-
-      // Update deployment with new cost estimation
-      await this.updateDeployment(userId, deploymentId, { costEstimation });
-
-      return costEstimation;
-    } catch (error: any) {
-      logger.error(
-        `Error estimating deployment cost for deployment ${deploymentId}: ${error.message}`,
-        { error: error.stack }
-      );
-      throw error;
-    }
-  }
-
-  private calculateCostEstimation(
-    components: ArchitectureComponent[]
-  ): CostEstimation {
-    let monthlyCost = 0;
-    let hourlyCost = 0;
-    let oneTimeCost = 0;
-
-    components.forEach((component) => {
-      switch (component.type) {
-        case "lambda":
-        case "function":
-          monthlyCost += 10; // Base Lambda cost
-          hourlyCost += 0.01;
-          break;
-        case "database":
-          monthlyCost += 25; // Database cost
-          hourlyCost += 0.04;
-          break;
-        case "storage":
-          monthlyCost += 5; // Storage cost
-          hourlyCost += 0.007;
-          break;
-        case "cdn":
-          monthlyCost += 15; // CDN cost
-          hourlyCost += 0.02;
-          break;
-        case "load-balancer":
-          monthlyCost += 20; // Load balancer cost
-          hourlyCost += 0.03;
-          break;
-        default:
-          monthlyCost += 5; // Default component cost
-          hourlyCost += 0.007;
-      }
-    });
-
-    // Add base infrastructure cost
-    monthlyCost += 10;
-    hourlyCost += 0.014;
-
-    return {
-      monthlyCost,
-      hourlyCost,
-      oneTimeCost,
-      currency: "USD",
-      estimatedAt: new Date(),
-      breakdown: components.map((component) => ({
-        componentId: component.id,
-        componentName: component.name,
-        cost: 10, // Simplified cost per component
-        description: `Cost for ${component.type} component`,
-      })),
-    };
   }
 }

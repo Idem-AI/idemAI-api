@@ -6,12 +6,9 @@ import {
   GetDeploymentByIdController,
   UpdateDeploymentController,
   DeleteDeploymentController,
-  UpdateGitConfigController,
-  UpdateArchitectureComponentsController,
   AddChatMessageController,
   StartPipelineController,
   GetPipelineStatusController,
-  EstimateCostController,
   generateDeploymentController,
 } from "../controllers/deployment.controller";
 
@@ -236,58 +233,6 @@ deploymentRoutes.delete(
   DeleteDeploymentController
 );
 
-// Configuration Update Routes
-/**
- * @openapi
- * /deployments/updateGitConfig/{deploymentId}:
- *   put:
- *     tags:
- *       - Deployments Configuration
- *     summary: Update Git repository configuration
- *     description: Updates the Git repository settings for a specific deployment
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: deploymentId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the deployment to update
- *         example: "deployment_123456789"
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/UpdateGitRepositoryDto'
- *     responses:
- *       200:
- *         description: Git repository configuration updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/BaseResponseDto'
- *       400:
- *         description: Bad request - validation error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/BaseResponseDto'
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Deployment not found
- *       500:
- *         description: Internal server error
- */
-deploymentRoutes.put(
-  `${resourceName}/updateGitConfig/:deploymentId`,
-  authenticate,
-  UpdateGitConfigController
-);
-
-
 /**
  * @openapi
  * /deployments/{deploymentId}/chat:
@@ -354,56 +299,6 @@ deploymentRoutes.post(
   `${resourceName}/chat`,
   authenticate,
   AddChatMessageController
-);
-
-/**
- * @openapi
- * /deployments/updateArchitectureTemplates/{deploymentId}:
- *   put:
- *     tags:
- *       - Deployments Configuration
- *     summary: Update architecture components
- *     description: Updates the architecture components for a specific deployment
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: deploymentId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the deployment to update
- *         example: "deployment_123456789"
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/UpdateArchitectureComponentsDto'
- *     responses:
- *       200:
- *         description: Architecture components updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/BaseResponseDto'
- *       400:
- *         description: Bad request - validation error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/BaseResponseDto'
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Deployment not found
- *       500:
- *         description: Internal server error
- */
-deploymentRoutes.put(
-  `${resourceName}/updateArchitectureTemplates/:deploymentId`,
-  authenticate,
-  UpdateArchitectureComponentsController
 );
 
 // Pipeline Management
@@ -487,44 +382,6 @@ deploymentRoutes.get(
   `${resourceName}/getPipelineStatus/:deploymentId`,
   authenticate,
   GetPipelineStatusController
-);
-
-/**
- * @openapi
- * /deployments/estimateCost/{deploymentId}:
- *   get:
- *     tags:
- *       - Deployments Pipeline
- *     summary: Estimate deployment cost
- *     description: Calculates and returns cost estimation for the deployment
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: deploymentId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the deployment to estimate the cost for
- *         example: "deployment_123456789"
- *     responses:
- *       200:
- *         description: Deployment cost estimation retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/BaseResponseDto'
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Deployment not found
- *       500:
- *         description: Internal server error
- */
-deploymentRoutes.get(
-  `${resourceName}/estimateCost/:deploymentId`,
-  authenticate,
-  EstimateCostController
 );
 
 /**

@@ -106,7 +106,7 @@ router.post("/", createArchetypeController);
  *       401:
  *         description: Unauthorized
  */
-router.get("/", authenticate, getArchetypesController);
+router.get("/", getArchetypesController);
 
 /**
  * @swagger
