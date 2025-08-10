@@ -173,6 +173,14 @@ export class DeploymentService extends GenericService {
       logger.info(
         `Deployment generated successfully - UserId: ${userId}, ProjectId: ${updatedProject.id}, DeploymentId: ${generatedDeployment.id}`
       );
+      await this.projectRepository.update(
+        projectId,
+        {
+          deployments: [...(project.deployments || []), generatedDeployment],
+          ...(mode === "ai-assistant" ? { activeChatMessages: [] } : {}),
+        },
+        `users/${userId}/projects`
+      );
 
       return generatedDeployment;
     } catch (error: any) {
@@ -204,12 +212,6 @@ export class DeploymentService extends GenericService {
         throw new Error("Terraform tfvars file not generated");
       }
       deployment.generatedTerraformTfvarsFileContent = generatedFile;
-
-      // Add the deployment to the project
-      if (!project.deployments) {
-        project.deployments = [];
-      }
-      project.deployments.push(deployment);
 
       // Update the project with the new deployment
       await this.projectRepository.update(
@@ -319,7 +321,7 @@ Please provide only the terraform.tfvars file content as output.`;
       // Use AI to generate the tfvars content
       const promptConfig: PromptConfig = {
         provider: LLMProvider.GEMINI,
-        modelName: "gemini-2.0-flash",
+        modelName: "gemini-2.5-flash",
         llmOptions: {
           temperature: 0.3,
           maxOutputTokens: 4000,
