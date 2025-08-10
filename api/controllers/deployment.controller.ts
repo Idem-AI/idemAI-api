@@ -514,3 +514,55 @@ export const generateDeploymentController = async (
     });
   }
 };
+
+// Edit Terraform tfvars file
+export const editTerraformTfvarsFileController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { deploymentId } = req.params;
+  const { tfvarsFileContent, projectId } = req.body;
+
+  if (!userId) {
+    res.status(401).json({
+      success: false,
+      message: "User not authenticated",
+    });
+    return;
+  }
+
+  try {
+    const updatedDeployment = await deploymentService.editTerraformTfvarsFile(
+      userId,
+      projectId,
+      deploymentId,
+      tfvarsFileContent
+    );
+
+    if (!updatedDeployment) {
+      res.status(404).json({
+        success: false,
+        message: "Deployment not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Terraform tfvars file updated successfully",
+      data: updatedDeployment,
+    });
+  } catch (error: any) {
+    logger.error(
+      `Error editing Terraform tfvars file for projectId: ${projectId}, deploymentId: ${deploymentId}. Error: ${error.message}`,
+      { error: error.stack }
+    );
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to edit Terraform tfvars file",
+      error: error.message,
+    });
+  }
+};

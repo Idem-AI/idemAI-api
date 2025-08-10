@@ -10,6 +10,7 @@ import {
   StartPipelineController,
   GetPipelineStatusController,
   generateDeploymentController,
+  editTerraformTfvarsFileController,
 } from "../controllers/deployment.controller";
 
 export const deploymentRoutes = Router();
@@ -790,3 +791,52 @@ deploymentRoutes.post(
  *                 description: Description of the cost
  *                 example: "Monthly cost for Lambda function"
  */
+
+/**
+ * @swagger
+ * /deployment/editTerraformTfvars/{deploymentId}:
+ *   post:
+ *     summary: Edit Terraform tfvars file for a deployment
+ *     description: Update Terraform tfvars file for a deployment
+ *     tags:
+ *       - Deployment
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: path
+ *         name: deploymentId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID of the deployment
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tfvarsFileContent
+ *             properties:
+ *               tfvarsFileContent:
+ *                 type: string
+ *                 description: New Terraform tfvars file content
+ *     responses:
+ *       200:
+ *         description: Updated DeploymentModel
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DeploymentModel'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         description: Deployment not found
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
+deploymentRoutes.post(
+  `${resourceName}/editTerraformTfvars/:deploymentId`,
+  authenticate,
+  editTerraformTfvarsFileController
+);

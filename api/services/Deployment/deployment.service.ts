@@ -1268,4 +1268,46 @@ Please provide only the terraform.tfvars file content as output.`;
 
     logger.info(`Pipeline execution completed for deployment ${deploymentId}`);
   }
+
+  /**
+   * Edit a deployment's Terraform tfvars file
+   * @param userId User ID
+   * @param deploymentId Deployment ID
+   * @param tfvarsFileContent New Terraform tfvars file content
+   * @returns Updated DeploymentModel
+   */
+  async editTerraformTfvarsFile(
+    userId: string,
+    projectId: string,
+    deploymentId: string,
+    tfvarsFileContent: string
+  ): Promise<DeploymentModel | null> {
+    logger.info(
+      `editTerraformTfvarsFile called for userId: ${userId}, projectId: ${projectId}, deploymentId: ${deploymentId}`
+    );
+
+    try {
+      const deployment = await this.getDeploymentById(userId, deploymentId);
+      if (!deployment) {
+        return null;
+      }
+
+      // Update generatedTerraformTfvarsFileContent
+      deployment.generatedTerraformTfvarsFileContent = tfvarsFileContent;
+
+      // Update the deployment
+      await this.updateDeployment(userId, deploymentId, deployment);
+
+      logger.info(
+        `Successfully edited Terraform tfvars file for deployment ${deploymentId}`
+      );
+      return deployment;
+    } catch (error: any) {
+      logger.error(
+        `Error editing Terraform tfvars file for userId: ${userId}, projectId: ${projectId}, deploymentId: ${deploymentId}. Error: ${error.message}`,
+        { error: error.stack }
+      );
+      throw error;
+    }
+  }
 }
