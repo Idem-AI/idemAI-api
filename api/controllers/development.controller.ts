@@ -24,6 +24,7 @@ export const saveDevelopmentConfigsController = async (
 ): Promise<void> => {
   const userId = req.user?.uid;
   const { developmentConfigs, projectId } = req.body;
+  const { generate } = req.params;
 
   console.log("developmentConfigs", developmentConfigs);
   console.log("projectId", projectId);
@@ -52,7 +53,8 @@ export const saveDevelopmentConfigsController = async (
     const result = await developmentService.saveDevelopmentConfigs(
       userId,
       projectId,
-      developmentConfigs as DevelopmentConfigsModel
+      developmentConfigs as DevelopmentConfigsModel,
+      generate
     );
 
     if (result) {

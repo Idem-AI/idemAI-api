@@ -173,6 +173,10 @@ export class DevelopmentService extends GenericService {
             },
           },
           generatedValues: [],
+          landingPage: {
+            url: "",
+            codeUrl: "",
+          },
         };
       }
 
@@ -391,7 +395,9 @@ export class DevelopmentService extends GenericService {
     logger.info(`Getting all webcontainers for userId: ${userId}`);
 
     try {
-      const projects = await this.projectRepository.findAll(`users/${userId}/projects`);
+      const projects = await this.projectRepository.findAll(
+        `users/${userId}/projects`
+      );
       const allWebContainers: WebContainerModel[] = [];
 
       for (const project of projects) {
@@ -730,7 +736,9 @@ export class DevelopmentService extends GenericService {
     webContainerId: string,
     userId: string
   ): Promise<ProjectModel | null> {
-    const projects = await this.projectRepository.findAll(`users/${userId}/projects`);
+    const projects = await this.projectRepository.findAll(
+      `users/${userId}/projects`
+    );
 
     for (const project of projects) {
       if (project.analysisResultModel?.development) {
@@ -753,7 +761,8 @@ export class DevelopmentService extends GenericService {
   async saveDevelopmentConfigs(
     userId: string,
     projectId: string,
-    developmentConfigs: DevelopmentConfigsModel
+    developmentConfigs: DevelopmentConfigsModel,
+    generate: string
   ): Promise<ProjectModel> {
     logger.info(
       `Saving development configs for projectId: ${projectId}, userId: ${userId}`
@@ -774,6 +783,10 @@ export class DevelopmentService extends GenericService {
       project.analysisResultModel.development = {
         configs: developmentConfigs,
         generatedValues: [],
+        landingPage: {
+          url: "",
+          codeUrl: "",
+        },
       };
     } else {
       logger.info(
@@ -781,9 +794,22 @@ export class DevelopmentService extends GenericService {
       );
     }
 
+    // If generate is 'landing', don't save backend or database configs
+    if (generate === "landing") {
+      logger.info(
+        `Generation type is 'landing', removing backend and database configs for projectId: ${projectId}`
+      );
+      developmentConfigs.backend = {} as any;
+      developmentConfigs.database = {} as any;
+    }
+
     project.analysisResultModel.development.configs = developmentConfigs;
 
-    await this.projectRepository.update(projectId, project, `users/${userId}/projects`);
+    await this.projectRepository.update(
+      projectId,
+      project,
+      `users/${userId}/projects`
+    );
     logger.info(
       `Successfully saved development configs for projectId: ${projectId}`
     );

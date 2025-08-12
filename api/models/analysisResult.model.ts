@@ -56,6 +56,10 @@ export interface AnalysisResultModel {
   development: {
     configs: DevelopmentConfigsModel;
     generatedValues: WebContainerModel[];
+    landingPage:{
+      url: string;
+      codeUrl: string;
+    }
   };
   branding: BrandIdentityModel;
   landing: LandingModel;
