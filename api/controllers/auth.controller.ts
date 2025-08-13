@@ -16,7 +16,10 @@ export const sessionLoginController = async (
   });
 
   if (!token) {
-    logger.warn(`Session login failed: No ID token provided. ${user.uid}`);
+    logger.warn(
+      `Session login failed: No ID token provided.`,
+      { hasUser: !!user, userUid: user?.uid }
+    );
     res.status(400).send({ success: false, message: "ID token is required." });
     return;
   }
@@ -55,8 +58,9 @@ export const sessionLoginController = async (
     const options: CookieOptions = {
       maxAge: expiresIn,
       httpOnly: true,
+      // In production we must use Secure + SameSite=None for cross-site cookies
       secure: isProduction,
-      sameSite: isProduction ? "none" : "lax",
+      sameSite: (isProduction ? "none" : "lax"),
       path: "/",
     };
 

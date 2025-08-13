@@ -44,4 +44,4 @@ export const userRoutes = Router();
  *       '500':
  *         description: Internal server error.
  */
-authRoutes.get("/profile", profileController);
+userRoutes.get("/profile", profileController);
