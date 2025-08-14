@@ -1,12 +1,6 @@
-import {
-  WebContainerModel,
-  CreateWebContainerRequest,
-  UpdateWebContainerRequest,
-} from "../../models/webcontainer.model";
 import logger from "../../config/logger";
 import { GenericService } from "../common/generic.service";
 import { PromptService } from "../prompt.service";
-import { Octokit } from "@octokit/rest";
 import {
   DevelopmentConfigsModel,
   LandingPageConfig,
@@ -70,18 +64,26 @@ export class DevelopmentService extends GenericService {
 
     // Adjust configs based on landingPageConfig in payload
     const lp = developmentConfigs.landingPageConfig;
-    if (lp === LandingPageConfig.SEPARATE) {
+    if (lp === LandingPageConfig.ONLY_LANDING) {
+      // Landing-only: remove app-related configs
       logger.info(
-        `landingPageConfig=SEPARATE: removing backend and database configs for projectId: ${projectId}`
+        `landingPageConfig=ONLY_LANDING: removing frontend, backend and database configs for projectId: ${projectId}`
       );
+      developmentConfigs.frontend = {} as any;
       developmentConfigs.backend = {} as any;
       developmentConfigs.database = {} as any;
-    } else if (lp === LandingPageConfig.NONE) {
+    } else if (lp === LandingPageConfig.SEPARATE) {
+      // Separate landing and app: keep all provided configs
       logger.info(
-        `landingPageConfig=NONE: no landing page, keeping backend/database/app frontend as provided for projectId: ${projectId}`
+        `landingPageConfig=SEPARATE: keeping all provided configs (landing + app) for projectId: ${projectId}`
+      );
+    } else if (lp === LandingPageConfig.NONE) {
+      // No landing page: keep app configs as provided
+      logger.info(
+        `landingPageConfig=NONE: keeping app configs (no landing) for projectId: ${projectId}`
       );
     } else {
-      // INTEGRATED or undefined -> keep provided configs
+      // INTEGRATED or undefined -> keep provided configs and default to INTEGRATED
       logger.info(
         `landingPageConfig=${lp ?? "INTEGRATED (default)"}: keeping provided configs for projectId: ${projectId}`
       );

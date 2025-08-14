@@ -84,4 +84,5 @@ export enum LandingPageConfig {
   NONE = "NONE",
   SEPARATE = "SEPARATE",
   INTEGRATED = "INTEGRATED",
+  ONLY_LANDING = "ONLY_LANDING",
 }
