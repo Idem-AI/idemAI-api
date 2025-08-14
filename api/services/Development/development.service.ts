@@ -41,8 +41,7 @@ export class DevelopmentService extends GenericService {
   async saveDevelopmentConfigs(
     userId: string,
     projectId: string,
-    developmentConfigs: DevelopmentConfigsModel,
-    generate: string
+    developmentConfigs: DevelopmentConfigsModel
   ): Promise<ProjectModel> {
     logger.info(
       `Saving development configs for projectId: ${projectId}, userId: ${userId}`
@@ -69,40 +68,26 @@ export class DevelopmentService extends GenericService {
       );
     }
 
-    // Configure landing page config based on generate param
-    const gen = (generate || "").toLowerCase();
-    switch (gen) {
-      case "landing":
-        developmentConfigs.landingPageConfig = LandingPageConfig.SEPARATE;
-        logger.info(
-          `Generation type is 'landing': setting landingPageConfig=SEPARATE for projectId: ${projectId}`
-        );
-        // For landing-only, don't save backend or database configs
-        logger.info(
-          `Landing-only selected, removing backend and database configs for projectId: ${projectId}`
-        );
-        developmentConfigs.backend = {} as any;
-        developmentConfigs.database = {} as any;
-        break;
-      case "app":
-        developmentConfigs.landingPageConfig = LandingPageConfig.NONE;
-        logger.info(
-          `Generation type is 'app': setting landingPageConfig=NONE for projectId: ${projectId}`
-        );
-        break;
-      case "both":
+    // Adjust configs based on landingPageConfig in payload
+    const lp = developmentConfigs.landingPageConfig;
+    if (lp === LandingPageConfig.SEPARATE) {
+      logger.info(
+        `landingPageConfig=SEPARATE: removing backend and database configs for projectId: ${projectId}`
+      );
+      developmentConfigs.backend = {} as any;
+      developmentConfigs.database = {} as any;
+    } else if (lp === LandingPageConfig.NONE) {
+      logger.info(
+        `landingPageConfig=NONE: no landing page, keeping backend/database/app frontend as provided for projectId: ${projectId}`
+      );
+    } else {
+      // INTEGRATED or undefined -> keep provided configs
+      logger.info(
+        `landingPageConfig=${lp ?? "INTEGRATED (default)"}: keeping provided configs for projectId: ${projectId}`
+      );
+      if (!developmentConfigs.landingPageConfig) {
         developmentConfigs.landingPageConfig = LandingPageConfig.INTEGRATED;
-        logger.info(
-          `Generation type is 'both': setting landingPageConfig=INTEGRATED for projectId: ${projectId}`
-        );
-        break;
-      default:
-        // Sensible default: landing integrated with app
-        developmentConfigs.landingPageConfig = LandingPageConfig.INTEGRATED;
-        logger.warn(
-          `Unknown generation type '${generate}', defaulting landingPageConfig=INTEGRATED for projectId: ${projectId}`
-        );
-        break;
+      }
     }
 
     project.analysisResultModel.development.configs = developmentConfigs;
