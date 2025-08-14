@@ -55,8 +55,9 @@ export interface AnalysisResultModel {
   design: DiagramModel;
   development: {
     configs: DevelopmentConfigsModel;
-    generatedValues: WebContainerModel[];
-    landingPage:{
+    hasLandingPage: boolean;
+    hasLandingPageSeparate: boolean;
+    landingPage?:{
       url: string;
       codeUrl: string;
     }
@@ -73,3 +74,4 @@ export interface AnalysisResultModel {
   createdAt: Date;
   updatedAt: Date;
 }
+
