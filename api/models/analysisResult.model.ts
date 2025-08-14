@@ -55,12 +55,6 @@ export interface AnalysisResultModel {
   design: DiagramModel;
   development: {
     configs: DevelopmentConfigsModel;
-    hasLandingPage: boolean;
-    hasLandingPageSeparate: boolean;
-    landingPage?:{
-      url: string;
-      codeUrl: string;
-    }
   };
   branding: BrandIdentityModel;
   landing: LandingModel;

@@ -7,7 +7,10 @@ import logger from "../../config/logger";
 import { GenericService } from "../common/generic.service";
 import { PromptService } from "../prompt.service";
 import { Octokit } from "@octokit/rest";
-import { DevelopmentConfigsModel } from "../../models/development.model";
+import {
+  DevelopmentConfigsModel,
+  LandingPageConfig,
+} from "../../models/development.model";
 import { ProjectModel } from "../../models/project.model";
 
 export interface PushToGitHubRequest {
@@ -59,12 +62,6 @@ export class DevelopmentService extends GenericService {
       );
       project.analysisResultModel.development = {
         configs: developmentConfigs,
-        hasLandingPage: false,
-        hasLandingPageSeparate: false,
-        landingPage: {
-          url: "",
-          codeUrl: "",
-        },
       };
     } else {
       logger.info(
@@ -72,13 +69,40 @@ export class DevelopmentService extends GenericService {
       );
     }
 
-    // If generate is 'landing', don't save backend or database configs
-    if (generate === "landing") {
-      logger.info(
-        `Generation type is 'landing', removing backend and database configs for projectId: ${projectId}`
-      );
-      developmentConfigs.backend = {} as any;
-      developmentConfigs.database = {} as any;
+    // Configure landing page config based on generate param
+    const gen = (generate || "").toLowerCase();
+    switch (gen) {
+      case "landing":
+        developmentConfigs.landingPageConfig = LandingPageConfig.SEPARATE;
+        logger.info(
+          `Generation type is 'landing': setting landingPageConfig=SEPARATE for projectId: ${projectId}`
+        );
+        // For landing-only, don't save backend or database configs
+        logger.info(
+          `Landing-only selected, removing backend and database configs for projectId: ${projectId}`
+        );
+        developmentConfigs.backend = {} as any;
+        developmentConfigs.database = {} as any;
+        break;
+      case "app":
+        developmentConfigs.landingPageConfig = LandingPageConfig.NONE;
+        logger.info(
+          `Generation type is 'app': setting landingPageConfig=NONE for projectId: ${projectId}`
+        );
+        break;
+      case "both":
+        developmentConfigs.landingPageConfig = LandingPageConfig.INTEGRATED;
+        logger.info(
+          `Generation type is 'both': setting landingPageConfig=INTEGRATED for projectId: ${projectId}`
+        );
+        break;
+      default:
+        // Sensible default: landing integrated with app
+        developmentConfigs.landingPageConfig = LandingPageConfig.INTEGRATED;
+        logger.warn(
+          `Unknown generation type '${generate}', defaulting landingPageConfig=INTEGRATED for projectId: ${projectId}`
+        );
+        break;
     }
 
     project.analysisResultModel.development.configs = developmentConfigs;

@@ -1,4 +1,3 @@
-
 export interface DevelopmentConfigsModel {
   constraints: string[];
   frontend: {
@@ -63,6 +62,12 @@ export interface DevelopmentConfigsModel {
       | string[];
   };
 
+  landingPageConfig: LandingPageConfig;
+  landingPage?: {
+    url: string;
+    codeUrl: string;
+  };
+
   projectConfig: {
     seoEnabled: boolean;
     contactFormEnabled: boolean;
@@ -74,4 +79,9 @@ export interface DevelopmentConfigsModel {
     paymentIntegration?: boolean;
     customOptions?: Record<string, any>;
   };
+}
+export enum LandingPageConfig {
+  NONE = "NONE",
+  SEPARATE = "SEPARATE",
+  INTEGRATED = "INTEGRATED",
 }
