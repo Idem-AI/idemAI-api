@@ -4,17 +4,11 @@ import {
   TemplateDeploymentModel,
   AiAssistantDeploymentModel,
   ExpertDeploymentModel,
-  GitRepository,
-  EnvironmentVariable,
   ChatMessage,
-  CloudComponentDetailed,
-  ArchitectureComponent,
   PipelineStep,
-  CostEstimation,
   CreateDeploymentPayload,
   DeploymentFormData,
   DeploymentValidators,
-  ArchitectureTemplate,
 } from "../../models/deployment.model";
 import logger from "../../config/logger";
 import {
@@ -24,12 +18,14 @@ import {
   PromptConfig,
 } from "../prompt.service";
 import { GenericService } from "../common/generic.service";
-import { exec } from "child_process";
-import { promisify } from "util";
+import { spawn } from "child_process";
 import { ProjectModel } from "../../models/project.model";
 import { AI_CHAT_INITIAL_PROMPT } from "./prompts/ai-chat.prompt";
 
 import { MAIN_TF_PROMPT } from "./prompts/terraform/00_main.prompt";
+import * as fs from "fs-extra";
+import * as path from "path";
+import { tmpdir } from "os";
 
 export class DeploymentService extends GenericService {
   constructor(promptService: PromptService) {
@@ -182,6 +178,115 @@ export class DeploymentService extends GenericService {
         `users/${userId}/projects`
       );
 
+      logger.info(
+        `Executing Docker command for deployment: ${generatedDeployment.id}`
+      );
+
+      const deploymentExecutionCommand = `
+      docker run --rm \
+      -v $(pwd):/deploy \
+      -e CLOUD_PROVIDER=aws \
+      -e TF_BACKEND_BUCKET=idem-tf-state \
+      -e TF_BACKEND_KEY=project-x/terraform.tfstate \
+      -e TF_LOCK_TABLE=terraform-locks \
+      -e TF_REGION=us-east-1 \
+      -e TF_FIRST_RUN=true \
+      -e AWS_ACCESS_KEY_ID=${process.env.AWS_ACCESS_KEY_ID} \
+      -e AWS_SECRET_ACCESS_KEY=${process.env.AWS_SECRET_ACCESS_KEY} \
+      -e TEMPLATE_URL="https://github.com/Idem-IA/ecs_aws_template.git" \
+      ghcr.io/idem-ia/idem-worker:1.3
+      `;
+
+      logger.info(`Deployment execution command....`);
+
+      // Execute the Docker command (streaming output with maximum verbosity)
+      // Compute the temp folder path used during generation for this deployment
+      const tempDir = path.join(tmpdir(), "idem-deployments", newDeployment.id);
+      
+      // Log the full command being executed
+      logger.info(`Executing Docker command: ${deploymentExecutionCommand.trim()}`);
+      
+      try {
+        const child = spawn(deploymentExecutionCommand, {
+          shell: true,
+          env: {
+            ...process.env,
+            // Enable verbose output for various tools
+            DOCKER_BUILDKIT: "0", // Disable buildkit for more verbose output
+            TF_LOG: "INFO", // Terraform verbose logging
+            GIT_TRACE: "1", // Git verbose logging
+            VERBOSE: "1",
+            DEBUG: "1"
+          },
+          stdio: ['pipe', 'pipe', 'pipe'], // Ensure all streams are captured
+        });
+
+        // Capture and log ALL output with timestamps
+        child.stdout.on("data", (data: Buffer) => {
+          const msg = data.toString();
+          const timestamp = new Date().toISOString();
+          
+          // Mirror to console immediately with timestamp
+          try {
+            process.stdout.write(`[${timestamp}] ${msg}`);
+          } catch {}
+          
+          // Log every line separately for better readability
+          const lines = msg.split('\n').filter(line => line.trim().length > 0);
+          lines.forEach(line => {
+            logger.info(`[DOCKER-STDOUT] ${line.trim()}`);
+          });
+        });
+
+        child.stderr.on("data", (data: Buffer) => {
+          const msg = data.toString();
+          const timestamp = new Date().toISOString();
+          
+          // Mirror to console immediately with timestamp
+          try {
+            process.stderr.write(`[${timestamp}] ${msg}`);
+          } catch {}
+          
+          // Log every line separately for better readability
+          const lines = msg.split('\n').filter(line => line.trim().length > 0);
+          lines.forEach(line => {
+            logger.warn(`[DOCKER-STDERR] ${line.trim()}`);
+          });
+        });
+
+        // Log when process starts and ends
+        logger.info(`Docker process started with PID: ${child.pid}`);
+        
+        const exitCode: number = await new Promise((resolve, reject) => {
+          child.on("error", (err) => {
+            logger.error(`Docker process error: ${err.message}`, { error: err });
+            reject(err);
+          });
+          child.on("close", (code) => {
+            logger.info(`Docker process completed with exit code: ${code}`);
+            resolve(code ?? 0);
+          });
+        });
+
+        if (exitCode !== 0) {
+          throw new Error(`Docker process exited with code ${exitCode}`);
+        }
+      } finally {
+        try {
+          // await fs.remove(tempDir);
+          logger.info(`Temporary deployment folder deleted: ${tempDir}`, {
+            deploymentId: newDeployment.id,
+          });
+        } catch (cleanupErr: any) {
+          logger.warn(
+            `Failed to delete temporary deployment folder ${tempDir}: ${
+              cleanupErr?.message || cleanupErr
+            }`,
+            { deploymentId: newDeployment.id }
+          );
+        }
+      }
+
       return generatedDeployment;
     } catch (error: any) {
       logger.error(
@@ -211,7 +316,16 @@ export class DeploymentService extends GenericService {
       if (!generatedFile) {
         throw new Error("Terraform tfvars file not generated");
       }
+
       deployment.generatedTerraformTfvarsFileContent = generatedFile;
+      // Write the generated tfvars to a temp folder for this deployment
+      const tempDir = path.join(tmpdir(), "idem-deployments", deployment.id);
+      await fs.ensureDir(tempDir);
+      const tfvarsPath = path.join(tempDir, "terraform.tfvars");
+      await fs.writeFile(tfvarsPath, generatedFile, "utf8");
+      logger.info(`Terraform tfvars saved to temporary folder: ${tfvarsPath}`, {
+        deploymentId: deployment.id,
+      });
 
       // Update the project with the new deployment
       await this.projectRepository.update(
@@ -1135,69 +1249,55 @@ Please provide only the terraform.tfvars file content as output.`;
             }
           );
 
-          // Execute the Docker command
-          const execAsync = promisify(exec);
-          const { stdout: runOutput, stderr: runError } = await execAsync(
-            dockerRunCommand
-          );
+          // Execute the Docker command (streaming)
+          let buildOutput = "";
+          const childBuild = spawn(dockerRunCommand, {
+            shell: true,
+            env: process.env,
+          });
 
-          if (runError) {
-            logger.warn(`Docker run command produced stderr: ${runError}`);
+          childBuild.stdout.on("data", (data: Buffer) => {
+            const msg = data.toString();
+            buildOutput += msg;
+            if (msg.trim().length > 0) {
+              logger.info(`[build stdout] ${msg.trim()}`);
+            }
+          });
+
+          childBuild.stderr.on("data", (data: Buffer) => {
+            const msg = data.toString();
+            if (msg.trim().length > 0) {
+              logger.warn(`[build stderr] ${msg.trim()}`);
+            }
+          });
+
+          const exitCode: number = await new Promise((resolve, reject) => {
+            childBuild.on("error", (err) => reject(err));
+            childBuild.on("close", (code) => resolve(code ?? 0));
+          });
+
+          if (exitCode !== 0) {
+            throw new Error(`Build process exited with code ${exitCode}`);
           }
 
           // Update logs with Docker container start information
           await this.updatePipelineStep(userId, deploymentId, stepName, 0, {
-            logs: `Running build in Docker container: ${containerName}\nCommand: ${dockerRunCommand}\n\n[Container Started]\n${runOutput}\nContainer started successfully with ID ${containerName}\n\nBuilding project...`,
+            logs: `Running build in Docker container: ${containerName}\nCommand: ${dockerRunCommand}\n\n[Container Started]\n${buildOutput}\nContainer started successfully with ID ${containerName}\n\nBuilding project...`,
           });
 
           // Wait a moment to let container start working
           await new Promise((resolve) => setTimeout(resolve, 2000));
 
-          // Get container logs
-          const dockerLogsCommand = `docker logs ${containerName}`;
-          let buildOutput = "";
-
-          // Poll for logs every 2 seconds for up to 30 seconds
-          for (let i = 0; i < 15; i++) {
-            try {
-              const { stdout } = await execAsync(dockerLogsCommand);
-              buildOutput = stdout;
-
-              // Update step logs with latest output
-              const currentStep = (
-                await this.getDeploymentById(userId, deploymentId)
-              )?.pipelines?.[0]?.steps?.find((s) => s.name === "Build");
-              const currentLogs = currentStep?.logs || "";
-              await this.updatePipelineStep(userId, deploymentId, stepName, 0, {
-                logs: `${
-                  currentLogs.split("[Container Logs]")[0]
-                }[Container Logs]\n${buildOutput}`,
-              });
-
-              // Check if build is complete
-              if (buildOutput.includes("Build completed successfully")) {
-                break;
-              }
-
-              // Wait before polling again
-              await new Promise((resolve) => setTimeout(resolve, 2000));
-            } catch (logError: any) {
-              logger.warn(`Error getting container logs: ${logError.message}`, {
-                error: logError,
-              });
-            }
-          }
-
-          // Cleanup the container
-          try {
-            await execAsync(`docker rm -f ${containerName}`);
-            logger.info(`Removed Docker container ${containerName}`);
-          } catch (cleanupError: any) {
-            logger.warn(
-              `Error removing Docker container: ${cleanupError.message}`,
-              { error: cleanupError }
-            );
-          }
+          // Update step logs with collected output
+          const currentStep = (
+            await this.getDeploymentById(userId, deploymentId)
+          )?.pipelines?.[0]?.steps?.find((s) => s.name === "Build");
+          const currentLogs = currentStep?.logs || "";
+          await this.updatePipelineStep(userId, deploymentId, stepName, 0, {
+            logs: `${
+              currentLogs.split("[Container Logs]")[0]
+            }[Container Logs]\n${buildOutput}`,
+          });
         } catch (error: any) {
           logger.error(`Docker build execution failed: ${error.message}`, {
             error,
