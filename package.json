@@ -14,7 +14,7 @@
   "license": "MIT",
   "dependencies": {
     "@google/genai": "^1.1.0",
-    "@octokit/rest": "^21.0.2",
+    "@octokit/rest": "^21.1.1",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "cookie-parser": "^1.4.7",

@@ -48,6 +48,7 @@ import { businessPlanRoutes } from "./routes/businessPlan.routes";
 import { deploymentRoutes } from "./routes/deployment.routes";
 import { developmentRoutes } from "./routes/development.routes";
 import { userRoutes } from "./routes/user.routes";
+import githubRoutes from "./routes/github.routes";
 import archetypeRoutes from "./routes/archetype.routes";
 import quotaRoutes from "./routes/quota.routes";
 
@@ -112,6 +113,7 @@ app.use("/api/auth", userRoutes);
 app.use("/api/prompt", promptRoutes);
 app.use("/api/quota", quotaRoutes);
 app.use("/api/archetypes", archetypeRoutes);
+app.use("/api/github", githubRoutes);
 
 // Swagger setup
 const swaggerSpec = swaggerJsdoc(swaggerOptions);

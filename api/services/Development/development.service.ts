@@ -6,26 +6,17 @@ import {
   LandingPageConfig,
 } from "../../models/development.model";
 import { ProjectModel } from "../../models/project.model";
+import { GitHubService } from "../github.service";
+import { PushToGitHubRequest, PushToGitHubResponse } from "../../dtos/github/github.dto";
 
-export interface PushToGitHubRequest {
-  token: string;
-  repoName: string;
-  files: Record<string, string>;
-  description?: string;
-  private?: boolean;
-}
 
-export interface PushToGitHubResponse {
-  repositoryUrl: string;
-  owner: string;
-  repoName: string;
-  success: boolean;
-  message?: string;
-}
 
 export class DevelopmentService extends GenericService {
+  private githubService: GitHubService;
+
   constructor(promptService: PromptService) {
     super(promptService);
+    this.githubService = new GitHubService();
     logger.info("DevelopmentService initialized.");
   }
 
@@ -127,5 +118,204 @@ export class DevelopmentService extends GenericService {
     }
 
     return project.analysisResultModel.development.configs;
+  }
+
+  /**
+   * Push project files to GitHub repository
+   */
+  async pushProjectToGitHub(
+    userId: string,
+    projectId: string,
+    request: PushToGitHubRequest
+  ): Promise<PushToGitHubResponse> {
+    logger.info(
+      `Pushing project to GitHub for projectId: ${projectId}, userId: ${userId}, repository: ${request.repositoryName}`
+    );
+
+    try {
+      // Get the project
+      const project = await this.getProject(projectId, userId);
+      if (!project) {
+        logger.warn(
+          `Project not found with ID: ${projectId} for user: ${userId}`
+        );
+        throw new Error("Project not found");
+      }
+
+      // Extract files from the request data (like the example you provided)
+      let filesToPush: Record<string, string> = {};
+
+      // If files are provided in the request, use them
+      if (request.files && Object.keys(request.files).length > 0) {
+        filesToPush = request.files;
+        logger.info(`Using ${Object.keys(filesToPush).length} files from request`);
+      } else {
+        // If no files in request, check if project has development files
+        // This could be from WebContainer or other sources
+        if (project.analysisResultModel?.development) {
+          // Check for WebContainer files in development array
+          const development = project.analysisResultModel.development;
+          
+          // If development is an array (WebContainerModel[])
+          if (Array.isArray(development)) {
+            const webContainer = development.find(wc => wc.metadata?.fileContents);
+            if (webContainer?.metadata?.fileContents) {
+              filesToPush = webContainer.metadata.fileContents;
+              logger.info(`Using ${Object.keys(filesToPush).length} files from WebContainer`);
+            }
+          }
+          // If development has configs with files
+          else if (development.configs) {
+            // You might want to generate files based on configs here
+            logger.info("Development configs found but no direct files available");
+          }
+        }
+
+        // If still no files, create a basic project structure
+        if (Object.keys(filesToPush).length === 0) {
+          filesToPush = this.generateBasicProjectStructure(project);
+          logger.info(`Generated basic project structure with ${Object.keys(filesToPush).length} files`);
+        }
+      }
+
+      // Use the GitHub service to push files
+      const result = await this.githubService.pushToGitHub(userId, request, filesToPush);
+
+      // If successful, update project with GitHub URL
+      if (result.success && result.repositoryUrl) {
+        // Update WebContainer or project with GitHub info
+        if (project.analysisResultModel?.development && Array.isArray(project.analysisResultModel.development)) {
+          const webContainer = project.analysisResultModel.development.find(wc => wc.metadata?.fileContents);
+          if (webContainer?.metadata) {
+            webContainer.metadata.githubUrl = result.repositoryUrl;
+            webContainer.metadata.lastPushedAt = new Date().toISOString();
+          }
+        }
+
+        await this.projectRepository.update(
+          projectId,
+          project,
+          `users/${userId}/projects`
+        );
+        
+        logger.info(`Successfully updated project with GitHub URL: ${result.repositoryUrl}`);
+      }
+
+      logger.info(
+        `GitHub push completed for projectId: ${projectId}, success: ${result.success}`
+      );
+
+      return result;
+    } catch (error) {
+      logger.error("Failed to push project to GitHub", {
+        error: error instanceof Error ? error.message : error,
+        userId,
+        projectId,
+        repositoryName: request.repositoryName,
+      });
+      
+      return {
+        success: false,
+        message: `Failed to push to GitHub: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
+  }
+
+  /**
+   * Generate basic project structure when no files are available
+   */
+  private generateBasicProjectStructure(project: ProjectModel): Record<string, string> {
+    const files: Record<string, string> = {};
+
+    // Create README.md
+    files["README.md"] = `# ${project.name || "Project"}
+
+${project.description || "A project generated from Lexis API"}
+
+## Description
+${project.description || "No description available"}
+
+## Getting Started
+This project was generated automatically. Please refer to the documentation for setup instructions.
+
+## Generated on
+${new Date().toISOString()}
+`;
+
+    // Create package.json if it's a web project
+    if (project.analysisResultModel?.development?.configs?.frontend) {
+      const frontend = project.analysisResultModel.development.configs.frontend;
+      files["package.json"] = JSON.stringify({
+        name: project.name?.toLowerCase().replace(/\s+/g, '-') || "lexis-project",
+        version: "1.0.0",
+        description: project.description || "Generated project",
+        main: "index.js",
+        scripts: {
+          dev: "vite",
+          build: "vite build",
+          preview: "vite preview"
+        },
+        dependencies: {},
+        devDependencies: {
+          vite: "^4.5.0"
+        }
+      }, null, 2);
+    }
+
+    // Create basic HTML file
+    files["index.html"] = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${project.name || "Project"}</title>
+</head>
+<body>
+    <h1>${project.name || "Welcome to your project"}</h1>
+    <p>${project.description || "This project was generated from Lexis API"}</p>
+</body>
+</html>`;
+
+    return files;
+  }
+
+  /**
+   * Get GitHub authorization URL for user
+   */
+  getGitHubAuthUrl(userId: string): string {
+    logger.info(`Generating GitHub auth URL for userId: ${userId}`);
+    return this.githubService.getAuthorizationUrl(userId);
+  }
+
+  /**
+   * Handle GitHub OAuth callback
+   */
+  async handleGitHubOAuth(request: { code: string; state?: string }) {
+    logger.info("Handling GitHub OAuth callback");
+    return await this.githubService.handleOAuthCallback(request);
+  }
+
+  /**
+   * Get user's GitHub repositories
+   */
+  async getUserGitHubRepositories(userId: string) {
+    logger.info(`Getting GitHub repositories for userId: ${userId}`);
+    return await this.githubService.getUserRepositories(userId);
+  }
+
+  /**
+   * Get GitHub user info
+   */
+  async getGitHubUserInfo(userId: string) {
+    logger.info(`Getting GitHub user info for userId: ${userId}`);
+    return await this.githubService.getGitHubUserInfo(userId);
+  }
+
+  /**
+   * Disconnect GitHub account
+   */
+  async disconnectGitHub(userId: string): Promise<boolean> {
+    logger.info(`Disconnecting GitHub account for userId: ${userId}`);
+    return await this.githubService.disconnectGitHub(userId);
   }
 }

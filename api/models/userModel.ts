@@ -8,6 +8,16 @@ export interface QuotaData {
   quotaUpdatedAt?: Date;
 }
 
+export interface GitHubIntegration {
+  accessToken: string;
+  refreshToken?: string;
+  username: string;
+  avatarUrl?: string;
+  connectedAt: Date;
+  lastUsed?: Date;
+  scopes: string[];
+}
+
 export interface UserModel {
   uid: string;
   email: string;
@@ -18,4 +28,5 @@ export interface UserModel {
   lastLogin: Date;
   quota: Partial<QuotaData>;
   roles: string[];
+  githubIntegration?: GitHubIntegration;
 }
