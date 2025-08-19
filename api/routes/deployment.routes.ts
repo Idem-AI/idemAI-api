@@ -11,6 +11,7 @@ import {
   GetPipelineStatusController,
   generateDeploymentController,
   editTerraformTfvarsFileController,
+  ExecuteDeploymentController,
 } from "../controllers/deployment.controller";
 
 export const deploymentRoutes = Router();
@@ -303,6 +304,43 @@ deploymentRoutes.post(
 );
 
 // Pipeline Management
+/**
+ * @openapi
+ * /deployments/execute/{deploymentId}:
+ *   post:
+ *     tags:
+ *       - Deployments
+ *     summary: Execute deployment
+ *     description: Runs the deployment execution (Docker worker) for a given deployment
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: deploymentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the deployment to execute
+ *     responses:
+ *       200:
+ *         description: Deployment execution started
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/BaseResponseDto'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Deployment not found
+ *       500:
+ *         description: Internal server error
+ */
+deploymentRoutes.post(
+  `${resourceName}/execute/:deploymentId`,
+  authenticate,
+  ExecuteDeploymentController
+);
+
 /**
  * @openapi
  * /deployments/startPipeline/{deploymentId}:

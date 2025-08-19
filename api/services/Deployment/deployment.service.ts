@@ -177,10 +177,35 @@ export class DeploymentService extends GenericService {
         },
         `users/${userId}/projects`
       );
-
-      logger.info(
-        `Executing Docker command for deployment: ${generatedDeployment.id}`
+      // Do not execute Docker here. Execution is handled by executeDeployment()
+      return generatedDeployment;
+    } catch (error: any) {
+      logger.error(
+        `Error creating deployment for userId: ${userId}, projectId: ${projectId}. Error: ${error.message}`,
+        { error: error.stack }
       );
+      throw error;
+    }
+  }
+
+  async executeDeployment(userId: string, deploymentId: string): Promise<void> {
+    logger.info(
+      `executeDeployment called for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+
+    try {
+      // Retrieve deployment
+      const deployment = await this.getDeploymentById(userId, deploymentId);
+      if (!deployment) {
+        throw new Error("Deployment not found");
+      }
+
+      // Mark deployment as deploying
+      await this.updateDeployment(userId, deploymentId, {
+        status: "deploying",
+      });
+
+      logger.info(`Executing Docker command for deployment: ${deployment.id}`);
 
       const deploymentExecutionCommand = `
       docker run --rm \
@@ -197,43 +222,40 @@ export class DeploymentService extends GenericService {
       ghcr.io/idem-ia/idem-worker:1.3
       `;
 
-      logger.info(`Deployment execution command....`);
+      // Compute the temp folder path used during generation for this deployment (if any)
+      const tempDir = path.join(tmpdir(), "idem-deployments", deployment.id);
 
-      // Execute the Docker command (streaming output with maximum verbosity)
-      // Compute the temp folder path used during generation for this deployment
-      const tempDir = path.join(tmpdir(), "idem-deployments", newDeployment.id);
-      
       // Log the full command being executed
-      logger.info(`Executing Docker command: ${deploymentExecutionCommand.trim()}`);
-      
+      logger.info(
+        `Executing Docker command: ${deploymentExecutionCommand.trim()}`,
+        { deploymentId: deployment.id, tempDir }
+      );
+
       try {
         const child = spawn(deploymentExecutionCommand, {
           shell: true,
           env: {
             ...process.env,
-            // Enable verbose output for various tools
-            DOCKER_BUILDKIT: "0", // Disable buildkit for more verbose output
-            TF_LOG: "INFO", // Terraform verbose logging
-            GIT_TRACE: "1", // Git verbose logging
+            DOCKER_BUILDKIT: "0",
+            TF_LOG: "INFO",
+            GIT_TRACE: "1",
             VERBOSE: "1",
-            DEBUG: "1"
+            DEBUG: "1",
           },
-          stdio: ['pipe', 'pipe', 'pipe'], // Ensure all streams are captured
+          stdio: ["pipe", "pipe", "pipe"],
         });
 
         // Capture and log ALL output with timestamps
         child.stdout.on("data", (data: Buffer) => {
           const msg = data.toString();
           const timestamp = new Date().toISOString();
-          
-          // Mirror to console immediately with timestamp
           try {
             process.stdout.write(`[${timestamp}] ${msg}`);
           } catch {}
-          
-          // Log every line separately for better readability
-          const lines = msg.split('\n').filter(line => line.trim().length > 0);
-          lines.forEach(line => {
+          const lines = msg
+            .split("\n")
+            .filter((line) => line.trim().length > 0);
+          lines.forEach((line) => {
             logger.info(`[DOCKER-STDOUT] ${line.trim()}`);
           });
         });
@@ -241,25 +263,24 @@ export class DeploymentService extends GenericService {
         child.stderr.on("data", (data: Buffer) => {
           const msg = data.toString();
           const timestamp = new Date().toISOString();
-          
-          // Mirror to console immediately with timestamp
           try {
             process.stderr.write(`[${timestamp}] ${msg}`);
           } catch {}
-          
-          // Log every line separately for better readability
-          const lines = msg.split('\n').filter(line => line.trim().length > 0);
-          lines.forEach(line => {
+          const lines = msg
+            .split("\n")
+            .filter((line) => line.trim().length > 0);
+          lines.forEach((line) => {
             logger.warn(`[DOCKER-STDERR] ${line.trim()}`);
           });
         });
 
-        // Log when process starts and ends
         logger.info(`Docker process started with PID: ${child.pid}`);
-        
+
         const exitCode: number = await new Promise((resolve, reject) => {
           child.on("error", (err) => {
-            logger.error(`Docker process error: ${err.message}`, { error: err });
+            logger.error(`Docker process error: ${err.message}`, {
+              error: err,
+            });
             reject(err);
           });
           child.on("close", (code) => {
@@ -271,26 +292,39 @@ export class DeploymentService extends GenericService {
         if (exitCode !== 0) {
           throw new Error(`Docker process exited with code ${exitCode}`);
         }
+
+        // Success: mark deployment as deployed
+        await this.updateDeployment(userId, deploymentId, {
+          status: "deployed",
+          deployedAt: new Date(),
+        });
+
+        logger.info(
+          `Deployment executed successfully - UserId: ${userId}, DeploymentId: ${deployment.id}`
+        );
       } finally {
         try {
           // await fs.remove(tempDir);
           logger.info(`Temporary deployment folder deleted: ${tempDir}`, {
-            deploymentId: newDeployment.id,
+            deploymentId: deployment.id,
           });
         } catch (cleanupErr: any) {
           logger.warn(
             `Failed to delete temporary deployment folder ${tempDir}: ${
               cleanupErr?.message || cleanupErr
             }`,
-            { deploymentId: newDeployment.id }
+            { deploymentId: deployment.id }
           );
         }
       }
-
-      return generatedDeployment;
     } catch (error: any) {
+      // Failure: mark deployment as failed
+      try {
+        await this.updateDeployment(userId, deploymentId, { status: "failed" });
+      } catch {}
+
       logger.error(
-        `Error creating deployment for userId: ${userId}, projectId: ${projectId}. Error: ${error.message}`,
+        `Error executing deployment for userId: ${userId}, deploymentId: ${deploymentId}. Error: ${error.message}`,
         { error: error.stack }
       );
       throw error;

@@ -13,6 +13,46 @@ import { userService } from "../services/user.service";
 
 const deploymentService = new DeploymentService(new PromptService());
 
+// Execute an existing deployment (run Docker worker)
+export const ExecuteDeploymentController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.uid;
+    const { deploymentId } = req.params;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+      return;
+    }
+
+    logger.info(
+      `Executing deployment for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+
+    await deploymentService.executeDeployment(userId, deploymentId);
+
+    res.status(200).json({
+      success: true,
+      message: "Deployment execution started",
+      data: { deploymentId },
+    });
+  } catch (error: any) {
+    logger.error(`Error executing deployment: ${error.message}`, {
+      error: error.stack,
+    });
+    res.status(500).json({
+      success: false,
+      message: "Failed to execute deployment",
+      error: error.message,
+    });
+  }
+};
+
 // Create a new deployment
 export const CreateDeploymentController = async (
   req: CustomRequest,
