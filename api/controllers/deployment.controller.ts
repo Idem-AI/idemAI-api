@@ -53,6 +53,71 @@ export const ExecuteDeploymentController = async (
   }
 };
 
+// Execute deployment with Server-Sent Events (SSE) streaming
+export const ExecuteDeploymentSSEController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { deploymentId } = req.params;
+
+  if (!userId) {
+    res.status(401).json({ success: false, message: "User not authenticated" });
+    return;
+  }
+
+  // Set SSE headers
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  // CORS-friendly for browsers if needed
+  res.setHeader("X-Accel-Buffering", "no");
+
+  const write = (obj: any) => {
+    try {
+      res.write(`data: ${JSON.stringify(obj)}\n\n`);
+    } catch (e: any) {
+      logger.warn(`Failed to write SSE event: ${e?.message || e}`);
+    }
+  };
+
+  // Send initial event to open the stream on some clients
+  write({ type: "connected", message: "SSE stream established" });
+
+  // Heartbeat to keep the connection alive (every 25s)
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(":heartbeat\n\n");
+    } catch {}
+  }, 25000);
+
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    try {
+      res.end();
+    } catch {}
+    logger.info(
+      `SSE connection closed by client for deploymentId: ${deploymentId}`
+    );
+  });
+
+  try {
+    await deploymentService.executeDeploymentStreaming(
+      userId,
+      deploymentId,
+      (evt) => write(evt)
+    );
+  } catch (error: any) {
+    write({ type: "error", message: error?.message || "Execution failed" });
+  } finally {
+    clearInterval(heartbeat);
+    try {
+      write({ type: "completed", message: "stream_end" });
+      res.end();
+    } catch {}
+  }
+};
+
 // Create a new deployment
 export const CreateDeploymentController = async (
   req: CustomRequest,

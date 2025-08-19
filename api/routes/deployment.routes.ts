@@ -12,6 +12,7 @@ import {
   generateDeploymentController,
   editTerraformTfvarsFileController,
   ExecuteDeploymentController,
+  ExecuteDeploymentSSEController,
 } from "../controllers/deployment.controller";
 
 export const deploymentRoutes = Router();
@@ -339,6 +340,39 @@ deploymentRoutes.post(
   `${resourceName}/execute/:deploymentId`,
   authenticate,
   ExecuteDeploymentController
+);
+
+/**
+ * @openapi
+ * /deployments/execute-stream/{deploymentId}:
+ *   get:
+ *     tags:
+ *       - Deployments
+ *     summary: Execute deployment with live log streaming (SSE)
+ *     description: Opens a Server-Sent Events stream that emits real-time logs and status updates while the deployment runs
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: deploymentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the deployment to execute with streaming
+ *     responses:
+ *       200:
+ *         description: SSE stream initiated; events will be sent progressively
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Deployment not found
+ *       500:
+ *         description: Internal server error
+ */
+deploymentRoutes.get(
+  `${resourceName}/execute-stream/:deploymentId`,
+  authenticate,
+  ExecuteDeploymentSSEController
 );
 
 /**

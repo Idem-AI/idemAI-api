@@ -33,6 +33,163 @@ export class DeploymentService extends GenericService {
     logger.info("DeploymentService initialized.");
   }
 
+  /**
+   * Execute deployment with streaming support. Emits structured events via the onEvent callback
+   * so a controller can forward them over SSE to the frontend.
+   */
+  async executeDeploymentStreaming(
+    userId: string,
+    deploymentId: string,
+    onEvent: (evt: {
+      type: "start" | "status" | "log" | "error" | "end";
+      level?: "info" | "warn" | "error";
+      message?: string;
+      data?: any;
+      timestamp: string;
+    }) => void
+  ): Promise<void> {
+    logger.info(
+      `executeDeploymentStreaming called for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+
+    const emit = (evt: Omit<Parameters<typeof onEvent>[0], "timestamp">) => {
+      try {
+        onEvent({ ...evt, timestamp: new Date().toISOString() });
+      } catch (e) {
+        // Ensure streaming never throws inside service
+        logger.warn(`SSE emit failed: ${e instanceof Error ? e.message : e}`);
+      }
+    };
+
+    try {
+      const deployment = await this.getDeploymentById(userId, deploymentId);
+      if (!deployment) {
+        throw new Error("Deployment not found");
+      }
+
+      await this.updateDeployment(userId, deploymentId, {
+        status: "deploying",
+      });
+
+      emit({ type: "status", level: "info", message: "deploying" });
+      logger.info(`Executing Docker command for deployment (SSE): ${deployment.id}`);
+
+      const deploymentExecutionCommand = `
+      docker run --rm \
+      -v $(pwd):/deploy \
+      -e CLOUD_PROVIDER=aws \
+      -e TF_BACKEND_BUCKET=idem-tf-state \
+      -e TF_BACKEND_KEY=project-x/terraform.tfstate \
+      -e TF_LOCK_TABLE=terraform-locks \
+      -e TF_REGION=us-east-1 \
+      -e TF_FIRST_RUN=true \
+      -e AWS_ACCESS_KEY_ID=${process.env.AWS_ACCESS_KEY_ID} \
+      -e AWS_SECRET_ACCESS_KEY=${process.env.AWS_SECRET_ACCESS_KEY} \
+      -e TEMPLATE_URL="https://github.com/Idem-IA/ecs_aws_template.git" \
+      ghcr.io/idem-ia/idem-worker:1.3
+      `;
+
+      const tempDir = path.join(tmpdir(), "idem-deployments", deployment.id);
+
+      logger.info(
+        `Executing Docker command (SSE): ${deploymentExecutionCommand.trim()}`,
+        { deploymentId: deployment.id, tempDir }
+      );
+
+      emit({ type: "start", level: "info", message: "docker_process_starting" });
+
+      try {
+        const child = spawn(deploymentExecutionCommand, {
+          shell: true,
+          env: {
+            ...process.env,
+            DOCKER_BUILDKIT: "0",
+            TF_LOG: "INFO",
+            GIT_TRACE: "1",
+            VERBOSE: "1",
+            DEBUG: "1",
+          },
+          stdio: ["pipe", "pipe", "pipe"],
+        });
+
+        logger.info(`Docker process (SSE) started with PID: ${child.pid}`);
+        emit({ type: "log", level: "info", message: `docker_pid:${child.pid}` });
+
+        child.stdout.on("data", (data: Buffer) => {
+          const msg = data.toString();
+          const lines = msg.split("\n").filter((l) => l.trim().length > 0);
+          lines.forEach((line) => {
+            logger.info(`[DOCKER-STDOUT] ${line.trim()}`);
+            emit({ type: "log", level: "info", message: line.trim() });
+          });
+        });
+
+        child.stderr.on("data", (data: Buffer) => {
+          const msg = data.toString();
+          const lines = msg.split("\n").filter((l) => l.trim().length > 0);
+          lines.forEach((line) => {
+            logger.warn(`[DOCKER-STDERR] ${line.trim()}`);
+            emit({ type: "log", level: "warn", message: line.trim() });
+          });
+        });
+
+        const exitCode: number = await new Promise((resolve, reject) => {
+          child.on("error", (err) => {
+            logger.error(`Docker process error (SSE): ${err.message}`, {
+              error: err,
+            });
+            emit({ type: "error", level: "error", message: err.message });
+            reject(err);
+          });
+          child.on("close", (code) => {
+            logger.info(`Docker process (SSE) completed with exit code: ${code}`);
+            resolve(code ?? 0);
+          });
+        });
+
+        if (exitCode !== 0) {
+          throw new Error(`Docker process exited with code ${exitCode}`);
+        }
+
+        await this.updateDeployment(userId, deploymentId, {
+          status: "deployed",
+          deployedAt: new Date(),
+        });
+
+        emit({ type: "status", level: "info", message: "deployed" });
+        emit({ type: "end", level: "info", message: "success" });
+        logger.info(
+          `Deployment executed successfully (SSE) - UserId: ${userId}, DeploymentId: ${deployment.id}`
+        );
+      } finally {
+        try {
+          // await fs.remove(tempDir);
+          logger.info(`Temporary deployment folder deleted: ${tempDir}`, {
+            deploymentId: deployment.id,
+          });
+        } catch (cleanupErr: any) {
+          logger.warn(
+            `Failed to delete temporary deployment folder ${tempDir}: ${cleanupErr?.message || cleanupErr}`,
+            { deploymentId: deployment.id }
+          );
+        }
+      }
+    } catch (error: any) {
+      try {
+        await this.updateDeployment(userId, deploymentId, { status: "failed" });
+      } catch {}
+
+      logger.error(
+        `Error executing deployment (SSE) for userId: ${userId}, deploymentId: ${deploymentId}. Error: ${error.message}`,
+        { error: error.stack }
+      );
+      emit({ type: "status", level: "error", message: "failed" });
+      emit({ type: "error", level: "error", message: error.message });
+      emit({ type: "end", level: "error", message: "failed" });
+      throw error;
+    }
+  }
+
   async createDeployment(
     userId: string,
     projectId: string,
