@@ -53,71 +53,6 @@ export const ExecuteDeploymentController = async (
   }
 };
 
-// Execute deployment with Server-Sent Events (SSE) streaming
-export const ExecuteDeploymentSSEController = async (
-  req: CustomRequest,
-  res: Response
-): Promise<void> => {
-  const userId = req.user?.uid;
-  const { deploymentId } = req.params;
-
-  if (!userId) {
-    res.status(401).json({ success: false, message: "User not authenticated" });
-    return;
-  }
-
-  // Set SSE headers
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache, no-transform");
-  res.setHeader("Connection", "keep-alive");
-  // CORS-friendly for browsers if needed
-  res.setHeader("X-Accel-Buffering", "no");
-
-  const write = (obj: any) => {
-    try {
-      res.write(`data: ${JSON.stringify(obj)}\n\n`);
-    } catch (e: any) {
-      logger.warn(`Failed to write SSE event: ${e?.message || e}`);
-    }
-  };
-
-  // Send initial event to open the stream on some clients
-  write({ type: "connected", message: "SSE stream established" });
-
-  // Heartbeat to keep the connection alive (every 25s)
-  const heartbeat = setInterval(() => {
-    try {
-      res.write(":heartbeat\n\n");
-    } catch {}
-  }, 25000);
-
-  req.on("close", () => {
-    clearInterval(heartbeat);
-    try {
-      res.end();
-    } catch {}
-    logger.info(
-      `SSE connection closed by client for deploymentId: ${deploymentId}`
-    );
-  });
-
-  try {
-    await deploymentService.executeDeploymentStreaming(
-      userId,
-      deploymentId,
-      (evt) => write(evt)
-    );
-  } catch (error: any) {
-    write({ type: "error", message: error?.message || "Execution failed" });
-  } finally {
-    clearInterval(heartbeat);
-    try {
-      write({ type: "completed", message: "stream_end" });
-      res.end();
-    } catch {}
-  }
-};
-
 // Create a new deployment
 export const CreateDeploymentController = async (
   req: CustomRequest,
@@ -669,5 +604,123 @@ export const editTerraformTfvarsFileController = async (
       message: "Failed to edit Terraform tfvars file",
       error: error.message,
     });
+  }
+};
+
+// Execute deployment with streaming logs via SSE
+export const ExecuteDeploymentStreamingController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { deploymentId } = req.params;
+  
+  logger.info(
+    `ExecuteDeploymentStreamingController called - UserId: ${userId}, DeploymentId: ${deploymentId}`
+  );
+
+  try {
+    if (!userId) {
+      logger.warn(
+        "User not authenticated for ExecuteDeploymentStreamingController"
+      );
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    if (!deploymentId) {
+      logger.warn(
+        "Deployment ID is required for ExecuteDeploymentStreamingController"
+      );
+      res.status(400).json({ message: "Deployment ID is required" });
+      return;
+    }
+
+    // Configuration pour SSE (Server-Sent Events)
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no"); // Pour Nginx
+
+    // Fonction de callback pour envoyer chaque log en temps réel
+    const streamCallback = async (logData: {
+      type: 'stdout' | 'stderr' | 'info' | 'error' | 'status';
+      message: string;
+      timestamp: string;
+      step?: string;
+    }) => {
+      try {
+        // Créer un message structuré pour le frontend
+        const message = {
+          type: logData.type,
+          message: logData.message,
+          timestamp: logData.timestamp,
+          step: logData.step || 'deployment',
+          deploymentId: deploymentId
+        };
+
+        // Formatage du message SSE
+        res.write(`data: ${JSON.stringify(message)}\n\n`);
+        // On force l'envoi immédiat si la fonction flush est disponible
+        (res as any).flush?.();
+
+        logger.info(
+          `Streamed log ${logData.type} - UserId: ${userId}, DeploymentId: ${deploymentId}, Step: ${logData.step}`
+        );
+      } catch (error: any) {
+        logger.error(
+          `Error streaming log - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
+          { stack: error.stack }
+        );
+      }
+    };
+
+    // Appel au service avec le callback de streaming
+    await deploymentService.executeDeploymentWithStreaming(
+      userId,
+      deploymentId,
+      streamCallback // Passer le callback de streaming
+    );
+
+    logger.info(
+      `Deployment execution completed - UserId: ${userId}, DeploymentId: ${deploymentId}`
+    );
+    userService.incrementUsage(userId, 1);
+
+    // Envoyer un événement de fin de succès
+    res.write(
+      `data: ${JSON.stringify({ 
+        type: "success", 
+        message: "Deployment execution completed successfully",
+        timestamp: new Date().toISOString(),
+        deploymentId: deploymentId,
+        status: "finished"
+      })}\n\n`
+    );
+    
+    // Envoyer l'événement de fin de stream
+    res.write(`data: [DONE]\n\n`);
+    res.end();
+  } catch (error: any) {
+    logger.error(
+      `Error in ExecuteDeploymentStreamingController - UserId: ${userId}, DeploymentId: ${deploymentId}: ${error.message}`,
+      { stack: error.stack, body: req.body }
+    );
+
+    // Envoyer une erreur structurée et terminer le stream
+    res.write(
+      `data: ${JSON.stringify({ 
+        type: "error", 
+        message: error.message,
+        timestamp: new Date().toISOString(),
+        deploymentId: deploymentId,
+        status: "failed",
+        errorCode: error.code || "DEPLOYMENT_ERROR"
+      })}\n\n`
+    );
+    
+    // Envoyer l'événement de fin de stream avec erreur
+    res.write(`data: [ERROR]\n\n`);
+    res.end();
   }
 };

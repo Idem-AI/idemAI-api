@@ -12,7 +12,7 @@ import {
   generateDeploymentController,
   editTerraformTfvarsFileController,
   ExecuteDeploymentController,
-  ExecuteDeploymentSSEController,
+  ExecuteDeploymentStreamingController,
 } from "../controllers/deployment.controller";
 
 export const deploymentRoutes = Router();
@@ -340,39 +340,6 @@ deploymentRoutes.post(
   `${resourceName}/execute/:deploymentId`,
   authenticate,
   ExecuteDeploymentController
-);
-
-/**
- * @openapi
- * /deployments/execute-stream/{deploymentId}:
- *   get:
- *     tags:
- *       - Deployments
- *     summary: Execute deployment with live log streaming (SSE)
- *     description: Opens a Server-Sent Events stream that emits real-time logs and status updates while the deployment runs
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: deploymentId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the deployment to execute with streaming
- *     responses:
- *       200:
- *         description: SSE stream initiated; events will be sent progressively
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Deployment not found
- *       500:
- *         description: Internal server error
- */
-deploymentRoutes.get(
-  `${resourceName}/execute-stream/:deploymentId`,
-  authenticate,
-  ExecuteDeploymentSSEController
 );
 
 /**
@@ -911,4 +878,49 @@ deploymentRoutes.post(
   `${resourceName}/editTerraformTfvars/:deploymentId`,
   authenticate,
   editTerraformTfvarsFileController
+);
+
+/**
+ * @openapi
+ * /deployments/execute/stream/{deploymentId}:
+ *   get:
+ *     tags:
+ *       - Deployments
+ *     summary: Execute deployment with streaming logs
+ *     description: Executes deployment and streams real-time logs via Server-Sent Events (SSE)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: deploymentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the deployment to execute
+ *         example: "deployment_123456789"
+ *     responses:
+ *       200:
+ *         description: SSE stream of deployment logs
+ *         content:
+ *           text/event-stream:
+ *             schema:
+ *               type: string
+ *               description: Server-Sent Events stream with deployment logs
+ *               example: |
+ *                 data: {"type":"info","message":"Starting deployment execution...","timestamp":"2024-01-15T10:00:00.000Z","step":"initialization","deploymentId":"deployment_123"}
+ *                 
+ *                 data: {"type":"stdout","message":"Docker container starting...","timestamp":"2024-01-15T10:00:05.000Z","step":"docker-execution","deploymentId":"deployment_123"}
+ *                 
+ *                 data: {"type":"complete","message":"Deployment execution completed successfully","timestamp":"2024-01-15T10:05:00.000Z","deploymentId":"deployment_123"}
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Deployment not found
+ *       500:
+ *         description: Internal server error
+ */
+deploymentRoutes.get(
+  `${resourceName}/execute/stream/:deploymentId`,
+  authenticate,
+  ExecuteDeploymentStreamingController
 );

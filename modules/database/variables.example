@@ -1,0 +1,39 @@
+# Nom du déploiement
+deployment_name = "my-app"
+
+# Type de base de données: rds-mysql | rds-postgres | aurora-mysql | aurora-postgres | dynamodb | none
+database_engine = "rds-postgres"
+
+# Identifiants de la base de données
+db_username = "admin"
+db_password = "SuperSecret123"
+
+# Nom de la base de données
+db_name = "appdb"
+
+# Classe d'instance RDS ou Aurora
+instance_class = "db.t3.micro"
+
+# Multi-AZ (true pour haute disponibilité)
+multi_az = false
+
+# Activer un Read Replica
+enable_read_replica = false
+
+# Espace de stockage en Go
+allocated_storage = 20
+
+# Sous-réseaux privés
+private_subnet_ids = [
+  "subnet-abc123",
+  "subnet-def456"
+]
+
+# Security Group pour la base de données
+security_group_id = "sg-12345678"
+
+# Tags communs
+tags = {
+  Environment = "dev"
+  Project     = "my-app"
+}
