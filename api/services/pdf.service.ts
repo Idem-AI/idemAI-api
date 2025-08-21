@@ -66,15 +66,26 @@ export class PdfService {
         footerText,
       });
 
-      // Lancer Puppeteer pour générer le PDF
+      // Lancer Puppeteer pour générer le PDF avec timeouts étendus
       const browser = await puppeteer.launch({
         headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        args: [
+          "--no-sandbox", 
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+          "--no-first-run",
+          "--disable-default-apps",
+          "--disable-features=TranslateUI"
+        ],
+        timeout: 120000, // 2 minutes pour le lancement du navigateur
       });
 
       const page = await browser.newPage();
 
-      // Injecter le script Tailwind CSS AVANT de définir le contenu HTML
+      // Injecter les scripts locaux AVANT de définir le contenu HTML
+      
+      // 1. Injecter Tailwind CSS
       const tailwindScriptPath = path.join(
         process.cwd(),
         "public",
@@ -88,15 +99,36 @@ export class PdfService {
 
         // Attendre que Tailwind soit prêt
         await page.waitForFunction('typeof window.tailwind !== "undefined"', {
-          timeout: 5000,
+          timeout: 15000, // Augmenté à 15 secondes
         });
       } else {
         logger.warn("Local Tailwind script not found, falling back to CDN");
       }
 
-      // Définir le contenu HTML APRÈS l'injection de Tailwind
+      // 2. Injecter Chart.js
+      const chartjsScriptPath = path.join(
+        process.cwd(),
+        "public",
+        "scripts",
+        "chart.js"
+      );
+      if (await fs.pathExists(chartjsScriptPath)) {
+        const chartjsScript = await fs.readFile(chartjsScriptPath, "utf8");
+        await page.addScriptTag({ content: chartjsScript });
+        logger.info("Local Chart.js script injected successfully");
+
+        // Attendre que Chart.js soit prêt
+        await page.waitForFunction('typeof window.Chart !== "undefined"', {
+          timeout: 15000, // Augmenté à 15 secondes
+        });
+      } else {
+        logger.warn("Local Chart.js script not found, falling back to CDN");
+      }
+
+      // Définir le contenu HTML APRÈS l'injection des scripts
       await page.setContent(htmlContent, {
         waitUntil: "networkidle0",
+        timeout: 60000, // 1 minute pour le chargement du contenu
       });
 
       // Forcer Tailwind à traiter toutes les classes présentes dans le DOM
@@ -123,7 +155,7 @@ export class PdfService {
             }
 
             // Attendre un peu puis résoudre
-            setTimeout(resolve, 1000);
+            setTimeout(resolve, 2000); // Augmenté à 2 secondes
           } else {
             resolve(undefined);
           }
@@ -131,30 +163,46 @@ export class PdfService {
       });
 
       // Attendre supplémentaire pour s'assurer que tous les styles sont appliqués
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 1500)); // Augmenté à 1.5 secondes
 
-      // Vérifier que les styles Tailwind sont bien appliqués
-      const stylesApplied = await page.evaluate(() => {
+      // Vérifier que les scripts sont bien chargés et fonctionnels
+      const scriptsStatus = await page.evaluate(() => {
+        const tailwindAvailable = typeof (window as any).tailwind !== 'undefined';
+        const chartjsAvailable = typeof (window as any).Chart !== 'undefined';
+        
+        // Tester l'application des styles Tailwind
+        let tailwindWorking = false;
         const testElement = document.querySelector(
           ".bg-white, .text-gray-800, .p-4, .mb-4"
         );
         if (testElement) {
           const computedStyle = window.getComputedStyle(testElement);
-          return (
+          tailwindWorking = (
             computedStyle.backgroundColor !== "" ||
             computedStyle.color !== "" ||
             computedStyle.padding !== ""
           );
         }
-        return false;
+        
+        return {
+          tailwind: { available: tailwindAvailable, working: tailwindWorking },
+          chartjs: { available: chartjsAvailable }
+        };
       });
 
-      if (stylesApplied) {
-        logger.info("Tailwind styles successfully applied to PDF content");
+      // Logger le statut des scripts
+      if (scriptsStatus.tailwind.available && scriptsStatus.tailwind.working) {
+        logger.info("Tailwind CSS successfully loaded and styles applied");
+      } else if (scriptsStatus.tailwind.available) {
+        logger.warn("Tailwind CSS loaded but styles may not be fully applied");
       } else {
-        logger.warn(
-          "Tailwind styles may not be fully applied - PDF styling might be incomplete"
-        );
+        logger.warn("Tailwind CSS not available in page context");
+      }
+      
+      if (scriptsStatus.chartjs.available) {
+        logger.info("Chart.js successfully loaded and available");
+      } else {
+        logger.warn("Chart.js not available in page context");
       }
 
       // Créer un fichier temporaire pour le PDF
@@ -164,7 +212,7 @@ export class PdfService {
         .substring(7)}.pdf`;
       const pdfPath = path.join(tempDir, pdfFileName);
 
-      // Générer le PDF
+      // Générer le PDF avec timeout étendu
       await page.pdf({
         path: pdfPath,
         format,
@@ -173,6 +221,7 @@ export class PdfService {
         preferCSSPageSize: true,
         displayHeaderFooter: false,
         omitBackground: false,
+        timeout: 120000, // 2 minutes pour la génération PDF
       });
 
       await browser.close();
@@ -228,10 +277,11 @@ export class PdfService {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${title} - ${projectName}</title>
-        <!-- Tailwind CSS will be injected by Puppeteer -->
+        <!-- Tailwind CSS et Chart.js will be injected by Puppeteer -->
         <script>
-          // Configuration Tailwind - sera appliquée après injection
-          function setupTailwind() {
+          // Configuration des scripts - sera appliquée après injection
+          function setupScripts() {
+            // Configuration Tailwind
             if (typeof window.tailwind !== 'undefined') {
               window.tailwind.config = {
                 theme: {
@@ -247,14 +297,26 @@ export class PdfService {
               };
               console.log('Tailwind config applied');
             }
+            
+            // Configuration Chart.js (si nécessaire)
+            if (typeof window.Chart !== 'undefined') {
+              // Configuration globale par défaut pour Chart.js
+              window.Chart.defaults.font = {
+                family: 'Inter, sans-serif',
+                size: 12
+              };
+              window.Chart.defaults.responsive = true;
+              window.Chart.defaults.maintainAspectRatio = false;
+              console.log('Chart.js config applied');
+            }
           }
           
-          // Essayer d'appliquer la config à différents moments
-          document.addEventListener('DOMContentLoaded', setupTailwind);
-          window.addEventListener('load', setupTailwind);
-          // Fallback immédiat si Tailwind est déjà chargé
+          // Essayer d'appliquer les configs à différents moments
+          document.addEventListener('DOMContentLoaded', setupScripts);
+          window.addEventListener('load', setupScripts);
+          // Fallback immédiat si les scripts sont déjà chargés
           if (document.readyState === 'complete') {
-            setupTailwind();
+            setupScripts();
           }
         </script>
         

@@ -7,7 +7,7 @@ Present investment-grade financial analysis with detailed projections, funding s
 OUTPUT REQUIREMENTS:
 - Generate ONLY HTML with Tailwind CSS utility classes
 - Single-line minified output (no line breaks, no indentation)
-- No custom CSS, extensive Chart.js integration for financial visualization
+- No custom CSS, extensive Chart.js integration for financial visualization (Chart.js script will be injected automatically - do NOT include script tags)
 - Optimize for A4 portrait: use max-w-4xl and appropriate spacing
 - No HTML prefix/suffix - return only the section element
 
@@ -27,7 +27,7 @@ DESIGN PRINCIPLES:
 - Typography: clear hierarchy emphasizing key financial metrics
 - Color scheme: professional with financial data visualization
 - Spacing: organized sections with clear financial separation
-- Charts: extensive Chart.js integration for all financial data
+- Charts: extensive Chart.js integration for all financial data (NO animations, static charts only)
 
 DATA VISUALIZATION REQUIREMENTS (MANDATORY CHART.JS):
 - Revenue projections (line chart - 3 years)
@@ -50,7 +50,7 @@ TECHNICAL SPECIFICATIONS:
 - Use semantic HTML5 elements with financial structure
 - Ensure WCAG AA contrast for all financial data and charts
 - Responsive design optimized for print
-- Extensive Chart.js integration for all financial metrics
+- Extensive Chart.js integration for all financial metrics (NO animations, static only)
 - Brand color integration via arbitrary values
 
 CHART.JS IMPLEMENTATION (COMPREHENSIVE):
@@ -63,7 +63,9 @@ CHART.JS IMPLEMENTATION (COMPREHENSIVE):
 - Scenario modeling (multi-line, area charts)
 - Professional color schemes matching brand
 - Print-friendly and accessible charts
-- Interactive tooltips with financial details
+- MANDATORY: Set animation: false in all Chart.js configurations
+- MANDATORY: Do NOT include <script src="..."> tags for Chart.js CDN
+- MANDATORY: Chart.js library will be injected automatically
 
 CONTENT GUIDELINES:
 - Summary: compelling investment thesis with key metrics
@@ -84,5 +86,11 @@ QUALITY STANDARDS:
 - Print-ready formatting with extensive charts
 
 OUTPUT FORMAT:
-Return only the minified HTML section with extensive embedded Chart.js code, ready for business plan integration.
+Return only the minified HTML section with extensive embedded Chart.js code (NO script tags, NO animations), ready for business plan integration.
+
+IMPORTANT CHART.JS RULES:
+- Always set animation: false in chart options
+- Never include <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+- Chart.js library is automatically available
+- Use static charts optimized for PDF generation
 `;

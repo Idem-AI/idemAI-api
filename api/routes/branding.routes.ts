@@ -489,8 +489,16 @@ brandingRoutes.delete(
  *                   type: string
  *                   description: Detailed error message
  */
+// Middleware pour augmenter le timeout pour la génération PDF
+const pdfTimeout = (req: any, res: any, next: any) => {
+  req.setTimeout(180000); // 3 minutes
+  res.setTimeout(180000); // 3 minutes
+  next();
+};
+
 brandingRoutes.get(
   `/${resourceName}/pdf/:projectId`,
   authenticate,
+  pdfTimeout,
   generateBrandingPdfController
 );

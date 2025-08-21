@@ -7,7 +7,7 @@ Present a convincing case for market opportunity through clear problem identific
 OUTPUT REQUIREMENTS:
 - Generate ONLY HTML with Tailwind CSS utility classes
 - Single-line minified output (no line breaks, no indentation)
-- No custom CSS, no JavaScript beyond Chart.js for data visualization
+- No custom CSS, no JavaScript beyond Chart.js for data visualization (Chart.js script will be injected automatically - do NOT include script tags)
 - Optimize for A4 portrait: use max-w-4xl and appropriate spacing
 - No HTML prefix/suffix - return only the section element
 
@@ -25,13 +25,13 @@ DESIGN PRINCIPLES:
 - Typography: clear hierarchy emphasizing key metrics and insights
 - Color scheme: professional palette with data visualization accents
 - Spacing: organized sections with clear visual separation
-- Charts: use Chart.js for market size, growth, and competitive analysis
+- Charts: use Chart.js for market size, growth, and competitive analysis (NO animations, static charts only)
 
 DATA VISUALIZATION REQUIREMENTS:
 - Market size chart (pie or bar chart showing TAM/SAM/SOM)
 - Growth projection chart (line chart showing market trends)
 - Competitive positioning matrix (scatter plot or comparison table)
-- Use Chart.js with professional styling and brand colors
+- Use Chart.js with professional styling, brand colors, and NO animations (animation: false)
 
 VISUAL HIERARCHY:
 1. Section title "Market Opportunity" - prominent, analytical tone
@@ -45,15 +45,17 @@ TECHNICAL SPECIFICATIONS:
 - Use semantic HTML5 elements with proper structure
 - Ensure WCAG AA contrast for all text and charts
 - Responsive design optimized for print
-- Chart.js integration for data visualization
+- Chart.js integration for data visualization (NO animations, static only)
 - Brand color integration via arbitrary values
 
 CHART.JS IMPLEMENTATION:
-- Include Chart.js CDN in script tags
 - Create canvas elements with appropriate IDs
 - Generate JavaScript code for chart configuration
 - Use professional color schemes matching brand
 - Ensure charts are print-friendly and accessible
+- MANDATORY: Set animation: false in all Chart.js configurations
+- MANDATORY: Do NOT include <script src="..."> tags for Chart.js CDN
+- MANDATORY: Chart.js library will be injected automatically
 
 CONTENT GUIDELINES:
 - Problem: specific, quantifiable pain points
@@ -72,5 +74,11 @@ QUALITY STANDARDS:
 - Print-ready formatting with clear visuals
 
 OUTPUT FORMAT:
-Return only the minified HTML section with embedded Chart.js code, ready for business plan integration.
+Return only the minified HTML section with embedded Chart.js code (NO script tags, NO animations), ready for business plan integration.
+
+IMPORTANT CHART.JS RULES:
+- Always set animation: false in chart options
+- Never include <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+- Chart.js library is automatically available
+- Use static charts optimized for PDF generation
 `;

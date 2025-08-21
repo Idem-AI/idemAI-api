@@ -7,7 +7,7 @@ Present a strategic roadmap with SMART objectives, clear milestones, and compreh
 OUTPUT REQUIREMENTS:
 - Generate ONLY HTML with Tailwind CSS utility classes
 - Single-line minified output (no line breaks, no indentation)
-- No custom CSS, Chart.js integration for timeline and milestone visualization
+- No custom CSS, Chart.js integration for timeline and milestone visualization (Chart.js script will be injected automatically - do NOT include script tags)
 - Optimize for A4 portrait: use max-w-4xl and appropriate spacing
 - No HTML prefix/suffix - return only the section element
 
@@ -26,7 +26,7 @@ DESIGN PRINCIPLES:
 - Typography: clear hierarchy emphasizing objectives and milestones
 - Color scheme: professional with strategic planning accents
 - Spacing: organized sections with clear strategic separation
-- Charts: timeline and milestone visualization using Chart.js
+- Charts: timeline and milestone visualization using Chart.js (NO animations, static charts only)
 
 DATA VISUALIZATION REQUIREMENTS:
 - Implementation timeline (Gantt-style chart)
@@ -34,7 +34,7 @@ DATA VISUALIZATION REQUIREMENTS:
 - Resource allocation (pie chart - budget/team distribution)
 - Risk assessment matrix (scatter plot - impact vs probability)
 - KPI dashboard (gauge charts for key metrics)
-- Use Chart.js with professional styling and brand colors
+- Use Chart.js with professional styling, brand colors, and NO animations (animation: false)
 
 VISUAL HIERARCHY:
 1. Section title "Strategic Goals & Planning" - execution-focused tone
@@ -47,7 +47,7 @@ TECHNICAL SPECIFICATIONS:
 - Use semantic HTML5 elements with strategic structure
 - Ensure WCAG AA contrast for all strategic data and charts
 - Responsive design optimized for print
-- Chart.js integration for strategic visualization
+- Chart.js integration for strategic visualization (NO animations, static only)
 - Brand color integration via arbitrary values
 
 CHART.JS IMPLEMENTATION:
@@ -58,6 +58,9 @@ CHART.JS IMPLEMENTATION:
 - KPI tracking dashboard (gauge/bar charts)
 - Professional color schemes matching brand
 - Print-friendly and accessible charts
+- MANDATORY: Set animation: false in all Chart.js configurations
+- MANDATORY: Do NOT include <script src="..."> tags for Chart.js CDN
+- MANDATORY: Chart.js library will be injected automatically
 
 CONTENT GUIDELINES:
 - Objectives: specific, measurable, achievable, relevant, time-bound
@@ -77,5 +80,11 @@ QUALITY STANDARDS:
 - Print-ready formatting with clear visuals
 
 OUTPUT FORMAT:
-Return only the minified HTML section with embedded Chart.js code, ready for business plan integration.
+Return only the minified HTML section with embedded Chart.js code (NO script tags, NO animations), ready for business plan integration.
+
+IMPORTANT CHART.JS RULES:
+- Always set animation: false in chart options
+- Never include <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+- Chart.js library is automatically available
+- Use static charts optimized for PDF generation
 `;
