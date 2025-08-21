@@ -4,6 +4,7 @@ import {
   updateBusinessPlanController,
   deleteBusinessPlanController,
   generateBusinessPlanStreamingController,
+  generateBusinessPlanPdfController,
 } from "../controllers/businessPlan.controller";
 import { authenticate } from "../services/auth.service";
 import { checkQuota } from "../middleware/quota.middleware";
@@ -188,4 +189,91 @@ businessPlanRoutes.delete(
   `/${resourceName}/:projectId`,
   authenticate,
   deleteBusinessPlanController
+);
+
+// Generate PDF from business plan sections
+/**
+ * @openapi
+ * /businessPlans/pdf/{projectId}:
+ *   get:
+ *     tags:
+ *       - Business Plans
+ *     summary: Generate and download a PDF document from business plan sections
+ *     description: Creates a PDF document containing all business plan sections for a project in A4 format
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the project whose business plan sections will be converted to PDF
+ *     responses:
+ *       '200':
+ *         description: PDF generated and returned successfully
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *         headers:
+ *           Content-Disposition:
+ *             description: Attachment with filename
+ *             schema:
+ *               type: string
+ *               example: 'attachment; filename="business-plan-{projectId}.pdf"'
+ *           Content-Type:
+ *             description: MIME type of the response
+ *             schema:
+ *               type: string
+ *               example: 'application/pdf'
+ *       '400':
+ *         description: Bad request - Project ID is required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Project ID is required"
+ *       '401':
+ *         description: Unauthorized - User not authenticated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not authenticated"
+ *       '404':
+ *         description: Project not found or no business plan sections available
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "No business plan sections found for project {projectId}"
+ *       '500':
+ *         description: Internal server error during PDF generation
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error generating business plan PDF"
+ *                 error:
+ *                   type: string
+ *                   description: Detailed error message
+ */
+businessPlanRoutes.get(
+  `/${resourceName}/pdf/:projectId`,
+  authenticate,
+  generateBusinessPlanPdfController
 );

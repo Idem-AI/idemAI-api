@@ -22,14 +22,14 @@ import {
 } from "../common/generic.service";
 import { LogoModel } from "../../models/logo.model";
 import { COLORS_TYPOGRAPHY_GENERATION_PROMPT } from "./prompts/singleGenerations/colors-typography-generation.prompt";
-import puppeteer from "puppeteer";
-import * as fs from "fs-extra";
-import * as path from "path";
-import * as os from "os";
+import { PdfService } from "../pdf.service";
 
 export class BrandingService extends GenericService {
+  private pdfService: PdfService;
+
   constructor(promptService: PromptService) {
     super(promptService);
+    this.pdfService = new PdfService();
     logger.info("BrandingService initialized");
   }
 
@@ -474,14 +474,6 @@ export class BrandingService extends GenericService {
     logger.info(
       `Generating PDF for branding sections - projectId: ${projectId}, userId: ${userId}`
     );
-    const sectionDisplayOrder = [
-      "Brand Header",
-      "Logo System",
-      "Color Palette",
-      "Typography",
-      // "Usage Guidelines",
-      "Brand Footer",
-    ];
 
     // Récupérer le projet et ses données de branding
     const project = await this.projectRepository.findById(
@@ -504,197 +496,22 @@ export class BrandingService extends GenericService {
       throw new Error(`No branding sections found for project ${projectId}`);
     }
 
-    try {
-      // Créer le contenu HTML à partir des sections
-      const htmlContent = this.generateHtmlFromSections(
-        branding.sections.sort(
-          (a, b) =>
-            sectionDisplayOrder.indexOf(a.name) -
-            sectionDisplayOrder.indexOf(b.name)
-        ),
-        project
-      );
-
-      // Lancer Puppeteer pour générer le PDF
-      const browser = await puppeteer.launch({
-        headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      });
-
-      const page = await browser.newPage();
-
-      // Définir le contenu HTML
-      await page.setContent(htmlContent, {
-        waitUntil: "networkidle0",
-      });
-
-      // Créer un fichier temporaire pour le PDF
-      const tempDir = os.tmpdir();
-      const pdfFileName = `branding-${projectId}-${Date.now()}.pdf`;
-      const pdfPath = path.join(tempDir, pdfFileName);
-
-      // Générer le PDF au format A4
-      await page.pdf({
-        path: pdfPath,
-        format: "A4",
-        printBackground: true,
-        margin: {
-          top: "20mm",
-          right: "15mm",
-          bottom: "20mm",
-          left: "15mm",
-        },
-        preferCSSPageSize: true,
-        displayHeaderFooter: false,
-        omitBackground: false,
-      });
-
-      await browser.close();
-
-      logger.info(
-        `Successfully generated PDF for project ${projectId} at ${pdfPath}`
-      );
-      return pdfPath;
-    } catch (error) {
-      logger.error(`Error generating PDF for project ${projectId}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Génère le contenu HTML à partir des sections de branding
-   * @param sections - Sections de branding
-   * @param project - Projet contenant les informations contextuelles
-   * @returns Contenu HTML formaté
-   */
-  private generateHtmlFromSections(
-    sections: SectionModel[],
-    project: ProjectModel
-  ): string {
-    const projectName = project.name || "Projet Sans Nom";
-    const projectDescription = project.description || "";
-
-    let htmlContent = `
-      <!DOCTYPE html>
-      <html lang="fr">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Branding - ${projectName}</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script>
-          tailwind.config = {
-            theme: {
-              extend: {
-                fontFamily: {
-                  'inter': ['Inter', 'system-ui', 'sans-serif'],
-                }
-              }
-            }
-          }
-        </script>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-        <style>
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          
-          body {
-            font-family: 'Inter', system-ui, sans-serif;
-          }
-          
-          /* Styles pour éviter la coupure des éléments */
-          .section {
-            page-break-inside: avoid;
-            break-inside: avoid;
-            display: block;
-            overflow: visible;
-          }
-          
-          .section > * {
-            page-break-inside: avoid;
-            break-inside: avoid;
-          }
-          
-          .data-content {
-            page-break-inside: avoid;
-            break-inside: avoid;
-            orphans: 3;
-            widows: 3;
-          }
-          
-          /* Forcer les sauts de page avant certains éléments si nécessaire */
-          .section:not(:first-child) {
-            page-break-before: auto;
-            break-before: auto;
-          }
-          
-          /* Éviter les sauts de page après les titres */
-          h1, h2, h3, h4, h5, h6 {
-            page-break-after: avoid;
-            break-after: avoid;
-            orphans: 3;
-            widows: 3;
-          }
-          
-          /* Styles spécifiques pour l'impression */
-          @media print {
-            .section {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-            
-            .data-content {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-            
-            /* Éviter les lignes orphelines et veuves */
-            p, div {
-              orphans: 3;
-              widows: 3;
-            }
-          }
-          
-          /* Support pour les navigateurs plus anciens */
-          @page {
-            orphans: 3;
-            widows: 3;
-          }
-        </style>
-      </head>
-      <body class="bg-white">
-    `;
-
-    // Ajouter chaque section
-    sections.forEach((section, index) => {
-      const sectionData =
-        typeof section.data === "string"
-          ? section.data
-          : JSON.stringify(section.data, null, 2);
-
-      htmlContent += `
-        <div class="section mb-8 break-inside-avoid">
-            <div class="data-content break-inside-avoid">${sectionData}</div>
-        </div>
-      `;
+    // Utiliser le PdfService pour générer le PDF
+    return await this.pdfService.generatePdf({
+      title: "Branding",
+      projectName: project.name || "Projet Sans Nom",
+      projectDescription: project.description || "",
+      sections: branding.sections,
+      sectionDisplayOrder: [
+        "Brand Header",
+        "Logo System",
+        "Color Palette",
+        "Typography",
+        // "Usage Guidelines",
+        "Brand Footer",
+      ],
+      footerText: "Generated by Idem",
     });
-
-    htmlContent += `
-          <footer class="flex items-center justify-between px-4 py-2 mt-4 bg-gray-100 border border-gray-200 rounded-lg">
-            <p class="text-sm text-gray-700">Generated by Idem</p>
-            <div class="flex gap-x-4">
-              <p class="text-sm text-gray-700">Project: <span class="font-medium">${projectName}</span></p>
-              <p class="text-sm text-gray-700">|</p>
-              <p class="text-sm text-gray-700"><span class="font-medium">${sections.length}</span> section(s)</p>
-            </div>
-          </footer>
-      </body>
-      </html>
-    `;
-
-    return htmlContent;
   }
+
 }

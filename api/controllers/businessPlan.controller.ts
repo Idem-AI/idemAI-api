@@ -63,6 +63,72 @@ export const getBusinessPlansByProjectController = async (
   }
 };
 
+/**
+ * Contrôleur pour générer un PDF à partir des sections du business plan d'un projet
+ */
+export const generateBusinessPlanPdfController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const { projectId } = req.params;
+  const userId = req.user?.uid;
+  logger.info(
+    `generateBusinessPlanPdfController called - UserId: ${userId}, ProjectId: ${projectId}`
+  );
+
+  try {
+    if (!userId) {
+      logger.warn("User not authenticated for generateBusinessPlanPdfController");
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    if (!projectId) {
+      logger.warn("Project ID is required for generateBusinessPlanPdfController");
+      res.status(400).json({ message: "Project ID is required" });
+      return;
+    }
+
+    // Générer le PDF à partir des sections du business plan
+    const pdfPath = await businessPlanService.generateBusinessPlanPdf(
+      userId,
+      projectId
+    );
+
+    // Lire le fichier PDF généré
+    const fs = require("fs-extra");
+    const pdfBuffer = await fs.readFile(pdfPath);
+
+    // Configurer les headers pour le téléchargement du PDF
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="business-plan-${projectId}.pdf"`
+    );
+    res.setHeader("Content-Length", pdfBuffer.length);
+
+    // Envoyer le PDF
+    res.send(pdfBuffer);
+
+    // Nettoyer le fichier temporaire
+    await fs.unlink(pdfPath);
+
+    logger.info(
+      `Business plan PDF generated and sent successfully - UserId: ${userId}, ProjectId: ${projectId}`
+    );
+  } catch (error: any) {
+    logger.error(
+      `Error in generateBusinessPlanPdfController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack }
+    );
+
+    res.status(500).json({
+      message: "Error generating business plan PDF",
+      error: error.message,
+    });
+  }
+};
+
 export const getBusinessPlanByIdController = async (
   req: CustomRequest,
   res: Response
