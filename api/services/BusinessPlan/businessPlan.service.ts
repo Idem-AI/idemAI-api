@@ -9,7 +9,6 @@ import {
 } from "../common/generic.service";
 import { SectionModel } from "../../models/section.model";
 import { PdfService } from "../pdf.service";
-import { GLOBAL_CSS_PROMPT } from "./prompts/07_global-css-section.prompt";
 import { AGENT_COVER_PROMPT } from "./prompts/agent-cover.prompt";
 import { AGENT_COMPANY_SUMMARY_PROMPT } from "./prompts/agent-company-summary.prompt";
 import { AGENT_OPPORTUNITY_PROMPT } from "./prompts/agent-opportunity.prompt";
@@ -64,11 +63,6 @@ export class BusinessPlanService extends GenericService {
     try {
       // Define business plan steps with specialized agents
       const steps: IPromptStep[] = [
-        {
-          promptConstant: GLOBAL_CSS_PROMPT,
-          stepName: "Global CSS",
-          hasDependencies: false,
-        },
         {
           promptConstant: `${projectDescription}\n${AGENT_COVER_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
           stepName: "Cover Page",

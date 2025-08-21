@@ -51,7 +51,10 @@ export class PdfService {
 
     try {
       // Trier les sections selon l'ordre spécifié
-      const sortedSections = this.sortSectionsByOrder(sections, sectionDisplayOrder);
+      const sortedSections = this.sortSectionsByOrder(
+        sections,
+        sectionDisplayOrder
+      );
 
       // Créer le contenu HTML à partir des sections
       const htmlContent = this.generateHtmlFromSections({
@@ -77,7 +80,9 @@ export class PdfService {
 
       // Créer un fichier temporaire pour le PDF
       const tempDir = os.tmpdir();
-      const pdfFileName = `pdf-${Date.now()}-${Math.random().toString(36).substring(7)}.pdf`;
+      const pdfFileName = `pdf-${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(7)}.pdf`;
       const pdfPath = path.join(tempDir, pdfFileName);
 
       // Générer le PDF
@@ -118,8 +123,7 @@ export class PdfService {
     }
 
     return sections.sort(
-      (a, b) =>
-        displayOrder.indexOf(a.name) - displayOrder.indexOf(b.name)
+      (a, b) => displayOrder.indexOf(a.name) - displayOrder.indexOf(b.name)
     );
   }
 
@@ -135,7 +139,8 @@ export class PdfService {
     sections: SectionModel[];
     footerText: string;
   }): string {
-    const { title, projectName, projectDescription, sections, footerText } = options;
+    const { title, projectName, projectDescription, sections, footerText } =
+      options;
 
     let htmlContent = `
       <!DOCTYPE html>
@@ -259,7 +264,10 @@ export class PdfService {
             <div class="flex gap-x-4">
               <p class="text-sm text-gray-700">Project: <span class="font-medium">${projectName}</span></p>
               <p class="text-sm text-gray-700">|</p>
-              <p class="text-sm text-gray-700"><span class="font-medium">${sections.length}</span> section(s)</p>
+              <p class="text-sm text-gray-700"> generated on <span class="font-medium">${new Date().toLocaleDateString(
+                "fr-FR",
+                { year: "numeric", month: "long", day: "numeric" }
+              )}</span></p>
             </div>
           </footer>
       </body>

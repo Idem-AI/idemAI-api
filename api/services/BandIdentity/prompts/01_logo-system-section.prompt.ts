@@ -11,6 +11,7 @@ OUTPUT RULES:
 - Replace all image placeholders (e.g., [PRIMARY_LOGO_URL]) with actual project context URLs.
 - No custom CSS or JavaScript; use Tailwind utilities (including arbitrary values) and data URIs if needed.
 - Ensure strong accessibility: clear hierarchy, semantic order, sufficient contrast, focusable semantics when relevant.
+- I dont want to have anny html prefix or suffix. just the html code.
 
 PAGE LAYOUT CONSTRAINTS (MANDATORY SINGLE PAGE):
 - Wrap the entire section in a container sized with Tailwind arbitrary values to A4 portrait: [width:210mm] [height:297mm] with internal safe margins (≥ [padding:12mm]).
