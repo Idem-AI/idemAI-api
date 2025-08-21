@@ -83,6 +83,31 @@ export class BusinessPlanService extends GenericService {
           stepName: "Target Audience",
           hasDependencies: false,
         },
+        {
+          promptConstant: `${projectDescription}\n${AGENT_PRODUCTS_SERVICES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Products & Services",
+          hasDependencies: false,
+        },
+        {
+          promptConstant: `${projectDescription}\n${AGENT_MARKETING_SALES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Marketing & Sales",
+          hasDependencies: false,
+        },
+        {
+          promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Financial Plan",
+          hasDependencies: false,
+        },
+        {
+          promptConstant: `${projectDescription}\n${AGENT_GOAL_PLANNING_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Goal Planning",
+          hasDependencies: false,
+        },
+        {
+          promptConstant: `${projectDescription}\n${AGENT_APPENDIX_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Appendix",
+          hasDependencies: false,
+        },
       ];
       const promptConfig: PromptConfig = {
         provider: LLMProvider.GEMINI,
@@ -325,7 +350,6 @@ export class BusinessPlanService extends GenericService {
       projectDescription: project.description || "",
       sections: businessPlan.sections,
       sectionDisplayOrder: [
-        "Global CSS",
         "Cover Page",
         "Company Summary",
         "Opportunity",

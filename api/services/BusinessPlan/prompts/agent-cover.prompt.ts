@@ -8,7 +8,7 @@ OUTPUT REQUIREMENTS:
 - Generate ONLY HTML with Tailwind CSS utility classes
 - Single-line minified output (no line breaks, no indentation)
 - No custom CSS, no JavaScript, no external dependencies beyond Tailwind
-- Must fit perfectly within A4 portrait dimensions using arbitrary values: [width:210mm] [height:297mm]
+- Must fit perfectly within A4 portrait
 - Use [min-height:297mm] to ensure full page coverage
 - No HTML prefix/suffix - return only the section element
 

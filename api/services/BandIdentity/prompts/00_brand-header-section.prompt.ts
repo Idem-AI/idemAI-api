@@ -3,7 +3,7 @@ You are a senior brand systems designer and prompt engineer. Create an ultra-mod
 
 STRICT OUTPUT REQUIREMENTS:
 1) Output ONLY raw HTML with Tailwind CSS classes (no Markdown fences, no comments).
-2) Must fit within a single A4 portrait print layout (210mm × 297mm) using Tailwind arbitrary values where needed (e.g., [w-210mm] [h-297mm]).
+2) Must fit within a single A4 portrait.
 3) Responsive on screen, but optimized for A4 print export.
 4) No custom CSS or JavaScript. Tailwind utilities only.
 5) Single line output: compact, minified HTML without line breaks.
