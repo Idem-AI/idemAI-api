@@ -476,3 +476,64 @@ export const generateBrandingStreamingController = async (
     res.end();
   }
 };
+
+/**
+ * Contrôleur pour générer un PDF à partir des sections de branding d'un projet
+ */
+export const generateBrandingPdfController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const { projectId } = req.params;
+  const userId = req.user?.uid;
+  logger.info(
+    `generateBrandingPdfController called - UserId: ${userId}, ProjectId: ${projectId}`
+  );
+
+  try {
+    if (!userId) {
+      logger.warn("User not authenticated for generateBrandingPdfController");
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    if (!projectId) {
+      logger.warn("Project ID is required for generateBrandingPdfController");
+      res.status(400).json({ message: "Project ID is required" });
+      return;
+    }
+
+    // Générer le PDF à partir des sections de branding
+    const pdfPath = await brandingService.generateBrandingPdf(userId, projectId);
+
+    // Lire le fichier PDF généré
+    const fs = require('fs-extra');
+    const pdfBuffer = await fs.readFile(pdfPath);
+
+    // Configurer les headers pour le téléchargement du PDF
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="branding-${projectId}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+
+    // Envoyer le PDF
+    res.send(pdfBuffer);
+
+    // Nettoyer le fichier temporaire
+    await fs.unlink(pdfPath);
+
+    logger.info(
+      `PDF generated and sent successfully - UserId: ${userId}, ProjectId: ${projectId}`
+    );
+
+  } catch (error: any) {
+    logger.error(
+      `Error in generateBrandingPdfController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack }
+    );
+
+    res.status(500).json({
+      message: "Error generating branding PDF",
+      error: error.message,
+    });
+  }
+};

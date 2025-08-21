@@ -8,6 +8,7 @@ import {
   generateColorsAndTypographyController,
   generateLogosController,
   generateBrandingStreamingController,
+  generateBrandingPdfController,
 } from "../controllers/branding.controller";
 import { authenticate } from "../services/auth.service"; // Updated import path
 import { checkQuota } from "../middleware/quota.middleware";
@@ -405,4 +406,91 @@ brandingRoutes.delete(
   `/${resourceName}/delete/:projectId`,
   authenticate,
   deleteBrandingController
+);
+
+// Generate PDF from branding sections
+/**
+ * @openapi
+ * /brandings/pdf/{projectId}:
+ *   get:
+ *     tags:
+ *       - Branding
+ *     summary: Generate and download a PDF document from branding sections
+ *     description: Creates a PDF document containing all branding sections for a project in A4 format
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the project whose branding sections will be converted to PDF
+ *     responses:
+ *       '200':
+ *         description: PDF generated and returned successfully
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *         headers:
+ *           Content-Disposition:
+ *             description: Attachment with filename
+ *             schema:
+ *               type: string
+ *               example: 'attachment; filename="branding-{projectId}.pdf"'
+ *           Content-Type:
+ *             description: MIME type of the response
+ *             schema:
+ *               type: string
+ *               example: 'application/pdf'
+ *       '400':
+ *         description: Bad request - Project ID is required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Project ID is required"
+ *       '401':
+ *         description: Unauthorized - User not authenticated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not authenticated"
+ *       '404':
+ *         description: Project not found or no branding sections available
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "No branding sections found for project {projectId}"
+ *       '500':
+ *         description: Internal server error during PDF generation
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error generating branding PDF"
+ *                 error:
+ *                   type: string
+ *                   description: Detailed error message
+ */
+brandingRoutes.get(
+  `/${resourceName}/pdf/:projectId`,
+  authenticate,
+  generateBrandingPdfController
 );
