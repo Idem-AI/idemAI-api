@@ -18,6 +18,15 @@ export interface GitHubIntegration {
   scopes: string[];
 }
 
+export interface RefreshTokenData {
+  token: string;
+  expiresAt: Date;
+  createdAt: Date;
+  lastUsed?: Date;
+  deviceInfo?: string;
+  ipAddress?: string;
+}
+
 export interface UserModel {
   uid: string;
   email: string;
@@ -29,4 +38,5 @@ export interface UserModel {
   quota: Partial<QuotaData>;
   roles: string[];
   githubIntegration?: GitHubIntegration;
+  refreshTokens?: RefreshTokenData[];
 }
