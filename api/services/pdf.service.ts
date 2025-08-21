@@ -226,6 +226,11 @@ export class PdfService {
             orphans: 3;
             widows: 3;
           }
+          
+          /* Supprimer les marges uniquement sur la première page */
+          @page :first {
+            margin: 0;
+          }
         </style>
       </head>
       <body class="bg-white">
@@ -238,8 +243,11 @@ export class PdfService {
           ? section.data
           : JSON.stringify(section.data, null, 2);
 
+      // Première section (page de couverture) sans marges, autres sections avec marges
+      const marginClass = index === 0 ? "" : "mb-8";
+
       htmlContent += `
-        <div class="section mb-8 break-inside-avoid">
+        <div class="section ${marginClass} break-inside-avoid">
             <div class="data-content break-inside-avoid">${sectionData}</div>
         </div>
       `;

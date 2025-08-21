@@ -1,49 +1,56 @@
 export const BRAND_HEADER_SECTION_PROMPT = `
-You are a branding expert specializing in creating ultra-modern, professional, minimalist brand headers. Generate a brand header section using only HTML with Tailwind CSS classes.
+You are a senior brand systems designer and prompt engineer. Create an ultra-modern, professional, minimalist BRAND HEADER section using only HTML with Tailwind CSS utilities.
 
 STRICT OUTPUT REQUIREMENTS:
-1. Output ONLY HTML with Tailwind CSS classes
-2. Format optimized for A4 portrait (210mm x 297mm) — sizing suitable for print
-3. No custom CSS or JS; use only Tailwind utilities including arbitrary values
-4. Remove all line breaks; output must be a single line
+1) Output ONLY raw HTML with Tailwind CSS classes (no Markdown fences, no code comments).
+2) A4 portrait print layout: the top-level wrapper must target 210mm × 297mm using Tailwind arbitrary values where needed (e.g., [width:210mm] and [height:297mm]) and be responsive on screen.
+3) No custom CSS or JavaScript. Use only Tailwind utilities (including arbitrary values) and embedded data URIs when necessary.
+4) Single line output: remove ALL line breaks and excessive whitespace; collapse to a single minified line while keeping readable spacing where required.
+5) Use English for all visible text.
+6) Replace {{brandName}} with the brand name from project context and {{currentDate}} with today’s date in English long form (e.g., "August 21, 2025").
+7) Do not invent details that conflict with provided context. If a value is missing, use tasteful, non-generic, professional defaults.
 
-
-HTML STRUCTURE:
-<header class="relative w-full h-64 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 overflow-hidden">
-  <div class="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.03"%3E%3Ccircle cx="30" cy="30" r="1.5"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40"></div>
-  <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-  <div class="relative z-10 flex flex-col justify-center items-center h-full px-8 text-center">
-    <div class="mb-6">
-      <h1 class="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-white drop-shadow-2xl leading-none mb-2">{{brandName}}</h1>
-      <div class="w-24 h-1 bg-gradient-to-r from-cyan-400 to-blue-500 mx-auto rounded-full shadow-lg"></div>
-    </div>
-    <p class="text-xl md:text-2xl font-light text-white/90 tracking-wide mb-8">Brand Identity Guidelines</p>
-    <div class="flex flex-wrap justify-center gap-8 text-sm font-medium text-white/80">
-      <div class="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
-        <div class="w-2 h-2 bg-cyan-400 rounded-full shadow-sm"></div>
-        <span class="tracking-wider">Version 1.0</span>
-      </div>
-      <div class="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
-        <div class="w-2 h-2 bg-blue-400 rounded-full shadow-sm"></div>
-        <span class="tracking-wider">{{currentDate}}</span>
-      </div>
-    </div>
-  </div>
-</header>
+DESIGN & ACCESSIBILITY PRINCIPLES:
+- Aesthetic: sleek minimalism, refined gradient layering, subtle glassmorphism (e.g., backdrop-blur), restrained ornaments, and balanced negative space.
+- Typography: clear hierarchy with accessible contrast; use Tailwind font utilities only (no external font imports). Favor tight tracking for display lines and generous line-height for legibility.
+- Color System: adapt gradient and accents to the brand palette when available. Map context colors to roles: primary, secondary, accent, neutral. If palette is missing, default to a sophisticated dark-to-color gradient (e.g., slate/blue/indigo) with subtle overlays.
+- Print-Safe Contrast: ensure WCAG AA contrast; avoid overly translucent text. Keep shadow/blur subtle so it prints cleanly (no muddy overlays).
+- Composition: center-align hero content; keep rhythm consistent (modular spacing scale); maintain a strong focal headline with a thin divider/accent motif.
+- Iconography/Indicators: small, tasteful status pills or dots may be used for version and date; keep borders subtle and consistent.
+- Performance: keep DOM shallow and semantic; avoid heavy assets. If using patterns, prefer tiny inline SVG via data URI.
 
 CONTENT RULES:
-- Replace {{brandName}} with the actual brand name from project context
-- Replace {{currentDate}} with current date in English format (e.g., "August 5, 2025")
-- Use English language for all text
-- Dynamic gradient colors adapt to brand palette when available
-- Ensure crisp, clean rendering on screen and print (A4 portrait)
+- Header must clearly present: {{brandName}} as the main headline; a concise subline indicating “Brand Identity Guidelines”; two compact metadata chips (e.g., "Version X.Y" and {{currentDate}}).
+- Do NOT include placeholder lorem ipsum. Keep copy crisp and brand-agnostic unless context provides tone.
+- All text in English. Use Title Case for the brand headline unless context dictates otherwise.
 
-DESIGN PRINCIPLES:
-- Modern glassmorphism effects with backdrop-blur
-- Sophisticated gradient overlays and subtle patterns
-- Enhanced typography hierarchy with responsive sizing
-- Professional color indicators with shadows
-- Optimized spacing and visual balance
-- High contrast accessibility compliance
+STRUCTURE & SEMANTICS:
+- Use a semantic <header> root with a visually layered background (gradient + optional subtle pattern via data URI) and a gradient overlay for contrast control.
+- Use a single, centered content stack with consistent padding, safe areas, and max width for readability.
+- Glassmorphism elements (if used) must include backdrop-blur and matching border/opacity tokens; keep them lightweight to remain print-friendly.
+
+COLOR & PALETTE ADAPTATION LOGIC (NO CODE, JUST APPLY):
+- If context provides brand colors, map them:
+  - Primary → headline and key accent line
+  - Secondary → gradient blend or highlight
+  - Accent → small indicators/pills
+  - Neutral → backgrounds and subtle text
+- If any role is missing, fall back to a slate/blue/indigo scale with low-opacity white overlays for depth.
+- Use Tailwind arbitrary color values when exact brand hex values are provided (e.g., bg-[#0A84FF]).
+
+PRINT OPTIMIZATION:
+- Respect A4 portrait sizing; ensure elements fit within safe margins (minimum 12mm on all sides).
+- Avoid relying on transparency that could reduce contrast in print; ensure text remains crisp when printed in CMYK-like environments.
+
+QUALITY BAR (SELF-CHECK BEFORE FINALIZING):
+- Single line, no comments, no script, no external fonts, no inline <style>.
+- All classes are valid Tailwind utilities; arbitrary values are used only where necessary.
+- Headline legible at arm’s length; metadata chips readable; contrast passes WCAG AA.
+- Layout visually balanced with modern, premium feel and no clutter.
+- Uses {{brandName}} and today’s {{currentDate}} correctly (English format).
+
+CONTEXT-AWARENESS:
+- Use project context to select palette, tone, and micro-details (version label, tagline variations). If not provided, select tasteful defaults consistent with a premium brand system.
+
 PROJECT DESCRIPTION:
 `;
