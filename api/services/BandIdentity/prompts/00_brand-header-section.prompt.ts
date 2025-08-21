@@ -6,9 +6,10 @@ STRICT OUTPUT REQUIREMENTS:
 2) Must fit within a single A4 portrait.
 3) Responsive on screen, but optimized for A4 print export.
 4) No custom CSS or JavaScript. Tailwind utilities only.
-5) Single line output: compact, minified HTML without line breaks.
-6) All visible text in English. Replace {{brandName}} and {{currentDate}} with project context (date format: long English form, e.g., "August 21, 2025").
-7) Avoid lorem ipsum or filler; keep copy sharp and brand-agnostic unless context provides specifics.
+5) For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN.
+6) Single line output: compact, minified HTML without line breaks.
+7) All visible text in English. Replace {{brandName}} and {{currentDate}} with project context (date format: long English form, e.g., "August 21, 2025").
+8) Avoid lorem ipsum or filler; keep copy sharp and brand-agnostic unless context provides specifics.
 
 DESIGN PRINCIPLES:
 - Premium minimalism with refined gradients, subtle layering, and clean negative space.
@@ -17,6 +18,7 @@ DESIGN PRINCIPLES:
 - Subtle glassmorphism (optional), soft shadows, restrained ornaments.
 - Composition must remain visually balanced and print-friendly, but arrangement is up to creative choice.
 - Keep DOM shallow, lightweight, semantic.
+- Icons: use PrimeIcons for visual elements (pi pi-icon-name classes)
 
 CONTENT REQUIREMENTS:
 - Prominent display of {{brandName}} as main headline.

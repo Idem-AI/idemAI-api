@@ -7,6 +7,7 @@ Create a premium, modern, and accessible typography guidelines section, fully op
 OUTPUT RULES:
 - HTML only, using Tailwind utility classes exclusively
 - No custom CSS, no JavaScript
+- For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN
 - Output must be a single-line, minified HTML string
 - No HTML prefix or suffix (return only the <section>…</section>)
 - All content must fit visually and spatially within a single A4 portrait page
@@ -31,6 +32,7 @@ VISUAL GUIDELINES:
 - Clean spacing (px-8, py-12, gap-6) while remaining within one page
 - Palette: gray, slate, blue, purple (premium and modern)
 - Keep hierarchy clear but let layout creativity flow — do not enforce rigid positioning
+- Icons: use PrimeIcons for visual elements (pi pi-icon-name classes)
 
 PROJECT CONTEXT:
 - Replace [Primary Font Name] and [Secondary Font Name] with actual brand fonts

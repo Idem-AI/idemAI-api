@@ -23,11 +23,6 @@ export interface PdfGenerationOptions {
 }
 
 export class PdfService {
-  /**
-   * Génère un PDF à partir de sections avec Puppeteer et Tailwind CSS
-   * @param options - Options de génération du PDF
-   * @returns Chemin vers le fichier PDF temporaire généré
-   */
   async generatePdf(options: PdfGenerationOptions): Promise<string> {
     const {
       title = "Document",
@@ -51,10 +46,9 @@ export class PdfService {
 
     try {
       // Trier les sections selon l'ordre spécifié
-      const sortedSections = sections.sort(
-        (a, b) =>
-          sectionDisplayOrder!.indexOf(a.name) -
-          sectionDisplayOrder!.indexOf(b.name)
+      const sortedSections = this.sortSectionsByOrder(
+        sections,
+        sectionDisplayOrder
       );
 
       // Créer le contenu HTML à partir des sections
@@ -70,22 +64,37 @@ export class PdfService {
       const browser = await puppeteer.launch({
         headless: true,
         args: [
-          "--no-sandbox", 
+          "--no-sandbox",
           "--disable-setuid-sandbox",
           "--disable-dev-shm-usage",
           "--disable-gpu",
           "--no-first-run",
           "--disable-default-apps",
-          "--disable-features=TranslateUI"
+          "--disable-features=TranslateUI",
         ],
-        timeout: 120000, // 2 minutes pour le lancement du navigateur
+        timeout: 120000, 
       });
 
       const page = await browser.newPage();
 
-      // Injecter les scripts locaux AVANT de définir le contenu HTML
-      
-      // 1. Injecter Tailwind CSS
+      // Injecter les scripts et styles locaux AVANT de définir le contenu HTML
+
+      // 1. Injecter PrimeIcons CSS
+      const primeiconsStylePath = path.join(
+        process.cwd(),
+        "public",
+        "css",
+        "primeicons.css"
+      );
+      if (await fs.pathExists(primeiconsStylePath)) {
+        const primeiconsStyle = await fs.readFile(primeiconsStylePath, "utf8");
+        await page.addStyleTag({ content: primeiconsStyle });
+        logger.info("Local PrimeIcons CSS injected successfully");
+      } else {
+        logger.warn("Local PrimeIcons CSS not found");
+      }
+
+      // 2. Injecter Tailwind CSS
       const tailwindScriptPath = path.join(
         process.cwd(),
         "public",
@@ -105,7 +114,7 @@ export class PdfService {
         logger.warn("Local Tailwind script not found, falling back to CDN");
       }
 
-      // 2. Injecter Chart.js
+      // 3. Injecter Chart.js
       const chartjsScriptPath = path.join(
         process.cwd(),
         "public",
@@ -167,9 +176,10 @@ export class PdfService {
 
       // Vérifier que les scripts sont bien chargés et fonctionnels
       const scriptsStatus = await page.evaluate(() => {
-        const tailwindAvailable = typeof (window as any).tailwind !== 'undefined';
-        const chartjsAvailable = typeof (window as any).Chart !== 'undefined';
-        
+        const tailwindAvailable =
+          typeof (window as any).tailwind !== "undefined";
+        const chartjsAvailable = typeof (window as any).Chart !== "undefined";
+
         // Tester l'application des styles Tailwind
         let tailwindWorking = false;
         const testElement = document.querySelector(
@@ -177,16 +187,15 @@ export class PdfService {
         );
         if (testElement) {
           const computedStyle = window.getComputedStyle(testElement);
-          tailwindWorking = (
+          tailwindWorking =
             computedStyle.backgroundColor !== "" ||
             computedStyle.color !== "" ||
-            computedStyle.padding !== ""
-          );
+            computedStyle.padding !== "";
         }
-        
+
         return {
           tailwind: { available: tailwindAvailable, working: tailwindWorking },
-          chartjs: { available: chartjsAvailable }
+          chartjs: { available: chartjsAvailable },
         };
       });
 
@@ -198,7 +207,7 @@ export class PdfService {
       } else {
         logger.warn("Tailwind CSS not available in page context");
       }
-      
+
       if (scriptsStatus.chartjs.available) {
         logger.info("Chart.js successfully loaded and available");
       } else {
@@ -236,30 +245,38 @@ export class PdfService {
     }
   }
 
-  /**
-   * Trie les sections selon l'ordre spécifié
-   * @param sections - Sections à trier
-   * @param displayOrder - Ordre d'affichage souhaité
-   * @returns Sections triées
-   */
   private sortSectionsByOrder(
     sections: SectionModel[],
-    displayOrder: string[]
+    sectionDisplayOrder?: string[]
   ): SectionModel[] {
-    if (displayOrder.length === 0) {
-      return sections;
+    if (!sectionDisplayOrder || sectionDisplayOrder.length === 0) {
+      return sections; // Return sections in their original order if no specific order is specified
     }
 
-    return sections.sort(
-      (a, b) => displayOrder.indexOf(a.name) - displayOrder.indexOf(b.name)
-    );
+    return sections.sort((a, b) => {
+      const indexA = sectionDisplayOrder.indexOf(a.name);
+      const indexB = sectionDisplayOrder.indexOf(b.name);
+
+      // If both sections are in the specified order, sort them according to that order
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+
+      // If only section A is in the specified order, it comes first
+      if (indexA !== -1 && indexB === -1) {
+        return -1;
+      }
+
+      // If only section B is in the specified order, it comes first
+      if (indexA === -1 && indexB !== -1) {
+        return 1;
+      }
+
+      // If neither section is in the specified order, keep their original order
+      return 0;
+    });
   }
 
-  /**
-   * Génère le contenu HTML à partir des sections
-   * @param options - Options de génération HTML
-   * @returns Contenu HTML formaté
-   */
   private generateHtmlFromSections(options: {
     title: string;
     projectName: string;
@@ -435,10 +452,6 @@ export class PdfService {
     return htmlContent;
   }
 
-  /**
-   * Nettoie un fichier PDF temporaire
-   * @param pdfPath - Chemin vers le fichier PDF à supprimer
-   */
   async cleanupTempFile(pdfPath: string): Promise<void> {
     try {
       await fs.unlink(pdfPath);

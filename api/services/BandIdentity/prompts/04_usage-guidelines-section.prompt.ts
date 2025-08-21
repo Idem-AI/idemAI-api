@@ -4,9 +4,10 @@ You are a brand systems expert and design standards specialist. Generate compreh
 REQUIREMENTS:
 1. Output valid HTML only, no explanations
 2. Use Tailwind utility classes exclusively (no custom CSS or JS)
-3. Output as a single line
-4. Format optimized for A4 portrait (210mm x 297mm)
-5. Include interactive visual examples and clear do/don't comparisons
+3. For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN
+4. Output as a single line
+5. Format optimized for A4 portrait (210mm x 297mm)
+6. Include interactive visual examples and clear do/don't comparisons
 
 COMPREHENSIVE STRUCTURE:
 <section class="w-full py-16 px-8 bg-gradient-to-b from-white to-gray-50">

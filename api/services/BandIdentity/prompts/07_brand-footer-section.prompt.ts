@@ -6,6 +6,7 @@ The footer must reinforce brand credibility while providing all essential legal 
 
 OUTPUT RULES:
 - Generate ONLY HTML with Tailwind CSS utility classes
+- For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN
 - Output must be a single line (no line breaks, no indentation)
 - No JavaScript, no custom CSS
 - Must fit visually and spatially within a single A4 portrait page

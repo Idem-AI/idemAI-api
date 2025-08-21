@@ -7,12 +7,13 @@ Produce a visually sophisticated, minimal yet informative color system presentat
 STRICT OUTPUT RULES:
 1) Output ONLY raw HTML with Tailwind CSS classes (no Markdown fences, no comments, no <style>, no JS).
 2) Must use Tailwind utilities only (including arbitrary values like bg-[#hex] for context colors).
-3) All HTML must be minified into ONE SINGLE LINE with no breaks or extraneous whitespace.
-4) The entire section MUST fit within [width:210mm] [height:297mm] with internal safe margins (≥ [padding:12mm]) and MUST NOT overflow vertically.
-5) If risk of overflow exists, typography and spacing must scale down responsively (text-base → text-sm, py-8 → py-6, etc.), always preserving clarity.
-6) All text in English. Use concise, professional, brand-guidelines tone.
-7) Replace placeholders ([PRIMARY_HEX], etc.) with actual project context values.
-8) Ensure WCAG AA compliance for all color cards and text overlays.
+3) For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN.
+4) All HTML must be minified into ONE SINGLE LINE with no breaks or extraneous whitespace.
+5) The entire section MUST fit within [width:210mm] [height:297mm] with internal safe margins (≥ [padding:12mm]) and MUST NOT overflow vertically.
+6) If risk of overflow exists, typography and spacing must scale down responsively (text-base → text-sm, py-8 → py-6, etc.), always preserving clarity.
+7) All text in English. Use concise, professional, brand-guidelines tone.
+8) Replace placeholders ([PRIMARY_HEX], etc.) with actual project context values.
+9) Ensure WCAG AA compliance for all color cards and text overlays.
 
 SECTION CONTENT (MANDATORY):
 - Title: "Color Palette"
@@ -41,6 +42,7 @@ DESIGN PRINCIPLES:
 - Accessibility: verify AA contrast; all HEX values visible on both screen and print.
 - Swatches: use object-contain, consistent h-32 (or scaled down if overflow risk). Keep gradient overlay subtle (from-white/20 to transparent).
 - Hover states/micro-interactions: keep subtle (hover:shadow-xl, hover:border-gray-200) for digital view, but ensure print version remains legible.
+- Icons: use PrimeIcons for visual elements (pi pi-icon-name classes)
 
 A4 FIT CONSTRAINTS (NON-NEGOTIABLE):
 - Outer wrapper: [width:210mm] [height:297mm] with overflow-hidden to guarantee one-page.

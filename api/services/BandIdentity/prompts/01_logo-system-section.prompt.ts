@@ -10,6 +10,7 @@ OUTPUT RULES:
 - All visible text must be written in French.
 - Replace all image placeholders (e.g., [PRIMARY_LOGO_URL]) with actual project context URLs.
 - No custom CSS or JavaScript; use Tailwind utilities (including arbitrary values) and data URIs if needed.
+- For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN.
 - Ensure strong accessibility: clear hierarchy, semantic order, sufficient contrast, focusable semantics when relevant.
 - I dont want to have anny html prefix or suffix. just the html code.
 
@@ -37,6 +38,7 @@ DESIGN GUIDELINES:
 - Logos: use \`object-contain\`, \`max-h\` constraints and centered placement. Provide consistent background treatments (e.g., subtle slate/neutral panels) to showcase contrast variants.
 - Variant badges: small, color-coded rounded dots or pills to distinguish each variant (e.g., blue for principal, gray for mono, slate for négative, amber for zone).
 - Protection zone: illustrate clear margins around the logo using simple shapes or a thin dashed-like effect via SVG data URI (no custom CSS).
+- Icons: use PrimeIcons for visual elements (pi pi-icon-name classes)
 
 ACCESSIBILITY & TYPOGRAPHY:
 - Use semantic elements: <section>, <header>, <article>, <figure>, <figcaption>, <ul>/<li>, proper heading levels (h2 then h3 for cards).
@@ -50,7 +52,7 @@ GRID & DENSITY STRATEGY (FIT ON A4):
 - Place "Bonnes pratiques" in a compressed but distinct block at the bottom with minimal yet clear spacing.
 
 BONNES PRATIQUES BLOCK:
-- Background: soft blue panel (subtle tint) with rounded corners and a clear leading icon (SVG data URI or Tailwind icon placeholder shape).
+- Background: soft blue panel (subtle tint) with rounded corners and a clear leading icon (use PrimeIcons, e.g., pi pi-lightbulb).
 - Content: concise bullet list (3–6 items), each line short and actionable (ex: "Respecter la zone de protection", "Éviter la distorsion", etc.).
 
 PALETTE & VARIANTS MAPPING (APPLY WITHOUT EXTRA EXPLANATION):

@@ -8,6 +8,7 @@ OUTPUT REQUIREMENTS:
 - Generate ONLY HTML with Tailwind CSS utility classes
 - Single-line minified output (no line breaks, no indentation)
 - No custom CSS, no JavaScript, no external dependencies
+- For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN
 - Optimize for A4 portrait: use max-w-4xl and appropriate spacing
 - No HTML prefix/suffix - return only the section element
 
@@ -26,6 +27,7 @@ DESIGN PRINCIPLES:
 - Color scheme: professional palette (slate, blue, indigo) with brand color accents
 - Spacing: generous white space, balanced composition using py-8, px-6, gap-6
 - Visual elements: subtle borders, soft shadows, professional dividers
+- Icons: use PrimeIcons for visual elements (pi pi-icon-name classes)
 
 VISUAL HIERARCHY:
 1. Section title "Company Summary" - prominent, professional
@@ -40,6 +42,7 @@ TECHNICAL SPECIFICATIONS:
 - Responsive design with print optimization
 - Professional typography scale and spacing
 - Brand color integration via arbitrary values bg-[#hexcode]
+- PrimeIcons for all icons (automatically available, no import needed)
 
 CONTENT GUIDELINES:
 - Mission: 1-2 sentences, powerful and memorable

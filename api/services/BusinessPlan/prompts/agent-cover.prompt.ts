@@ -8,6 +8,7 @@ OUTPUT REQUIREMENTS:
 - Generate ONLY HTML with Tailwind CSS utility classes
 - Single-line minified output (no line breaks, no indentation)
 - No custom CSS, no JavaScript, no external dependencies beyond Tailwind
+- For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN
 - Must fit perfectly within A4 portrait
 - Use [min-height:297mm] to ensure full page coverage
 - No HTML prefix/suffix - return only the section element
@@ -29,6 +30,7 @@ DESIGN PRINCIPLES:
 - Color palette: professional gradients (slate/blue/indigo), high contrast text
 - Logo treatment: prominent but balanced, proper scaling with max-w/max-h constraints
 - Visual elements: subtle geometric patterns, professional dividers, status indicators
+- Icons: use PrimeIcons for visual elements (pi pi-icon-name classes)
 
 A4 OPTIMIZATION:
 - Container: [width:210mm] [height:297mm] with overflow-hidden
@@ -55,6 +57,7 @@ TECHNICAL SPECIFICATIONS:
 - Optimize for both screen (responsive) and print (A4 fixed)
 - Include hover states for interactive elements (subtle)
 - Use Tailwind arbitrary values for precise A4 measurements
+- PrimeIcons for all icons (automatically available, no import needed)
 
 QUALITY STANDARDS:
 - Executive-level presentation quality

@@ -8,6 +8,7 @@ OUTPUT REQUIREMENTS:
 - Generate ONLY HTML with Tailwind CSS utility classes
 - Single-line minified output (no line breaks, no indentation)
 - No custom CSS, Chart.js integration for supplementary data visualization (Chart.js script will be injected automatically - do NOT include script tags)
+- For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN
 - Optimize for A4 portrait: use max-w-4xl and appropriate spacing
 - No HTML prefix/suffix - return only the section element
 
@@ -27,6 +28,7 @@ DESIGN PRINCIPLES:
 - Color scheme: professional with document type differentiation
 - Spacing: organized sections with clear document separation
 - Charts: supporting data visualization using Chart.js (NO animations, static charts only)
+- Icons: use PrimeIcons for visual elements (pi pi-icon-name classes)
 
 DATA VISUALIZATION REQUIREMENTS:
 - Detailed financial models (complex charts and tables)
@@ -49,6 +51,7 @@ TECHNICAL SPECIFICATIONS:
 - Responsive design optimized for print
 - Chart.js integration for supplementary data (NO animations, static only)
 - Brand color integration via arbitrary values
+- PrimeIcons for all icons (automatically available, no import needed)
 
 CHART.JS IMPLEMENTATION:
 - Detailed financial modeling charts

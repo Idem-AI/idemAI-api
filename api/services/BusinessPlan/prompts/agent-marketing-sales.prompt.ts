@@ -8,6 +8,7 @@ OUTPUT REQUIREMENTS:
 - Generate ONLY HTML with Tailwind CSS utility classes
 - Single-line minified output (no line breaks, no indentation)
 - No custom CSS, no JavaScript beyond Chart.js for marketing analytics (Chart.js script will be injected automatically - do NOT include script tags)
+- For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN
 - Optimize for A4 portrait: use max-w-4xl and appropriate spacing
 - No HTML prefix/suffix - return only the section element
 
@@ -28,6 +29,7 @@ DESIGN PRINCIPLES:
 - Color scheme: professional with channel differentiation
 - Spacing: organized sections with clear strategy separation
 - Charts: funnel analysis and ROI visualization using Chart.js (NO animations, static charts only)
+- Icons: use PrimeIcons for visual elements (pi pi-icon-name classes)
 
 DATA VISUALIZATION REQUIREMENTS:
 - Marketing funnel (awareness to conversion)
@@ -50,6 +52,7 @@ TECHNICAL SPECIFICATIONS:
 - Responsive design optimized for print
 - Chart.js integration for marketing analytics (NO animations, static only)
 - Brand color integration via arbitrary values
+- PrimeIcons for all icons (automatically available, no import needed)
 
 CHART.JS IMPLEMENTATION:
 - Marketing funnel visualization (funnel chart)
