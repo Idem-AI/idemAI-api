@@ -1151,6 +1151,9 @@ Please provide only the terraform.tfvars file content as output.`;
           // Create an AI message and parse the response as JSON if possible
 
           try {
+            if (!project.activeChatMessages) {
+              project.activeChatMessages = [];
+            }
             // Try to extract JSON from the response (it might be wrapped in markdown code blocks)
             const jsonMatch = aiResponse.match(
               /```(?:json)?\s*([\s\S]*?)\s*```/
@@ -1159,7 +1162,7 @@ Please provide only the terraform.tfvars file content as output.`;
             const parsedResponse = JSON.parse(jsonContent);
 
             // Create an AI message from the structured response
-            const aiMessage = {
+            const aiMessage: ChatMessage = {
               sender: "ai",
               text: parsedResponse.message || aiResponse, // Fallback to raw response if message field missing
               timestamp: new Date(),
@@ -1168,6 +1171,7 @@ Please provide only the terraform.tfvars file content as output.`;
                 parsedResponse.isProposingArchitecture || false,
               proposedComponents: parsedResponse.proposedComponents || [],
             };
+            project.activeChatMessages.push(aiMessage);
 
             logger.info(
               `Successfully parsed AI response as structured JSON for project ${projectId}`
@@ -1181,7 +1185,7 @@ Please provide only the terraform.tfvars file content as output.`;
             );
 
             // Fallback to treating the response as plain text
-            message = {
+            const message: ChatMessage = {
               sender: "ai",
               text: aiResponse,
               timestamp: new Date(),
@@ -1189,22 +1193,12 @@ Please provide only the terraform.tfvars file content as output.`;
               isProposingArchitecture: false,
             };
           }
-
-          // Add the AI message to the chat history
-          if (!project.activeChatMessages) {
-            project.activeChatMessages = [];
-          }
-          project.activeChatMessages.push(message);
         } catch (promptError: any) {
           logger.error(
             `Error generating AI response for project ${projectId}: ${promptError.message}`,
             { error: promptError.stack }
           );
 
-          // Add a fallback AI message indicating the error
-          if (!project.activeChatMessages) {
-            project.activeChatMessages = [];
-          }
           project.activeChatMessages.push({
             sender: "ai",
             text: "I'm sorry, I encountered an error while processing your request. Please try again later.",
