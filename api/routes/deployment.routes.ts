@@ -13,6 +13,7 @@ import {
   editTerraformTfvarsFileController,
   ExecuteDeploymentController,
   ExecuteDeploymentStreamingController,
+  storeSensitiveVariablesController,
 } from "../controllers/deployment.controller";
 
 export const deploymentRoutes = Router();
@@ -923,4 +924,105 @@ deploymentRoutes.get(
   `${resourceName}/execute/stream/:deploymentId`,
   authenticate,
   ExecuteDeploymentStreamingController
+);
+
+/**
+ * @openapi
+ * /deployments/{projectId}/{deploymentId}/sensitive-variables:
+ *   post:
+ *     tags:
+ *       - Deployments
+ *     summary: Store sensitive variables for a deployment
+ *     description: Securely store sensitive variables (API keys, passwords, tokens) for a deployment
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the project
+ *         example: "project_123456789"
+ *       - in: path
+ *         name: deploymentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the deployment
+ *         example: "deployment_123456789"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               sensitiveVariables:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     key:
+ *                       type: string
+ *                       description: Variable name
+ *                       example: "aws_access_key"
+ *                     value:
+ *                       type: string
+ *                       description: Variable value (will be encrypted)
+ *                       example: "AKIA1234567890EXAMPLE"
+ *                     isSecret:
+ *                       type: boolean
+ *                       description: Whether this is a secret variable
+ *                       example: true
+ *                 description: Array of sensitive variables to store
+ *             required:
+ *               - sensitiveVariables
+ *           example:
+ *             sensitiveVariables:
+ *               - key: "aws_access_key"
+ *                 value: "AKIA1234567890EXAMPLE"
+ *                 isSecret: true
+ *               - key: "aws_secret_key"
+ *                 value: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+ *                 isSecret: true
+ *               - key: "db_password"
+ *                 value: "MySecurePassword123!"
+ *                 isSecret: true
+ *     responses:
+ *       200:
+ *         description: Sensitive variables stored successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Sensitive variables stored successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deploymentId:
+ *                       type: string
+ *                       example: "deployment_123456789"
+ *                     sensitiveVariablesCount:
+ *                       type: number
+ *                       example: 3
+ *       400:
+ *         description: Invalid request data
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Deployment not found
+ *       500:
+ *         description: Internal server error
+ */
+deploymentRoutes.post(
+  `${resourceName}/:projectId/:deploymentId/sensitive-variables`,
+  authenticate,
+  storeSensitiveVariablesController
 );

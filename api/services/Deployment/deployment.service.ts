@@ -9,6 +9,7 @@ import {
   CreateDeploymentPayload,
   DeploymentFormData,
   DeploymentValidators,
+  EnvironmentVariable,
 } from "../../models/deployment.model";
 import logger from "../../config/logger";
 import {
@@ -21,16 +22,95 @@ import { GenericService } from "../common/generic.service";
 import { spawn } from "child_process";
 import { ProjectModel } from "../../models/project.model";
 import { AI_CHAT_INITIAL_PROMPT } from "./prompts/ai-chat.prompt";
-
 import { MAIN_TF_PROMPT } from "./prompts/terraform/00_main.prompt";
+import * as crypto from "crypto";
 import * as fs from "fs-extra";
 import * as path from "path";
 import { tmpdir } from "os";
 
 export class DeploymentService extends GenericService {
+  private readonly ENCRYPTION_ALGORITHM = "aes-256-gcm";
+  private readonly ENCRYPTION_KEY: string;
+
   constructor(promptService: PromptService) {
     super(promptService);
+
+    // Get encryption key from environment variable or generate a default one
+    this.ENCRYPTION_KEY =
+      process.env.SENSITIVE_VARS_ENCRYPTION_KEY || this.generateDefaultKey();
+
+    if (!process.env.SENSITIVE_VARS_ENCRYPTION_KEY) {
+      logger.warn(
+        "SENSITIVE_VARS_ENCRYPTION_KEY not set in environment. Using default key (not recommended for production)."
+      );
+    }
+
     logger.info("DeploymentService initialized.");
+  }
+
+  /**
+   * Generate a default encryption key (for development only)
+   */
+  private generateDefaultKey(): string {
+    return crypto
+      .scryptSync("lexis-api-default-key", "salt", 32)
+      .toString("hex");
+  }
+
+  private encryptValue(value: string): string {
+    try {
+      const key = Buffer.from(this.ENCRYPTION_KEY, "hex");
+      const iv = crypto.randomBytes(16);
+      const cipher = crypto.createCipheriv(this.ENCRYPTION_ALGORITHM, key, iv);
+      cipher.setAAD(Buffer.from("lexis-deployment-vars"));
+
+      let encrypted = cipher.update(value, "utf8", "hex");
+      encrypted += cipher.final("hex");
+
+      const authTag = cipher.getAuthTag();
+
+      // Combine IV, auth tag, and encrypted data
+      const result =
+        iv.toString("hex") + ":" + authTag.toString("hex") + ":" + encrypted;
+
+      logger.info("Successfully encrypted sensitive value");
+      return result;
+    } catch (error) {
+      logger.error("Error encrypting sensitive value:", error);
+      throw new Error("Failed to encrypt sensitive value");
+    }
+  }
+
+  private decryptValue(encryptedValue: string): string {
+    try {
+      const key = Buffer.from(this.ENCRYPTION_KEY, "hex");
+      const parts = encryptedValue.split(":");
+
+      if (parts.length !== 3) {
+        throw new Error("Invalid encrypted value format");
+      }
+
+      const iv = Buffer.from(parts[0], "hex");
+      const authTag = Buffer.from(parts[1], "hex");
+      const encrypted = parts[2];
+
+      const decipher = crypto.createDecipheriv(
+        this.ENCRYPTION_ALGORITHM,
+        key,
+        iv
+      );
+      decipher.setAAD(Buffer.from("lexis-deployment-vars"));
+      decipher.setAuthTag(authTag);
+
+      let decrypted = decipher.update(encrypted, "hex", "utf8");
+      decrypted += decipher.final("utf8");
+
+      logger.info("Successfully decrypted sensitive value");
+      return decrypted;
+    } catch (error) {
+      logger.error("Error decrypting sensitive value:", error);
+      throw new Error("Failed to decrypt sensitive value");
+    }
   }
 
   async createDeployment(
@@ -215,14 +295,53 @@ export class DeploymentService extends GenericService {
       -e TF_LOCK_TABLE=terraform-locks \
       -e TF_REGION=us-east-1 \
       -e TF_FIRST_RUN=true \
-      -e AWS_ACCESS_KEY_ID=${process.env.AWS_ACCESS_KEY_ID} \
-      -e AWS_SECRET_ACCESS_KEY=${process.env.AWS_SECRET_ACCESS_KEY} \
       -e TEMPLATE_URL="https://github.com/Idem-IA/ecs_aws_template.git" \
       ghcr.io/idem-ia/idem-worker:1.3
       `;
 
       // Compute the temp folder path used during generation for this deployment (if any)
       const tempDir = path.join(tmpdir(), "idem-deployments", deployment.id);
+
+      // Ensure temporary directory exists
+      await fs.ensureDir(tempDir);
+
+      // Create terraform.tfvars file with sensitive variables injected
+      if (deployment.generatedTerraformTfvarsFileContent) {
+        // Inject sensitive variables into the tfvars content
+        let tfvarsContent = this.injectSensitiveVariables(
+          deployment.generatedTerraformTfvarsFileContent,
+          deployment
+        );
+
+        // Strip markdown fences if present
+        const trimmed = tfvarsContent.trim();
+        if (trimmed.startsWith("```")) {
+          tfvarsContent = trimmed.replace(
+            /^```(?:terraform\.tfvars)?\s*\n?/,
+            ""
+          );
+          tfvarsContent = tfvarsContent.replace(/\n?```\s*$/, "");
+        }
+
+        // Replace AWS credential placeholders
+        tfvarsContent = tfvarsContent.replace(
+          /AKIAXXXXXXXXXXXXXXXX/g,
+          process.env.AWS_ACCESS_KEY_ID || ""
+        );
+        tfvarsContent = tfvarsContent.replace(
+          /XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/g,
+          process.env.AWS_SECRET_ACCESS_KEY || ""
+        );
+
+        // Write terraform.tfvars file to temporary directory
+        const tfvarsPath = path.join(tempDir, "terraform.tfvars");
+        await fs.writeFile(tfvarsPath, tfvarsContent, "utf8");
+
+        logger.info(
+          `Created terraform.tfvars file with sensitive variables at: ${tfvarsPath}`,
+          { deploymentId: deployment.id }
+        );
+      }
 
       // Log the full command being executed
       logger.info(
@@ -415,8 +534,12 @@ export class DeploymentService extends GenericService {
           "terraform-setup"
         );
 
-        // Replace AWS credential placeholders with actual environment variables
-        let tfvarsContent = deployment.generatedTerraformTfvarsFileContent;
+        // Inject sensitive variables into the tfvars content
+        let tfvarsContent = this.injectSensitiveVariables(
+          deployment.generatedTerraformTfvarsFileContent,
+          deployment
+        );
+
         // Strip markdown fences if present, e.g., ```terraform.tfvars ... ```
         const trimmed = tfvarsContent.trim();
         if (trimmed.startsWith("```")) {
@@ -428,14 +551,6 @@ export class DeploymentService extends GenericService {
           // Remove trailing fence
           tfvarsContent = tfvarsContent.replace(/\n?```\s*$/, "");
         }
-        tfvarsContent = tfvarsContent.replace(
-          /AKIAXXXXXXXXXXXXXXXX/g,
-          process.env.AWS_ACCESS_KEY_ID || ""
-        );
-        tfvarsContent = tfvarsContent.replace(
-          /XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/g,
-          process.env.AWS_SECRET_ACCESS_KEY || ""
-        );
 
         // Write terraform.tfvars file to temporary directory
         const tfvarsPath = path.join(tempDir, "terraform.tfvars");
@@ -469,8 +584,6 @@ export class DeploymentService extends GenericService {
       -e TF_LOCK_TABLE=terraform-locks \
       -e TF_REGION=us-east-1 \
       -e TF_FIRST_RUN=true \
-      -e AWS_ACCESS_KEY_ID=${process.env.AWS_ACCESS_KEY_ID} \
-      -e AWS_SECRET_ACCESS_KEY=${process.env.AWS_SECRET_ACCESS_KEY} \
       -e TEMPLATE_URL="https://github.com/Idem-IA/ecs_aws_template.git" \
       ghcr.io/idem-ia/idem-worker:1.6
       `;
@@ -732,6 +845,10 @@ export class DeploymentService extends GenericService {
         deployment: {
           name: deployment.name,
           environment: deployment.environment,
+          // Include non-secret environment variables only
+          environmentVariables:
+            deployment.environmentVariables?.filter((env) => !env.isSecret) ||
+            [],
         },
         architectureTemplate: deployment.architectureComponents,
         customValues,
@@ -824,6 +941,8 @@ Please provide only the terraform.tfvars file content as output.`;
         }
       );
 
+      // Return the AI-generated content WITHOUT injecting sensitive variables
+      // Sensitive variables will be injected only during execution in executeDeployment/executeDeploymentWithStreaming
       return aiResponse;
     } catch (error) {
       logger.error(
@@ -836,6 +955,78 @@ Please provide only the terraform.tfvars file content as output.`;
       );
       return "";
     }
+  }
+
+  /**
+   * Inject sensitive variables into the generated tfvars content
+   * @param tfvarsContent Original tfvars content generated by AI
+   * @param deployment Deployment containing sensitive variables
+   * @returns Modified tfvars content with sensitive variables injected
+   */
+  private injectSensitiveVariables(
+    tfvarsContent: string,
+    deployment: DeploymentModel
+  ): string {
+    if (
+      !deployment.sensitiveVariables ||
+      deployment.sensitiveVariables.length === 0
+    ) {
+      logger.info(
+        `No sensitive variables to inject for deployment ${deployment.id}`
+      );
+      return tfvarsContent;
+    }
+
+    let modifiedContent = tfvarsContent;
+
+    // Inject each sensitive variable into the tfvars content
+    deployment.sensitiveVariables.forEach((variable) => {
+      const variableName = variable.key;
+
+      // Decrypt the sensitive value before injection
+      let decryptedValue: string;
+      try {
+        decryptedValue = this.decryptValue(variable.value);
+      } catch (error) {
+        logger.error(
+          `Failed to decrypt sensitive variable ${variableName} for deployment ${deployment.id}:`,
+          error
+        );
+        return; // Skip this variable if decryption fails
+      }
+
+      // Format the value based on type (string values need quotes)
+      const formattedValue =
+        typeof decryptedValue === "string"
+          ? `"${decryptedValue}"`
+          : decryptedValue;
+
+      // Check if variable already exists in the content
+      const variableRegex = new RegExp(`^\\s*${variableName}\\s*=.*$`, "gm");
+
+      if (variableRegex.test(modifiedContent)) {
+        // Replace existing variable
+        modifiedContent = modifiedContent.replace(
+          variableRegex,
+          `${variableName} = ${formattedValue}`
+        );
+        logger.info(
+          `Replaced sensitive variable ${variableName} in tfvars for deployment ${deployment.id}`
+        );
+      } else {
+        // Add new variable at the end
+        modifiedContent += `\n\n# Sensitive variable injected securely\n${variableName} = ${formattedValue}`;
+        logger.info(
+          `Added sensitive variable ${variableName} to tfvars for deployment ${deployment.id}`
+        );
+      }
+    });
+
+    logger.info(
+      `Successfully injected ${deployment.sensitiveVariables.length} sensitive variables for deployment ${deployment.id}`
+    );
+
+    return modifiedContent;
   }
 
   async getDeploymentsByProject(
@@ -1169,7 +1360,11 @@ Please provide only the terraform.tfvars file content as output.`;
               isRequestingDetails: parsedResponse.isRequestingDetails || false,
               isProposingArchitecture:
                 parsedResponse.isProposingArchitecture || false,
+              isRequestingSensitiveVariables:
+                parsedResponse.isRequestingSensitiveVariables || false,
               proposedComponents: parsedResponse.proposedComponents || [],
+              requestedSensitiveVariables:
+                parsedResponse.requestedSensitiveVariables || [],
             };
             project.activeChatMessages.push(aiMessage);
 
@@ -1191,7 +1386,9 @@ Please provide only the terraform.tfvars file content as output.`;
               timestamp: new Date(),
               isRequestingDetails: false,
               isProposingArchitecture: false,
+              isRequestingSensitiveVariables: false,
             };
+            project.activeChatMessages.push(message);
           }
         } catch (promptError: any) {
           logger.error(
@@ -1205,6 +1402,7 @@ Please provide only the terraform.tfvars file content as output.`;
             timestamp: new Date(),
             isRequestingDetails: false,
             isProposingArchitecture: false,
+            isRequestingSensitiveVariables: false,
           });
         }
       }
@@ -1709,6 +1907,71 @@ Please provide only the terraform.tfvars file content as output.`;
     });
 
     logger.info(`Pipeline execution completed for deployment ${deploymentId}`);
+  }
+
+  /**
+   * Store sensitive variables for a deployment
+   * @param userId User ID
+   * @param projectId Project ID
+   * @param deploymentId Deployment ID
+   * @param sensitiveVariables Array of sensitive variables to store
+   * @returns Updated deployment
+   */
+  async storeSensitiveVariables(
+    userId: string,
+    projectId: string,
+    deploymentId: string,
+    sensitiveVariables: EnvironmentVariable[]
+  ): Promise<DeploymentModel | null> {
+    logger.info(
+      `storeSensitiveVariables called for userId: ${userId}, projectId: ${projectId}, deploymentId: ${deploymentId}`
+    );
+
+    try {
+      const project = await this.getProject(projectId, userId);
+      if (!project) {
+        logger.warn(`Project not found: ${projectId} for user: ${userId}`);
+        return null;
+      }
+
+      const deployment = project.deployments?.find(
+        (d) => d.id === deploymentId
+      );
+      if (!deployment) {
+        logger.warn(
+          `Deployment not found: ${deploymentId} in project: ${projectId}`
+        );
+        return null;
+      }
+
+      // Encrypt all sensitive variables before storage
+      const encryptedVariables = sensitiveVariables.map((variable) => ({
+        ...variable,
+        isSecret: true,
+        value: this.encryptValue(variable.value),
+      }));
+
+      // Store sensitive variables separately
+      deployment.sensitiveVariables = encryptedVariables;
+
+      // Update the project with the modified deployment
+      await this.projectRepository.update(
+        projectId,
+        project,
+        `users/${userId}/projects`
+      );
+
+      logger.info(
+        `Successfully stored ${sensitiveVariables.length} sensitive variables for deployment ${deploymentId}`
+      );
+      return deployment;
+    } catch (error: any) {
+      logger.error(
+        `Error storing sensitive variables for userId: ${userId}, projectId: ${projectId}, deploymentId: ${deploymentId}. Error: ${error.message}`,
+        { error: error.stack }
+      );
+      throw error;
+    }
   }
 
   /**

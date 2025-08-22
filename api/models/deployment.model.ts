@@ -40,13 +40,25 @@ export interface CostEstimation {
   }[];
 }
 
+export interface SensitiveVariable {
+  name: string;
+  label: string;
+  type: "string" | "number" | "boolean";
+  required: boolean;
+  sensitive: boolean;
+  description?: string;
+  placeholder?: string;
+}
+
 export interface ChatMessage {
   sender: "user" | "ai";
   text: string;
   timestamp?: Date;
   isRequestingDetails?: boolean;
   isProposingArchitecture?: boolean;
+  isRequestingSensitiveVariables?: boolean;
   proposedComponents?: ArchitectureComponent[];
+  requestedSensitiveVariables?: SensitiveVariable[];
 }
 
 export interface ArchitectureTemplate {
@@ -123,6 +135,7 @@ export interface BaseDeploymentModel {
   // Configuration
   gitRepository?: GitRepository;
   environmentVariables?: EnvironmentVariable[];
+  sensitiveVariables?: EnvironmentVariable[]; // Stored encrypted, separate from regular env vars
 
   // Monitoring of the pipeline
   pipelines?: {

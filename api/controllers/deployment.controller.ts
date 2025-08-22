@@ -7,6 +7,7 @@ import {
   UpdateDeploymentPayload,
   DeploymentValidators,
   ChatMessage,
+  EnvironmentVariable,
 } from "../models/deployment.model";
 import { PromptService } from "../services/prompt.service";
 import { userService } from "../services/user.service";
@@ -722,5 +723,93 @@ export const ExecuteDeploymentStreamingController = async (
     // Envoyer l'événement de fin de stream avec erreur
     res.write(`data: [ERROR]\n\n`);
     res.end();
+  }
+};
+
+/**
+ * Store sensitive variables for a deployment
+ */
+export const storeSensitiveVariablesController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.uid;
+    const { projectId, deploymentId } = req.params;
+    const { sensitiveVariables } = req.body;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+      return;
+    }
+
+    logger.info(
+      `storeSensitiveVariablesController called - UserId: ${userId}, ProjectId: ${projectId}, DeploymentId: ${deploymentId}`
+    );
+
+    // Validate input
+    if (!sensitiveVariables || !Array.isArray(sensitiveVariables)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid sensitive variables data",
+      });
+      return;
+    }
+
+    // Validate each sensitive variable
+    for (const variable of sensitiveVariables) {
+      if (!variable.key || !variable.value) {
+        res.status(400).json({
+          success: false,
+          message: "Each sensitive variable must have a key and value",
+        });
+        return;
+      }
+    }
+
+    const updatedDeployment = await deploymentService.storeSensitiveVariables(
+      userId,
+      projectId,
+      deploymentId,
+      sensitiveVariables
+    );
+
+    if (!updatedDeployment) {
+      res.status(404).json({
+        success: false,
+        message: "Deployment not found",
+      });
+      return;
+    }
+
+    logger.info(
+      `Successfully stored sensitive variables for deployment ${deploymentId}`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Sensitive variables stored successfully",
+      data: {
+        deploymentId: updatedDeployment.id,
+        sensitiveVariablesCount: sensitiveVariables.length,
+      },
+    });
+  } catch (error: any) {
+    const userId = req.user?.uid;
+    const { projectId, deploymentId } = req.params;
+    
+    logger.error(
+      `Error in storeSensitiveVariablesController - UserId: ${userId}, ProjectId: ${projectId}, DeploymentId: ${deploymentId}: ${error.message}`,
+      { stack: error.stack, body: req.body }
+    );
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to store sensitive variables",
+      error: error.message,
+    });
   }
 };
