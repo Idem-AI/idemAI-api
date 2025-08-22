@@ -94,11 +94,7 @@ export const CreateDeploymentController = async (
       payload
     );
 
-    res.status(201).json({
-      success: true,
-      message: "Deployment created successfully",
-      data: deployment,
-    });
+    res.status(201).json(deployment);
   } catch (error: any) {
     logger.error(`Error creating deployment: ${error.message}`, {
       error: error.stack,
