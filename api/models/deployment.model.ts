@@ -58,6 +58,8 @@ export interface ChatMessage {
   isProposingArchitecture?: boolean;
   isRequestingSensitiveVariables?: boolean;
   proposedComponents?: ArchitectureComponent[];
+  asciiArchitecture?: string;
+  archetypeUrl?: string;
   requestedSensitiveVariables?: SensitiveVariable[];
 }
 

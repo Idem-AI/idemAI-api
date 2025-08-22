@@ -323,16 +323,6 @@ export class DeploymentService extends GenericService {
           tfvarsContent = tfvarsContent.replace(/\n?```\s*$/, "");
         }
 
-        // Replace AWS credential placeholders
-        tfvarsContent = tfvarsContent.replace(
-          /AKIAXXXXXXXXXXXXXXXX/g,
-          process.env.AWS_ACCESS_KEY_ID || ""
-        );
-        tfvarsContent = tfvarsContent.replace(
-          /XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/g,
-          process.env.AWS_SECRET_ACCESS_KEY || ""
-        );
-
         // Write terraform.tfvars file to temporary directory
         const tfvarsPath = path.join(tempDir, "terraform.tfvars");
         await fs.writeFile(tfvarsPath, tfvarsContent, "utf8");
@@ -1318,7 +1308,9 @@ Please provide only the terraform.tfvars file content as output.`;
         );
 
         try {
-          // Convert chat messages to the format expected by PromptService
+          if (!project.activeChatMessages) {
+            project.activeChatMessages = [];
+          }
           project.activeChatMessages.push(message);
           const promptMessages = this.convertToPromptMessages(
             project.activeChatMessages,
@@ -1342,9 +1334,6 @@ Please provide only the terraform.tfvars file content as output.`;
           // Create an AI message and parse the response as JSON if possible
 
           try {
-            if (!project.activeChatMessages) {
-              project.activeChatMessages = [];
-            }
             // Try to extract JSON from the response (it might be wrapped in markdown code blocks)
             const jsonMatch = aiResponse.match(
               /```(?:json)?\s*([\s\S]*?)\s*```/
@@ -1363,6 +1352,8 @@ Please provide only the terraform.tfvars file content as output.`;
               isRequestingSensitiveVariables:
                 parsedResponse.isRequestingSensitiveVariables || false,
               proposedComponents: parsedResponse.proposedComponents || [],
+              asciiArchitecture: parsedResponse.asciiArchitecture || "",
+              archetypeUrl: parsedResponse.archetypeUrl || "",
               requestedSensitiveVariables:
                 parsedResponse.requestedSensitiveVariables || [],
             };
