@@ -1,8 +1,6 @@
 import { Response } from "express";
 import logger from "../config/logger";
-import {
-  DevelopmentService,
-} from "../services/Development/development.service";
+import { DevelopmentService } from "../services/Development/development.service";
 import { CustomRequest } from "../interfaces/express.interface";
 
 import { PromptService } from "../services/prompt.service";
@@ -117,10 +115,9 @@ export const getDevelopmentConfigsController = async (
         `Failed to retrieve development configs for projectId: ${projectId}`
       );
       res
-        .status(404)
-        .json({ message: "Development configs not found for projectId" });
+        .status(200)
+        .json(null);
     }
-    return;
   } catch (error) {
     logger.error("Error in getDevelopmentConfigsController:", {
       userId,
@@ -129,6 +126,5 @@ export const getDevelopmentConfigsController = async (
       stack: error instanceof Error ? error.stack : undefined,
     });
     res.status(500).json({ message: "Failed to retrieve development configs" });
-    return;
   }
 };
