@@ -67,15 +67,22 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "https://idem.africa",
-  "https://webgen.idem.africa",
+  "https://appgen.idem.africa",
   "https://chart.idem.africa",
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Si pas d'origin (requêtes same-origin), autoriser
+      if (!origin) {
         callback(null, true);
+        return;
+      }
+
+      // Vérifier si l'origin est dans la liste autorisée
+      if (allowedOrigins.includes(origin)) {
+        callback(null, origin); // Retourner l'origin spécifique au lieu de true
       } else {
         callback(new Error("Not allowed by CORS"));
       }
