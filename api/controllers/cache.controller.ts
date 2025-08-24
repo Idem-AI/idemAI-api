@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { cacheService } from '../services/cache.service';
 import logger from '../config/logger';
-import { CustomRequest } from '../middleware/authenticate';
+import { CustomRequest } from '../interfaces/express.interface';
 
 /**
  * Contrôleur pour la gestion du cache Redis

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { CacheController } from '../controllers/cache.controller';
-import { authenticate } from '../middleware/authenticate';
+import { authenticate } from '../services/auth.service';
 
 const router = Router();
 
@@ -191,7 +191,7 @@ router.delete('/project/:projectId', authenticate, CacheController.invalidatePro
  *             properties:
  *               pattern:
  *                 type: string
- *                 description: Pattern de clés à supprimer (ex: "user:123:*")
+ *                 description: "Pattern de clés à supprimer (ex: user:123:*)"
  *     responses:
  *       200:
  *         description: Cache invalidé par pattern avec succès
