@@ -1,7 +1,8 @@
-import puppeteer from "puppeteer";
+import puppeteer, { Browser, Page } from "puppeteer";
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as os from "os";
+import * as crypto from "crypto";
 import logger from "../config/logger";
 import { SectionModel } from "../models/section.model";
 import { ProjectModel } from "../models/project.model";
@@ -22,7 +23,305 @@ export interface PdfGenerationOptions {
   };
 }
 
+interface CacheEntry {
+  data: string;
+  timestamp: number;
+  ttl: number;
+}
+
+interface PdfCacheEntry {
+  filePath: string;
+  timestamp: number;
+  ttl: number;
+}
+
 export class PdfService {
+  private static browserInstance: Browser | null = null;
+  private static resourcesCache: Map<string, string> = new Map();
+  private static htmlCache: Map<string, CacheEntry> = new Map();
+  private static pdfCache: Map<string, PdfCacheEntry> = new Map();
+  private static isInitialized = false;
+  
+  // Configuration du cache
+  private static readonly HTML_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+  private static readonly PDF_CACHE_TTL = 60 * 60 * 1000; // 1 heure
+  private static readonly CACHE_CLEANUP_INTERVAL = 15 * 60 * 1000; // 15 minutes
+
+  // Initialiser le browser et les ressources au démarrage de l'application
+  static async initialize(): Promise<void> {
+    if (this.isInitialized) {
+      return;
+    }
+
+    logger.info('Initializing Puppeteer browser instance at startup');
+    this.browserInstance = await puppeteer.launch({
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--no-first-run",
+        "--disable-default-apps",
+        "--disable-features=TranslateUI",
+        "--disable-web-security",
+        "--disable-features=VizDisplayCompositor"
+      ],
+      timeout: 30000,
+    });
+
+    // Précharger les ressources statiques
+    await this.preloadResources();
+    
+    // Démarrer le nettoyage périodique du cache
+    this.startCacheCleanup();
+    
+    this.isInitialized = true;
+    
+    logger.info('Browser and resources initialized successfully at startup');
+  }
+
+  // Obtenir l'instance du browser (déjà initialisée)
+  private static getBrowser(): Browser {
+    if (!this.browserInstance || !this.browserInstance.isConnected()) {
+      throw new Error('Browser not initialized. Call PdfService.initialize() first.');
+    }
+    return this.browserInstance;
+  }
+
+  // Précharger toutes les ressources statiques en cache
+  private static async preloadResources(): Promise<void> {
+    const resources = [
+      { key: 'primeicons', path: path.join(process.cwd(), "public", "css", "primeicons.css") },
+      { key: 'tailwind', path: path.join(process.cwd(), "public", "scripts", "tailwind.js") },
+      { key: 'chartjs', path: path.join(process.cwd(), "public", "scripts", "chart.js") }
+    ];
+
+    for (const resource of resources) {
+      try {
+        if (await fs.pathExists(resource.path)) {
+          const content = await fs.readFile(resource.path, "utf8");
+          this.resourcesCache.set(resource.key, content);
+          logger.info(`Cached resource: ${resource.key}`);
+        } else {
+          logger.warn(`Resource not found: ${resource.path}`);
+        }
+      } catch (error) {
+        logger.error(`Failed to cache resource ${resource.key}:`, error);
+      }
+    }
+  }
+
+  // Créer une page optimisée avec les ressources pré-chargées
+  private static async createOptimizedPage(): Promise<Page> {
+    const browser = this.getBrowser();
+    const page = await browser.newPage();
+
+    // Injecter les ressources depuis le cache
+    const primeiconsContent = this.resourcesCache.get('primeicons');
+    if (primeiconsContent) {
+      await page.addStyleTag({ content: primeiconsContent });
+    }
+
+    const tailwindContent = this.resourcesCache.get('tailwind');
+    if (tailwindContent) {
+      await page.addScriptTag({ content: tailwindContent });
+    }
+
+    const chartjsContent = this.resourcesCache.get('chartjs');
+    if (chartjsContent) {
+      await page.addScriptTag({ content: chartjsContent });
+    }
+
+    return page;
+  }
+
+  // Nettoyage périodique du cache
+  private static startCacheCleanup(): void {
+    setInterval(() => {
+      this.cleanupExpiredCache();
+    }, this.CACHE_CLEANUP_INTERVAL);
+  }
+
+  private static cleanupExpiredCache(): void {
+    const now = Date.now();
+    let htmlCleaned = 0;
+    let pdfCleaned = 0;
+
+    // Nettoyer le cache HTML
+    for (const [key, entry] of this.htmlCache.entries()) {
+      if (now - entry.timestamp > entry.ttl) {
+        this.htmlCache.delete(key);
+        htmlCleaned++;
+      }
+    }
+
+    // Nettoyer le cache PDF et supprimer les fichiers
+    for (const [key, entry] of this.pdfCache.entries()) {
+      if (now - entry.timestamp > entry.ttl) {
+        // Supprimer le fichier PDF
+        fs.unlink(entry.filePath).catch(err => 
+          logger.warn(`Failed to delete cached PDF file: ${entry.filePath}`, err)
+        );
+        this.pdfCache.delete(key);
+        pdfCleaned++;
+      }
+    }
+
+    if (htmlCleaned > 0 || pdfCleaned > 0) {
+      logger.info(`Cache cleanup: ${htmlCleaned} HTML entries, ${pdfCleaned} PDF entries removed`);
+    }
+  }
+
+  // Générer un hash pour le cache basé sur le contenu
+  private static generateCacheKey(options: PdfGenerationOptions): string {
+    const cacheData = {
+      title: options.title,
+      projectName: options.projectName,
+      projectDescription: options.projectDescription,
+      sections: options.sections.map(s => ({ name: s.name, data: s.data })),
+      sectionDisplayOrder: options.sectionDisplayOrder,
+      footerText: options.footerText,
+      format: options.format,
+      margins: options.margins
+    };
+    
+    return crypto.createHash('sha256')
+      .update(JSON.stringify(cacheData))
+      .digest('hex');
+  }
+
+  // Récupérer HTML depuis le cache
+  private static getCachedHtml(cacheKey: string): string | null {
+    const entry = this.htmlCache.get(cacheKey);
+    if (!entry) return null;
+    
+    const now = Date.now();
+    if (now - entry.timestamp > entry.ttl) {
+      this.htmlCache.delete(cacheKey);
+      return null;
+    }
+    
+    logger.info(`🔄 HTML cache hit for key: ${cacheKey.substring(0, 8)}...`);
+    return entry.data;
+  }
+
+  // Stocker HTML dans le cache
+  private static setCachedHtml(cacheKey: string, html: string): void {
+    this.htmlCache.set(cacheKey, {
+      data: html,
+      timestamp: Date.now(),
+      ttl: this.HTML_CACHE_TTL
+    });
+    logger.info(`HTML cached for key: ${cacheKey.substring(0, 8)}...`);
+  }
+
+  // Récupérer PDF depuis le cache
+  private static getCachedPdf(cacheKey: string): string | null {
+    const entry = this.pdfCache.get(cacheKey);
+    if (!entry) return null;
+    
+    const now = Date.now();
+    if (now - entry.timestamp > entry.ttl) {
+      // Supprimer le fichier expiré
+      fs.unlink(entry.filePath).catch(err => 
+        logger.warn(`Failed to delete expired PDF: ${entry.filePath}`, err)
+      );
+      this.pdfCache.delete(cacheKey);
+      return null;
+    }
+    
+    // Vérifier que le fichier existe toujours
+    if (!fs.existsSync(entry.filePath)) {
+      this.pdfCache.delete(cacheKey);
+      return null;
+    }
+    
+    logger.info(`🚀 PDF cache hit for key: ${cacheKey.substring(0, 8)}...`);
+    return entry.filePath;
+  }
+
+  // Stocker PDF dans le cache
+  private static setCachedPdf(cacheKey: string, filePath: string): void {
+    this.pdfCache.set(cacheKey, {
+      filePath,
+      timestamp: Date.now(),
+      ttl: this.PDF_CACHE_TTL
+    });
+    logger.info(`PDF cached for key: ${cacheKey.substring(0, 8)}...`);
+  }
+
+  // Méthodes utilitaires pour la gestion du cache
+  static getCacheStats(): { htmlEntries: number; pdfEntries: number; totalSize: number } {
+    let totalSize = 0;
+    
+    // Calculer la taille approximative du cache HTML
+    for (const [, entry] of this.htmlCache.entries()) {
+      totalSize += Buffer.byteLength(entry.data, 'utf8');
+    }
+    
+    return {
+      htmlEntries: this.htmlCache.size,
+      pdfEntries: this.pdfCache.size,
+      totalSize
+    };
+  }
+
+  static clearCache(): void {
+    // Nettoyer les fichiers PDF
+    for (const [, entry] of this.pdfCache.entries()) {
+      fs.unlink(entry.filePath).catch(err => 
+        logger.warn(`Failed to delete PDF file during cache clear: ${entry.filePath}`, err)
+      );
+    }
+    
+    this.htmlCache.clear();
+    this.pdfCache.clear();
+    logger.info('All caches cleared manually');
+  }
+
+  static invalidateCacheByProject(projectName: string): number {
+    let invalidated = 0;
+    
+    // Invalider les entrées HTML contenant le nom du projet
+    for (const [key, entry] of this.htmlCache.entries()) {
+      if (entry.data.includes(projectName)) {
+        this.htmlCache.delete(key);
+        invalidated++;
+      }
+    }
+    
+    // Invalider les entrées PDF (plus complexe car on n'a que le hash)
+    // On pourrait améliorer en stockant des métadonnées
+    
+    if (invalidated > 0) {
+      logger.info(`Invalidated ${invalidated} cache entries for project: ${projectName}`);
+    }
+    
+    return invalidated;
+  }
+
+  // Fermer le browser (à appeler lors de l'arrêt de l'application)
+  static async closeBrowser(): Promise<void> {
+    if (this.browserInstance) {
+      await this.browserInstance.close();
+      this.browserInstance = null;
+      this.isInitialized = false;
+      logger.info('Browser instance closed');
+    }
+    
+    // Nettoyer tous les fichiers PDF en cache
+    for (const [key, entry] of this.pdfCache.entries()) {
+      try {
+        await fs.unlink(entry.filePath);
+      } catch (err) {
+        logger.warn(`Failed to cleanup cached PDF: ${entry.filePath}`, err);
+      }
+    }
+    this.pdfCache.clear();
+    this.htmlCache.clear();
+  }
+
   async generatePdf(options: PdfGenerationOptions): Promise<string> {
     const {
       title = "Document",
@@ -40,9 +339,21 @@ export class PdfService {
       },
     } = options;
 
+    // Générer la clé de cache basée sur le contenu
+    const cacheKey = PdfService.generateCacheKey(options);
+    
     logger.info(
-      `Generating PDF for project: ${projectName} with ${sections.length} sections`
+      `Generating PDF for project: ${projectName} with ${sections.length} sections (cache key: ${cacheKey.substring(0, 8)}...)`
     );
+
+    // Vérifier le cache PDF d'abord
+    const cachedPdfPath = PdfService.getCachedPdf(cacheKey);
+    if (cachedPdfPath) {
+      logger.info(`🚀 CACHE HIT - Returning cached PDF for project: ${projectName} (saved ~5-8s)`);
+      return cachedPdfPath;
+    }
+    
+    logger.info(`❌ CACHE MISS - Generating new PDF for project: ${projectName}`);
 
     try {
       // Trier les sections selon l'ordre spécifié
@@ -51,168 +362,51 @@ export class PdfService {
         sectionDisplayOrder
       );
 
-      // Créer le contenu HTML à partir des sections
-      const htmlContent = this.generateHtmlFromSections({
-        title,
-        projectName,
-        projectDescription,
-        sections: sortedSections,
-        footerText,
-      });
-
-      // Lancer Puppeteer pour générer le PDF avec timeouts étendus
-      const browser = await puppeteer.launch({
-        headless: true,
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-gpu",
-          "--no-first-run",
-          "--disable-default-apps",
-          "--disable-features=TranslateUI",
-        ],
-        timeout: 120000, 
-      });
-
-      const page = await browser.newPage();
-
-      // Injecter les scripts et styles locaux AVANT de définir le contenu HTML
-
-      // 1. Injecter PrimeIcons CSS
-      const primeiconsStylePath = path.join(
-        process.cwd(),
-        "public",
-        "css",
-        "primeicons.css"
-      );
-      if (await fs.pathExists(primeiconsStylePath)) {
-        const primeiconsStyle = await fs.readFile(primeiconsStylePath, "utf8");
-        await page.addStyleTag({ content: primeiconsStyle });
-        logger.info("Local PrimeIcons CSS injected successfully");
-      } else {
-        logger.warn("Local PrimeIcons CSS not found");
-      }
-
-      // 2. Injecter Tailwind CSS
-      const tailwindScriptPath = path.join(
-        process.cwd(),
-        "public",
-        "scripts",
-        "tailwind.js"
-      );
-      if (await fs.pathExists(tailwindScriptPath)) {
-        const tailwindScript = await fs.readFile(tailwindScriptPath, "utf8");
-        await page.addScriptTag({ content: tailwindScript });
-        logger.info("Local Tailwind CSS script injected successfully");
-
-        // Attendre que Tailwind soit prêt
-        await page.waitForFunction('typeof window.tailwind !== "undefined"', {
-          timeout: 15000, // Augmenté à 15 secondes
+      // Vérifier le cache HTML
+      let htmlContent = PdfService.getCachedHtml(cacheKey);
+      
+      if (!htmlContent) {
+        logger.info(`⚡ Generating new HTML content for project: ${projectName}`);
+        // Créer le contenu HTML à partir des sections (optimisé)
+        htmlContent = this.generateOptimizedHtmlFromSections({
+          title,
+          projectName,
+          projectDescription,
+          sections: sortedSections,
+          footerText,
         });
+        
+        // Mettre en cache le HTML généré
+        PdfService.setCachedHtml(cacheKey, htmlContent);
       } else {
-        logger.warn("Local Tailwind script not found, falling back to CDN");
+        logger.info(`🔄 HTML CACHE HIT - Using cached HTML for project: ${projectName} (saved ~2-3s)`);
       }
 
-      // 3. Injecter Chart.js
-      const chartjsScriptPath = path.join(
-        process.cwd(),
-        "public",
-        "scripts",
-        "chart.js"
-      );
-      if (await fs.pathExists(chartjsScriptPath)) {
-        const chartjsScript = await fs.readFile(chartjsScriptPath, "utf8");
-        await page.addScriptTag({ content: chartjsScript });
-        logger.info("Local Chart.js script injected successfully");
+      // Utiliser une page optimisée avec ressources pré-chargées
+      const page = await PdfService.createOptimizedPage();
 
-        // Attendre que Chart.js soit prêt
-        await page.waitForFunction('typeof window.Chart !== "undefined"', {
-          timeout: 15000, // Augmenté à 15 secondes
-        });
-      } else {
-        logger.warn("Local Chart.js script not found, falling back to CDN");
-      }
-
-      // Définir le contenu HTML APRÈS l'injection des scripts
+      // Définir le contenu HTML (ressources déjà injectées)
       await page.setContent(htmlContent, {
-        waitUntil: "networkidle0",
-        timeout: 60000, // 1 minute pour le chargement du contenu
+        waitUntil: "domcontentloaded", // Plus rapide que networkidle0
+        timeout: 15000, // Réduit de 60s à 15s
       });
 
-      // Forcer Tailwind à traiter toutes les classes présentes dans le DOM
+      // Attente optimisée pour les scripts (réduite drastiquement)
+      await page.waitForFunction(
+        'typeof window.tailwind !== "undefined" || document.readyState === "complete"',
+        { timeout: 3000 } // Réduit de 15s à 3s
+      );
+
+      // Configuration rapide des scripts
       await page.evaluate(() => {
-        return new Promise((resolve) => {
-          if (typeof (window as any).tailwind !== "undefined") {
-            const tailwindInstance = (window as any).tailwind;
-
-            // Méthode 1: Déclencher les événements de scan
-            const events = ["DOMContentLoaded", "load"];
-            events.forEach((eventType) => {
-              const event = new Event(eventType);
-              document.dispatchEvent(event);
-            });
-
-            // Méthode 2: Forcer le refresh si disponible
-            if (tailwindInstance.refresh) {
-              tailwindInstance.refresh();
-            }
-
-            // Méthode 3: Re-scanner manuellement le DOM
-            if (tailwindInstance.process) {
-              tailwindInstance.process(document.documentElement.outerHTML);
-            }
-
-            // Attendre un peu puis résoudre
-            setTimeout(resolve, 2000); // Augmenté à 2 secondes
-          } else {
-            resolve(undefined);
-          }
-        });
-      });
-
-      // Attendre supplémentaire pour s'assurer que tous les styles sont appliqués
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Augmenté à 1.5 secondes
-
-      // Vérifier que les scripts sont bien chargés et fonctionnels
-      const scriptsStatus = await page.evaluate(() => {
-        const tailwindAvailable =
-          typeof (window as any).tailwind !== "undefined";
-        const chartjsAvailable = typeof (window as any).Chart !== "undefined";
-
-        // Tester l'application des styles Tailwind
-        let tailwindWorking = false;
-        const testElement = document.querySelector(
-          ".bg-white, .text-gray-800, .p-4, .mb-4"
-        );
-        if (testElement) {
-          const computedStyle = window.getComputedStyle(testElement);
-          tailwindWorking =
-            computedStyle.backgroundColor !== "" ||
-            computedStyle.color !== "" ||
-            computedStyle.padding !== "";
+        if (typeof (window as any).tailwind !== "undefined") {
+          const tailwindInstance = (window as any).tailwind;
+          if (tailwindInstance.refresh) tailwindInstance.refresh();
         }
-
-        return {
-          tailwind: { available: tailwindAvailable, working: tailwindWorking },
-          chartjs: { available: chartjsAvailable },
-        };
       });
 
-      // Logger le statut des scripts
-      if (scriptsStatus.tailwind.available && scriptsStatus.tailwind.working) {
-        logger.info("Tailwind CSS successfully loaded and styles applied");
-      } else if (scriptsStatus.tailwind.available) {
-        logger.warn("Tailwind CSS loaded but styles may not be fully applied");
-      } else {
-        logger.warn("Tailwind CSS not available in page context");
-      }
-
-      if (scriptsStatus.chartjs.available) {
-        logger.info("Chart.js successfully loaded and available");
-      } else {
-        logger.warn("Chart.js not available in page context");
-      }
+      // Attente minimale pour le rendu (réduite drastiquement)
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Réduit de 3.5s à 0.5s
 
       // Créer un fichier temporaire pour le PDF
       const tempDir = os.tmpdir();
@@ -221,7 +415,7 @@ export class PdfService {
         .substring(7)}.pdf`;
       const pdfPath = path.join(tempDir, pdfFileName);
 
-      // Générer le PDF avec timeout étendu
+      // Générer le PDF avec timeout optimisé
       await page.pdf({
         path: pdfPath,
         format,
@@ -230,10 +424,13 @@ export class PdfService {
         preferCSSPageSize: true,
         displayHeaderFooter: false,
         omitBackground: false,
-        timeout: 120000, // 2 minutes pour la génération PDF
+        timeout: 30000, // Réduit de 120s à 30s
       });
 
-      await browser.close();
+      await page.close(); // Fermer seulement la page, pas le browser
+
+      // Mettre en cache le PDF généré
+      PdfService.setCachedPdf(cacheKey, pdfPath);
 
       logger.info(
         `Successfully generated PDF for project ${projectName} at ${pdfPath}`
@@ -277,7 +474,7 @@ export class PdfService {
     });
   }
 
-  private generateHtmlFromSections(options: {
+  private generateOptimizedHtmlFromSections(options: {
     title: string;
     projectName: string;
     projectDescription: string;
@@ -294,47 +491,23 @@ export class PdfService {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${title} - ${projectName}</title>
-        <!-- Tailwind CSS et Chart.js will be injected by Puppeteer -->
         <script>
-          // Configuration des scripts - sera appliquée après injection
+          // Configuration optimisée des scripts
           function setupScripts() {
-            // Configuration Tailwind
             if (typeof window.tailwind !== 'undefined') {
               window.tailwind.config = {
-                theme: {
-                  extend: {
-                    fontFamily: {
-                      'inter': ['Inter', 'sans-serif']
-                    }
-                  }
-                },
-                corePlugins: {
-                  preflight: false
-                }
+                theme: { extend: { fontFamily: { 'inter': ['Inter', 'sans-serif'] } } },
+                corePlugins: { preflight: false }
               };
-              console.log('Tailwind config applied');
             }
-            
-            // Configuration Chart.js (si nécessaire)
             if (typeof window.Chart !== 'undefined') {
-              // Configuration globale par défaut pour Chart.js
-              window.Chart.defaults.font = {
-                family: 'Inter, sans-serif',
-                size: 12
-              };
+              window.Chart.defaults.font = { family: 'Inter, sans-serif', size: 12 };
               window.Chart.defaults.responsive = true;
               window.Chart.defaults.maintainAspectRatio = false;
-              console.log('Chart.js config applied');
             }
           }
-          
-          // Essayer d'appliquer les configs à différents moments
           document.addEventListener('DOMContentLoaded', setupScripts);
-          window.addEventListener('load', setupScripts);
-          // Fallback immédiat si les scripts sont déjà chargés
-          if (document.readyState === 'complete') {
-            setupScripts();
-          }
+          setupScripts(); // Exécution immédiate
         </script>
         
         <style>

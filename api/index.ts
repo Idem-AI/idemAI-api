@@ -51,6 +51,7 @@ import { userRoutes } from "./routes/user.routes";
 import githubRoutes from "./routes/github.routes";
 import archetypeRoutes from "./routes/archetype.routes";
 import quotaRoutes from "./routes/quota.routes";
+import { PdfService } from "./services/pdf.service";
 
 const app: Express = express();
 
@@ -143,8 +144,35 @@ app.use((err: Error, req: Request, res: Response /*, next: NextFunction */) => {
   res.status(500).send("Something broke!");
 });
 
-app.listen(port, () => {
+const server = app.listen(port, async () => {
   console.log(`Server running on port ${port}`);
+
+  // Initialiser le PdfService au démarrage pour optimiser les performances
+  try {
+    await PdfService.initialize();
+    console.log("PdfService initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize PdfService:", error);
+  }
+});
+
+// Gestion propre de l'arrêt de l'application
+process.on("SIGTERM", async () => {
+  console.log("SIGTERM received, shutting down gracefully...");
+  await PdfService.closeBrowser();
+  server.close(() => {
+    console.log("Server closed");
+    process.exit(0);
+  });
+});
+
+process.on("SIGINT", async () => {
+  console.log("SIGINT received, shutting down gracefully...");
+  await PdfService.closeBrowser();
+  server.close(() => {
+    console.log("Server closed");
+    process.exit(0);
+  });
 });
 
 export { admin };

@@ -518,8 +518,8 @@ export const generateBrandingPdfController = async (
     // Envoyer le PDF
     res.send(pdfBuffer);
 
-    // Nettoyer le fichier temporaire
-    await fs.unlink(pdfPath);
+    // NE PAS supprimer le fichier - il est géré par le cache du PdfService
+    // Le fichier sera automatiquement nettoyé par le système de cache après expiration
 
     logger.info(
       `PDF generated and sent successfully - UserId: ${userId}, ProjectId: ${projectId}`
