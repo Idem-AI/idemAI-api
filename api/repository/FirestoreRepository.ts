@@ -7,6 +7,7 @@ import {
 } from "firebase-admin/firestore";
 import { IRepository } from "./IRepository";
 import logger from "../config/logger";
+import { cacheService } from "../services/cache.service";
 
 /**
  * A generic Firestore repository implementation.
@@ -125,6 +126,20 @@ export class FirestoreRepository<
   }
 
   async findById(id: string, collectionPath: string): Promise<T | null> {
+    // Generate cache key for this specific document
+    const cacheKey = cacheService.generateDBKey(collectionPath.replace(/\//g, ':'), 'system', id);
+    
+    // Try to get from cache first
+    const cached = await cacheService.get<T>(cacheKey, { 
+      prefix: 'db',
+      ttl: 1800 // 30 minutes
+    });
+
+    if (cached) {
+      logger.debug(`Database cache hit for ${collectionPath}/${id}`);
+      return cached;
+    }
+
     logger.info(
       `FirestoreRepository.findById called for ${collectionPath}, id: ${id}`
     );
@@ -143,6 +158,12 @@ export class FirestoreRepository<
         id: doc.id,
         ...this.fromFirestore(data),
       } as T;
+
+      // Cache the result for future requests
+      await cacheService.set(cacheKey, entity, { 
+        prefix: 'db',
+        ttl: 1800 // 30 minutes
+      });
 
       logger.info(`Document found in ${collectionPath} with id: ${id}`);
       return entity;
@@ -224,6 +245,16 @@ export class FirestoreRepository<
         id: updatedDoc.id,
         ...this.fromFirestore(updatedData),
       } as T;
+
+      // Invalidate cache for this document
+      const cacheKey = cacheService.generateDBKey(collectionPath.replace(/\//g, ':'), 'system', id);
+      await cacheService.delete(cacheKey, { prefix: 'db' });
+
+      // Cache the updated entity
+      await cacheService.set(cacheKey, updatedEntity, { 
+        prefix: 'db',
+        ttl: 1800 // 30 minutes
+      });
 
       logger.info(`Document updated in ${collectionPath} with id: ${id}`);
       return updatedEntity;

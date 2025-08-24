@@ -51,7 +51,9 @@ import { userRoutes } from "./routes/user.routes";
 import githubRoutes from "./routes/github.routes";
 import archetypeRoutes from "./routes/archetype.routes";
 import quotaRoutes from "./routes/quota.routes";
+import cacheRoutes from "./routes/cache.routes";
 import { PdfService } from "./services/pdf.service";
+import RedisConnection from "./config/redis.config";
 
 const app: Express = express();
 
@@ -122,6 +124,7 @@ app.use("/api/prompt", promptRoutes);
 app.use("/api/quota", quotaRoutes);
 app.use("/api/archetypes", archetypeRoutes);
 app.use("/api/github", githubRoutes);
+app.use("/api/cache", cacheRoutes);
 
 // Swagger setup
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
@@ -154,12 +157,25 @@ const server = app.listen(port, async () => {
   } catch (error) {
     console.error("Failed to initialize PdfService:", error);
   }
+
+  // Tester la connexion Redis au démarrage
+  try {
+    const redisConnected = await RedisConnection.testConnection();
+    if (redisConnected) {
+      console.log("Redis connection established successfully");
+    } else {
+      console.warn("Redis connection test failed - cache will be disabled");
+    }
+  } catch (error) {
+    console.error("Redis connection error:", error);
+  }
 });
 
 // Gestion propre de l'arrêt de l'application
 process.on("SIGTERM", async () => {
   console.log("SIGTERM received, shutting down gracefully...");
   await PdfService.closeBrowser();
+  await RedisConnection.disconnect();
   server.close(() => {
     console.log("Server closed");
     process.exit(0);
@@ -169,6 +185,7 @@ process.on("SIGTERM", async () => {
 process.on("SIGINT", async () => {
   console.log("SIGINT received, shutting down gracefully...");
   await PdfService.closeBrowser();
+  await RedisConnection.disconnect();
   server.close(() => {
     console.log("Server closed");
     process.exit(0);
