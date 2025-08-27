@@ -208,6 +208,76 @@ export class StorageService {
   }
 
   /**
+   * Upload team member profile pictures
+   * @param files - Array of uploaded files from multer
+   * @param userId - User ID for folder structure
+   * @param projectId - Project ID for folder structure
+   * @returns Object mapping member index to upload result
+   */
+  async uploadTeamMemberImages(
+    files: Express.Multer.File[],
+    userId: string,
+    projectId: string
+  ): Promise<{ [memberIndex: number]: UploadResult }> {
+    try {
+      const folderPath = `users/${userId}/projects/${projectId}/team-members`;
+      const results: { [memberIndex: number]: UploadResult } = {};
+
+      logger.info(`Starting team member images upload`, {
+        userId,
+        projectId,
+        folderPath,
+        filesCount: files.length,
+      });
+
+      // Upload each team member image
+      for (const file of files) {
+        // Extract member index from fieldname (e.g., "teamMemberImage_0" -> 0)
+        const memberIndexMatch = file.fieldname.match(/teamMemberImage_(\d+)/);
+        if (!memberIndexMatch) {
+          logger.warn(`Invalid fieldname format: ${file.fieldname}`);
+          continue;
+        }
+
+        const memberIndex = parseInt(memberIndexMatch[1], 10);
+        const fileExtension = file.originalname.split('.').pop() || 'jpg';
+        const fileName = `team-member-${memberIndex}.${fileExtension}`;
+
+        const uploadResult = await this.uploadFile(
+          file.buffer,
+          fileName,
+          folderPath,
+          file.mimetype || 'image/jpeg'
+        );
+
+        results[memberIndex] = uploadResult;
+
+        logger.info(`Team member image uploaded successfully`, {
+          memberIndex,
+          fileName,
+          downloadURL: uploadResult.downloadURL,
+        });
+      }
+
+      logger.info(`All team member images uploaded successfully`, {
+        userId,
+        projectId,
+        uploadedCount: Object.keys(results).length,
+      });
+
+      return results;
+    } catch (error: any) {
+      logger.error(`Error uploading team member images`, {
+        userId,
+        projectId,
+        error: error.message,
+        stack: error.stack,
+      });
+      throw new Error(`Failed to upload team member images: ${error.message}`);
+    }
+  }
+
+  /**
    * Generate a unique project ID for storage purposes
    * @returns A unique project ID
    */

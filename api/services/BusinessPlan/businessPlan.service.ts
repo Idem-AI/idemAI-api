@@ -20,6 +20,8 @@ import { AGENT_MARKETING_SALES_PROMPT } from "./prompts/agent-marketing-sales.pr
 import { AGENT_FINANCIAL_PLAN_PROMPT } from "./prompts/agent-financial-plan.prompt";
 import { AGENT_GOAL_PLANNING_PROMPT } from "./prompts/agent-goal-planning.prompt";
 import { AGENT_APPENDIX_PROMPT } from "./prompts/agent-appendix.prompt";
+import { TeamMember } from "../../models/project.model";
+import { storageService } from "../storage.service";
 
 export class BusinessPlanService extends GenericService {
   private pdfService: PdfService;
@@ -45,23 +47,35 @@ export class BusinessPlanService extends GenericService {
       return null;
     }
 
-    const projectDescription = this.extractProjectDescription(project);
-    const contentHash = crypto.createHash('sha256')
-      .update(JSON.stringify({
-        name: project.name,
-        description: project.description,
-        branding: project.analysisResultModel?.branding,
-        projectDescription
-      }))
-      .digest('hex')
+    const projectDescription =
+      this.extractProjectDescription(project) +
+      "\n" +
+      "Additional infos: " +
+      JSON.stringify(project.additionalInfos);
+    const contentHash = crypto
+      .createHash("sha256")
+      .update(
+        JSON.stringify({
+          name: project.name,
+          description: project.description,
+          branding: project.analysisResultModel?.branding,
+          projectDescription,
+        })
+      )
+      .digest("hex")
       .substring(0, 16);
 
-    const cacheKey = cacheService.generateAIKey('business-plan', userId, projectId, contentHash);
-    
+    const cacheKey = cacheService.generateAIKey(
+      "business-plan",
+      userId,
+      projectId,
+      contentHash
+    );
+
     // Check cache first
-    const cachedResult = await cacheService.get<ProjectModel>(cacheKey, { 
-      prefix: 'ai',
-      ttl: 7200 // 2 hours
+    const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
+      prefix: "ai",
+      ttl: 7200, // 2 hours
     });
 
     if (cachedResult) {
@@ -69,7 +83,9 @@ export class BusinessPlanService extends GenericService {
       return cachedResult;
     }
 
-    logger.info(`Business plan cache miss, generating new content for projectId: ${projectId}`);
+    logger.info(
+      `Business plan cache miss, generating new content for projectId: ${projectId}`
+    );
 
     // Extract branding information
     const brandName = project.name || "Startup";
@@ -224,11 +240,11 @@ export class BusinessPlanService extends GenericService {
         logger.info(
           `Successfully updated project with ID: ${projectId} with business plan`
         );
-        
+
         // Cache the result for future requests
-        await cacheService.set(cacheKey, updatedProject, { 
-          prefix: 'ai',
-          ttl: 7200 // 2 hours
+        await cacheService.set(cacheKey, updatedProject, {
+          prefix: "ai",
+          ttl: 7200, // 2 hours
         });
         logger.info(`Business plan cached for projectId: ${projectId}`);
       }
@@ -357,12 +373,16 @@ export class BusinessPlanService extends GenericService {
     );
 
     // Generate cache key for PDF
-    const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
-    
+    const pdfCacheKey = cacheService.generateAIKey(
+      "business-plan-pdf",
+      userId,
+      projectId
+    );
+
     // Check if PDF is already cached
-    const cachedPdfPath = await cacheService.get<string>(pdfCacheKey, { 
-      prefix: 'pdf',
-      ttl: 3600 // 1 hour
+    const cachedPdfPath = await cacheService.get<string>(pdfCacheKey, {
+      prefix: "pdf",
+      ttl: 3600, // 1 hour
     });
 
     if (cachedPdfPath) {
@@ -370,7 +390,9 @@ export class BusinessPlanService extends GenericService {
       return cachedPdfPath;
     }
 
-    logger.info(`Business plan PDF cache miss, generating new PDF for projectId: ${projectId}`);
+    logger.info(
+      `Business plan PDF cache miss, generating new PDF for projectId: ${projectId}`
+    );
 
     // Récupérer le projet et ses données de business plan
     const project = await this.projectRepository.findById(
@@ -386,11 +408,17 @@ export class BusinessPlanService extends GenericService {
     }
 
     const businessPlan = project.analysisResultModel.businessPlan;
-    if (!businessPlan || !businessPlan.sections || businessPlan.sections.length === 0) {
+    if (
+      !businessPlan ||
+      !businessPlan.sections ||
+      businessPlan.sections.length === 0
+    ) {
       logger.warn(
         `No business plan sections found for project ${projectId} when generating PDF.`
       );
-      throw new Error(`No business plan sections found for project ${projectId}`);
+      throw new Error(
+        `No business plan sections found for project ${projectId}`
+      );
     }
 
     // Utiliser le PdfService pour générer le PDF
@@ -414,12 +442,130 @@ export class BusinessPlanService extends GenericService {
     });
 
     // Cache the PDF path for future requests
-    await cacheService.set(pdfCacheKey, pdfPath, { 
-      prefix: 'pdf',
-      ttl: 3600 // 1 hour
+    await cacheService.set(pdfCacheKey, pdfPath, {
+      prefix: "pdf",
+      ttl: 3600, // 1 hour
     });
     logger.info(`Business plan PDF cached for projectId: ${projectId}`);
 
     return pdfPath;
+  }
+
+  /**
+   * Génère un business plan avec les informations additionnelles et upload des images des team members
+   * @param userId - ID de l'utilisateur
+   * @param projectId - ID du projet
+   * @param additionalInfos - Informations additionnelles de l'entreprise
+   * @param teamMemberImages - Images des team members uploadées
+   * @param streamCallback - Callback pour streaming en temps réel
+   * @returns Projet mis à jour avec le business plan
+   */
+  async generateBusinessPlanWithAdditionalInfos(
+    userId: string,
+    projectId: string,
+    additionalInfos: {
+      email: string;
+      phone?: string;
+      address?: string;
+      city?: string;
+      country?: string;
+      zipCode?: string;
+      teamMembers: TeamMember[];
+    },
+    teamMemberImages?: Express.Multer.File[],
+    streamCallback?: (sectionResult: ISectionResult) => Promise<void>
+  ): Promise<{
+    project: ProjectModel | null;
+    uploadedImages?: { [memberIndex: number]: any };
+  }> {
+    logger.info(
+      `Generating business plan with additional infos for userId: ${userId}, projectId: ${projectId}`,
+      {
+        additionalInfos: {
+          email: additionalInfos.email,
+          teamMembersCount: additionalInfos.teamMembers.length,
+          hasImages: !!teamMemberImages && teamMemberImages.length > 0,
+        },
+      }
+    );
+
+    // Upload team member images if provided
+    let uploadedImages: { [memberIndex: number]: any } = {};
+    if (teamMemberImages && teamMemberImages.length > 0) {
+      try {
+        uploadedImages = await storageService.uploadTeamMemberImages(
+          teamMemberImages,
+          userId,
+          projectId
+        );
+        logger.info(
+          `Uploaded ${Object.keys(uploadedImages).length} team member images`
+        );
+      } catch (error: any) {
+        logger.error(`Error uploading team member images: ${error.message}`, {
+          stack: error.stack,
+        });
+        // Continue without images rather than fail completely
+      }
+    }
+
+    // Update team members with uploaded image URLs
+    const updatedTeamMembers = additionalInfos.teamMembers.map(
+      (member, index) => ({
+        ...member,
+        pictureUrl: uploadedImages[index]?.downloadURL || member.pictureUrl,
+      })
+    );
+
+    // Get current project to update with additional infos
+    const project = await this.getProject(projectId, userId);
+    if (!project) {
+      logger.warn(`Project not found: ${projectId} for user: ${userId}`);
+      return { project: null };
+    }
+
+    // Update project with additional informations
+    const updatedProject = {
+      ...project,
+      additionalInfos: {
+        email: additionalInfos.email,
+        phone: additionalInfos.phone || "",
+        address: additionalInfos.address || "",
+        city: additionalInfos.city || "",
+        country: additionalInfos.country || "",
+        zipCode: additionalInfos.zipCode || "",
+        teamMembers: updatedTeamMembers,
+      },
+    };
+
+    // Save updated project with additional infos
+    const savedProject = await this.projectRepository.update(
+      projectId,
+      updatedProject,
+      `users/${userId}/projects`
+    );
+
+    if (!savedProject) {
+      logger.error(
+        `Failed to update project with additional infos: ${projectId}`
+      );
+      return { project: null };
+    }
+
+    logger.info(`Project updated with additional infos: ${projectId}`);
+
+    // Generate business plan with the updated project (including additional infos)
+    const projectWithBusinessPlan =
+      await this.generateBusinessPlanWithStreaming(
+        userId,
+        projectId,
+        streamCallback
+      );
+
+    return {
+      project: projectWithBusinessPlan,
+      uploadedImages:
+        Object.keys(uploadedImages).length > 0 ? uploadedImages : undefined,
+    };
   }
 }

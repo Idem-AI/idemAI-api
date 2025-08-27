@@ -5,22 +5,43 @@ import {
   deleteBusinessPlanController,
   generateBusinessPlanStreamingController,
   generateBusinessPlanPdfController,
+  generateBusinessPlanWithAdditionalInfosController,
 } from "../controllers/businessPlan.controller";
 import { authenticate } from "../services/auth.service";
 import { checkQuota } from "../middleware/quota.middleware";
+import multer from "multer";
 
 export const businessPlanRoutes = Router();
 
 const resourceName = "businessPlans";
 
-// Generate a new business plan for a project
+// Configuration multer pour l'upload d'images des team members
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB max per file
+    files: 20, // Max 20 files (team members)
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept only image files
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  },
+});
+
+// Generate a new business plan for a project (streaming with optional additional infos)
 /**
  * @openapi
- * /businessPlans/{projectId}:
- *   post:
+ * /businessPlans/generate/{projectId}:
+ *   get:
  *     tags:
  *       - Business Plans
- *     summary: Generate a new business plan for a project
+ *     summary: Generate a business plan with real-time streaming (supports optional additional infos via multipart)
+ *     description: Creates a business plan with streaming progress. Optionally supports additional company information and team member images via multipart/form-data
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -29,42 +50,65 @@ const resourceName = "businessPlans";
  *         required: true
  *         schema:
  *           type: string
- *         description: The ID of the project for which to generate the business plan.
+ *         description: The ID of the project for which to generate the business plan
  *     requestBody:
- *       description: Optional initial data for business plan generation.
+ *       description: Optional additional company information and team member images
  *       required: false
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
- *               title:
+ *               email:
  *                 type: string
- *                 description: Optional initial title for the business plan.
- *               templateId:
+ *                 format: email
+ *                 description: Company contact email (if provided, teamMembers is required)
+ *               phone:
  *                 type: string
- *                 description: Optional ID of a template to use for generation.
- *                 nullable: true
+ *                 description: Company phone number
+ *               address:
+ *                 type: string
+ *                 description: Company address
+ *               city:
+ *                 type: string
+ *                 description: Company city
+ *               country:
+ *                 type: string
+ *                 description: Company country
+ *               zipCode:
+ *                 type: string
+ *                 description: Company zip code
+ *               teamMembers:
+ *                 type: string
+ *                 description: JSON string containing team members information (required if email provided)
+ *               teamMemberImage_0:
+ *                 type: string
+ *                 format: binary
+ *                 description: Profile picture for team member at index 0
+ *               teamMemberImage_1:
+ *                 type: string
+ *                 format: binary
+ *                 description: Profile picture for team member at index 1
  *     responses:
- *       '201':
- *         description: Business plan generated successfully.
+ *       '200':
+ *         description: Server-Sent Events stream with business plan generation progress
  *         content:
- *           application/json:
+ *           text/event-stream:
  *             schema:
- *               $ref: '#/components/schemas/BusinessPlanModel'
+ *               type: string
+ *               description: SSE stream with JSON messages containing step progress and final result with optional uploaded images
  *       '400':
- *         description: Bad request.
+ *         description: Bad request
  *       '401':
- *         description: Unauthorized.
- *       '404':
- *         description: Project not found.
+ *         description: Unauthorized
  *       '500':
- *         description: Internal server error.
+ *         description: Internal server error
  */
 businessPlanRoutes.get(
   `/${resourceName}/generate/:projectId`,
   authenticate,
   checkQuota,
+  upload.any(), // Support multipart pour les additional infos optionnelles
   generateBusinessPlanStreamingController
 );
 
@@ -285,3 +329,85 @@ businessPlanRoutes.get(
   pdfTimeout,
   generateBusinessPlanPdfController
 );
+
+// Generate business plan with additional informations (non-streaming)
+/**
+ * @openapi
+ * /businessPlans/with-infos/{projectId}:
+ *   post:
+ *     tags:
+ *       - Business Plans
+ *     summary: Generate a business plan with additional company informations and team member images
+ *     description: Creates a business plan including additional company details and uploads team member profile pictures
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the project for which to generate the business plan
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Company contact email
+ *               phone:
+ *                 type: string
+ *                 description: Company phone number
+ *               address:
+ *                 type: string
+ *                 description: Company address
+ *               city:
+ *                 type: string
+ *                 description: Company city
+ *               country:
+ *                 type: string
+ *                 description: Company country
+ *               zipCode:
+ *                 type: string
+ *                 description: Company zip code
+ *               teamMembers:
+ *                 type: string
+ *                 description: JSON string containing team members information (without images)
+ *                 example: '[{"name":"John Doe","role":"CEO","email":"john@example.com","bio":"Experienced leader","socialLinks":{"linkedin":"https://linkedin.com/in/johndoe"}}]'
+ *               teamMemberImage_0:
+ *                 type: string
+ *                 format: binary
+ *                 description: Profile picture for team member at index 0
+ *               teamMemberImage_1:
+ *                 type: string
+ *                 format: binary
+ *                 description: Profile picture for team member at index 1
+ *             required:
+ *               - email
+ *               - teamMembers
+ *     responses:
+ *       '201':
+ *         description: Business plan generated successfully with additional informations
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/GenerateBusinessPlanResponse'
+ *       '400':
+ *         description: Bad request - Missing required fields or invalid format
+ *       '401':
+ *         description: Unauthorized
+ *       '500':
+ *         description: Internal server error
+ */
+businessPlanRoutes.post(
+  `/${resourceName}/with-infos/:projectId`,
+  authenticate,
+  checkQuota,
+  upload.any(), // Accept multiple files with any field names
+  generateBusinessPlanWithAdditionalInfosController
+);
+
