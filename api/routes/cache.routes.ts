@@ -13,46 +13,46 @@ const router = Router();
  *       properties:
  *         totalKeys:
  *           type: number
- *           description: Nombre total de clés en cache
+ *           description: Total number of cache keys
  *         memoryUsage:
  *           type: string
- *           description: Utilisation mémoire Redis
+ *           description: Redis memory usage
  *         hitRate:
  *           type: number
- *           description: Taux de succès du cache (%)
+ *           description: Cache hit rate (%)
  *         missRate:
  *           type: number
- *           description: Taux d'échec du cache (%)
+ *           description: Cache miss rate (%)
  *         totalHits:
  *           type: number
- *           description: Nombre total de hits
+ *           description: Total number of hits
  *         totalMisses:
  *           type: number
- *           description: Nombre total de misses
+ *           description: Total number of misses
  *     CacheKeyCheck:
  *       type: object
  *       properties:
  *         key:
  *           type: string
- *           description: Clé de cache
+ *           description: Cache key
  *         exists:
  *           type: boolean
- *           description: Si la clé existe
+ *           description: Whether the key exists
  *         ttl:
  *           type: number
  *           nullable: true
- *           description: TTL restant en secondes
+ *           description: Remaining TTL in seconds
  */
 
 /**
  * @swagger
  * /api/cache/stats:
  *   get:
- *     summary: Obtient les statistiques du cache Redis
+ *     summary: Get Redis cache statistics
  *     tags: [Cache]
  *     responses:
  *       200:
- *         description: Statistiques du cache récupérées avec succès
+ *         description: Cache statistics retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -65,7 +65,7 @@ const router = Router();
  *                 message:
  *                   type: string
  *       500:
- *         description: Erreur serveur
+ *         description: Server error
  */
 router.get('/stats', CacheController.getCacheStats);
 
@@ -73,13 +73,13 @@ router.get('/stats', CacheController.getCacheStats);
  * @swagger
  * /api/cache/clear:
  *   delete:
- *     summary: Vide complètement le cache Redis
+ *     summary: Clear Redis cache completely
  *     tags: [Cache]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Cache vidé avec succès
+ *         description: Cache cleared successfully
  *         content:
  *           application/json:
  *             schema:
@@ -90,7 +90,7 @@ router.get('/stats', CacheController.getCacheStats);
  *                 message:
  *                   type: string
  *       500:
- *         description: Erreur serveur
+ *         description: Server error
  */
 router.delete('/clear', authenticate, CacheController.clearCache);
 
@@ -98,7 +98,7 @@ router.delete('/clear', authenticate, CacheController.clearCache);
  * @swagger
  * /api/cache/user/{userId}:
  *   delete:
- *     summary: Invalide le cache pour un utilisateur spécifique
+ *     summary: Invalidate cache for a specific user
  *     tags: [Cache]
  *     security:
  *       - bearerAuth: []
@@ -111,7 +111,7 @@ router.delete('/clear', authenticate, CacheController.clearCache);
  *         description: ID de l'utilisateur (optionnel, utilise l'utilisateur connecté par défaut)
  *     responses:
  *       200:
- *         description: Cache utilisateur invalidé avec succès
+ *         description: User cache invalidated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -127,9 +127,9 @@ router.delete('/clear', authenticate, CacheController.clearCache);
  *                     deletedKeys:
  *                       type: number
  *       400:
- *         description: ID utilisateur requis
+ *         description: User ID required
  *       500:
- *         description: Erreur serveur
+ *         description: Server error
  */
 router.delete('/user/:userId?', authenticate, CacheController.invalidateUserCache);
 
@@ -137,7 +137,7 @@ router.delete('/user/:userId?', authenticate, CacheController.invalidateUserCach
  * @swagger
  * /api/cache/project/{projectId}:
  *   delete:
- *     summary: Invalide le cache pour un projet spécifique
+ *     summary: Invalidate cache for a specific project
  *     tags: [Cache]
  *     security:
  *       - bearerAuth: []
@@ -150,7 +150,7 @@ router.delete('/user/:userId?', authenticate, CacheController.invalidateUserCach
  *         description: ID du projet
  *     responses:
  *       200:
- *         description: Cache projet invalidé avec succès
+ *         description: Project cache invalidated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -166,9 +166,9 @@ router.delete('/user/:userId?', authenticate, CacheController.invalidateUserCach
  *                     deletedKeys:
  *                       type: number
  *       400:
- *         description: ID projet requis
+ *         description: Project ID required
  *       500:
- *         description: Erreur serveur
+ *         description: Server error
  */
 router.delete('/project/:projectId', authenticate, CacheController.invalidateProjectCache);
 
@@ -176,7 +176,7 @@ router.delete('/project/:projectId', authenticate, CacheController.invalidatePro
  * @swagger
  * /api/cache/pattern:
  *   delete:
- *     summary: Invalide le cache par pattern
+ *     summary: Invalidate cache by pattern
  *     tags: [Cache]
  *     security:
  *       - bearerAuth: []
@@ -191,10 +191,10 @@ router.delete('/project/:projectId', authenticate, CacheController.invalidatePro
  *             properties:
  *               pattern:
  *                 type: string
- *                 description: "Pattern de clés à supprimer (ex: user:123:*)"
+ *                 description: "Key pattern to delete (e.g., user:123:*)"
  *     responses:
  *       200:
- *         description: Cache invalidé par pattern avec succès
+ *         description: Cache invalidated by pattern successfully
  *         content:
  *           application/json:
  *             schema:
@@ -210,9 +210,9 @@ router.delete('/project/:projectId', authenticate, CacheController.invalidatePro
  *                     deletedKeys:
  *                       type: number
  *       400:
- *         description: Pattern requis
+ *         description: Pattern required
  *       500:
- *         description: Erreur serveur
+ *         description: Server error
  */
 router.delete('/pattern', authenticate, CacheController.invalidateCacheByPattern);
 
@@ -220,7 +220,7 @@ router.delete('/pattern', authenticate, CacheController.invalidateCacheByPattern
  * @swagger
  * /api/cache/key:
  *   get:
- *     summary: Vérifie si une clé existe dans le cache
+ *     summary: Check if a key exists in cache
  *     tags: [Cache]
  *     parameters:
  *       - in: query
@@ -228,16 +228,16 @@ router.delete('/pattern', authenticate, CacheController.invalidateCacheByPattern
  *         schema:
  *           type: string
  *         required: true
- *         description: Clé de cache à vérifier
+ *         description: Cache key to check
  *       - in: query
  *         name: prefix
  *         schema:
  *           type: string
  *         required: false
- *         description: Préfixe de la clé
+ *         description: Key prefix
  *     responses:
  *       200:
- *         description: Vérification de clé effectuée avec succès
+ *         description: Key verification completed successfully
  *         content:
  *           application/json:
  *             schema:
@@ -250,9 +250,9 @@ router.delete('/pattern', authenticate, CacheController.invalidateCacheByPattern
  *                 message:
  *                   type: string
  *       400:
- *         description: Clé requise
+ *         description: Key required
  *       500:
- *         description: Erreur serveur
+ *         description: Server error
  */
 router.get('/key', CacheController.checkCacheKey);
 
@@ -260,7 +260,7 @@ router.get('/key', CacheController.checkCacheKey);
  * @swagger
  * /api/cache/ttl:
  *   put:
- *     summary: Met à jour le TTL d'une clé de cache
+ *     summary: Update TTL of a cache key
  *     tags: [Cache]
  *     security:
  *       - bearerAuth: []
@@ -276,16 +276,16 @@ router.get('/key', CacheController.checkCacheKey);
  *             properties:
  *               key:
  *                 type: string
- *                 description: Clé de cache
+ *                 description: Cache key
  *               ttl:
  *                 type: number
- *                 description: Nouveau TTL en secondes
+ *                 description: New TTL in seconds
  *               prefix:
  *                 type: string
- *                 description: Préfixe de la clé
+ *                 description: Key prefix
  *     responses:
  *       200:
- *         description: TTL mis à jour avec succès
+ *         description: TTL updated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -303,12 +303,247 @@ router.get('/key', CacheController.checkCacheKey);
  *                     ttl:
  *                       type: number
  *       400:
- *         description: Clé et TTL requis
+ *         description: Key and TTL required
  *       404:
- *         description: Clé non trouvée
+ *         description: Key not found
  *       500:
- *         description: Erreur serveur
+ *         description: Server error
  */
 router.put('/ttl', authenticate, CacheController.updateCacheTTL);
+
+// ==========================================
+// PDF CACHE MANAGEMENT ROUTES
+// ==========================================
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     PdfCacheStats:
+ *       type: object
+ *       properties:
+ *         htmlEntries:
+ *           type: number
+ *           description: Number of HTML entries in cache
+ *         pdfEntries:
+ *           type: number
+ *           description: Number of PDF entries in cache
+ *         totalSize:
+ *           type: number
+ *           description: Total HTML cache size (bytes)
+ *         totalSizeMB:
+ *           type: number
+ *           description: Total HTML cache size (MB)
+ *         diskUsage:
+ *           type: number
+ *           description: PDF files disk usage (bytes)
+ *         diskUsageMB:
+ *           type: number
+ *           description: PDF files disk usage (MB)
+ *         oldestEntry:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *           description: Date of the oldest entry
+ *         newestEntry:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *           description: Date of the newest entry
+ *     PdfCacheClearResult:
+ *       type: object
+ *       properties:
+ *         htmlCleared:
+ *           type: number
+ *           description: Number of HTML entries cleared
+ *         pdfCleared:
+ *           type: number
+ *           description: Number of PDF entries cleared
+ */
+
+/**
+ * @swagger
+ * /api/cache/pdf/stats:
+ *   get:
+ *     summary: Get local PDF cache statistics
+ *     tags: [Cache PDF]
+ *     responses:
+ *       200:
+ *         description: PDF cache statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/PdfCacheStats'
+ *                 message:
+ *                   type: string
+ *       500:
+ *         description: Server error
+ */
+router.get('/pdf/stats', CacheController.getPdfCacheStats);
+
+/**
+ * @swagger
+ * /api/cache/pdf/clear:
+ *   delete:
+ *     summary: Clear PDF cache (selectively or completely)
+ *     tags: [Cache PDF]
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [html, pdf, all]
+ *           default: all
+ *         description: Type of cache to clear (html, pdf, or all)
+ *     responses:
+ *       200:
+ *         description: PDF cache cleared successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/PdfCacheClearResult'
+ *                 message:
+ *                   type: string
+ *       500:
+ *         description: Server error
+ */
+router.delete('/pdf/clear', CacheController.clearPdfCache);
+
+/**
+ * @swagger
+ * /api/cache/pdf/project/{projectId}:
+ *   delete:
+ *     summary: Invalidate PDF cache for a specific project
+ *     tags: [Cache PDF]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Project ID
+ *     responses:
+ *       200:
+ *         description: Project cache invalidated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     redisDeletedKeys:
+ *                       type: number
+ *                       description: Nombre de clés supprimées dans Redis
+ *                     pdfDeletedEntries:
+ *                       type: number
+ *                       description: Nombre d'entrées PDF supprimées
+ *       400:
+ *         description: Project ID required
+ *       500:
+ *         description: Server error
+ */
+router.delete('/pdf/project/:projectId', authenticate, CacheController.invalidatePdfCacheByProject);
+
+/**
+ * @swagger
+ * /api/cache/pdf/user/{userId}:
+ *   delete:
+ *     summary: Invalidate PDF cache for a specific user
+ *     tags: [Cache PDF]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: User ID (optional, uses authenticated user by default)
+ *     responses:
+ *       200:
+ *         description: User PDF cache invalidated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     redisDeletedKeys:
+ *                       type: number
+ *                       description: Number of keys deleted in Redis
+ *                     pdfDeletedEntries:
+ *                       type: number
+ *                       description: Number of PDF entries deleted
+ *       400:
+ *         description: User ID required
+ *       500:
+ *         description: Server error
+ */
+router.delete('/pdf/user/:userId?', authenticate, CacheController.invalidatePdfCacheByUser);
+
+/**
+ * @swagger
+ * /api/cache/pdf/age:
+ *   delete:
+ *     summary: Clean PDF cache by age
+ *     tags: [Cache PDF]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - maxAgeMinutes
+ *             properties:
+ *               maxAgeMinutes:
+ *                 type: number
+ *                 minimum: 1
+ *                 description: Maximum age in minutes (older entries will be deleted)
+ *                 example: 60
+ *     responses:
+ *       200:
+ *         description: PDF cache cleaned by age successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/PdfCacheClearResult'
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: maxAgeMinutes required and must be positive
+ *       500:
+ *         description: Server error
+ */
+router.delete('/pdf/age', CacheController.clearPdfCacheByAge);
 
 export default router;

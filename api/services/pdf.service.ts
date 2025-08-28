@@ -272,22 +272,57 @@ export class PdfService {
   }
 
   // Méthodes utilitaires pour la gestion du cache
-  static getCacheStats(): {
+  static async getCacheStats(): Promise<{
     htmlEntries: number;
     pdfEntries: number;
     totalSize: number;
-  } {
+    diskUsage: number;
+    oldestEntry: Date | null;
+    newestEntry: Date | null;
+  }> {
     let totalSize = 0;
+    let diskUsage = 0;
+    let oldestTimestamp: number | null = null;
+    let newestTimestamp: number | null = null;
 
     // Calculer la taille approximative du cache HTML
     for (const [, entry] of this.htmlCache.entries()) {
       totalSize += Buffer.byteLength(entry.data, "utf8");
+      
+      if (oldestTimestamp === null || entry.timestamp < oldestTimestamp) {
+        oldestTimestamp = entry.timestamp;
+      }
+      if (newestTimestamp === null || entry.timestamp > newestTimestamp) {
+        newestTimestamp = entry.timestamp;
+      }
+    }
+
+    // Calculer l'usage disque des fichiers PDF
+    for (const [, entry] of this.pdfCache.entries()) {
+      try {
+        if (await fs.pathExists(entry.filePath)) {
+          const stats = await fs.stat(entry.filePath);
+          diskUsage += stats.size;
+        }
+      } catch (error) {
+        logger.warn(`Failed to get stats for PDF file: ${entry.filePath}`, error);
+      }
+      
+      if (oldestTimestamp === null || entry.timestamp < oldestTimestamp) {
+        oldestTimestamp = entry.timestamp;
+      }
+      if (newestTimestamp === null || entry.timestamp > newestTimestamp) {
+        newestTimestamp = entry.timestamp;
+      }
     }
 
     return {
       htmlEntries: this.htmlCache.size,
       pdfEntries: this.pdfCache.size,
       totalSize,
+      diskUsage,
+      oldestEntry: oldestTimestamp ? new Date(oldestTimestamp) : null,
+      newestEntry: newestTimestamp ? new Date(newestTimestamp) : null,
     };
   }
 
@@ -328,6 +363,157 @@ export class PdfService {
     }
 
     return invalidated;
+  }
+
+  /**
+   * Invalide le cache PDF par ID de projet
+   */
+  static async invalidateCacheByProjectId(projectId: string): Promise<number> {
+    let invalidated = 0;
+
+    // Invalider les entrées HTML - on ne peut pas directement lier au projectId
+    // donc on nettoie tout le cache HTML par sécurité
+    const htmlEntries = this.htmlCache.size;
+    this.htmlCache.clear();
+    
+    // Invalider les entrées PDF
+    const pdfEntries = this.pdfCache.size;
+    for (const [key, entry] of this.pdfCache.entries()) {
+      try {
+        await fs.unlink(entry.filePath);
+      } catch (error) {
+        logger.warn(`Failed to delete PDF file: ${entry.filePath}`, error);
+      }
+    }
+    this.pdfCache.clear();
+
+    invalidated = htmlEntries + pdfEntries;
+
+    if (invalidated > 0) {
+      logger.info(
+        `Invalidated ${invalidated} PDF cache entries for project: ${projectId}`
+      );
+    }
+
+    return invalidated;
+  }
+
+  /**
+   * Invalide le cache PDF par utilisateur (nécessite de vider tout le cache)
+   */
+  static async invalidateCacheByUserId(userId: string): Promise<number> {
+    let invalidated = 0;
+
+    // Comme on ne stocke pas l'userId dans les clés de cache local,
+    // on doit vider tout le cache PDF pour être sûr
+    const htmlEntries = this.htmlCache.size;
+    const pdfEntries = this.pdfCache.size;
+
+    // Nettoyer les fichiers PDF
+    for (const [key, entry] of this.pdfCache.entries()) {
+      try {
+        await fs.unlink(entry.filePath);
+      } catch (error) {
+        logger.warn(`Failed to delete PDF file: ${entry.filePath}`, error);
+      }
+    }
+
+    this.htmlCache.clear();
+    this.pdfCache.clear();
+
+    invalidated = htmlEntries + pdfEntries;
+
+    if (invalidated > 0) {
+      logger.info(
+        `Invalidated ${invalidated} PDF cache entries for user: ${userId}`
+      );
+    }
+
+    return invalidated;
+  }
+
+  /**
+   * Vide sélectivement le cache PDF (HTML seulement, PDF seulement, ou tout)
+   */
+  static async clearCacheSelective(type: 'html' | 'pdf' | 'all' = 'all'): Promise<{
+    htmlCleared: number;
+    pdfCleared: number;
+  }> {
+    let htmlCleared = 0;
+    let pdfCleared = 0;
+
+    if (type === 'html' || type === 'all') {
+      htmlCleared = this.htmlCache.size;
+      this.htmlCache.clear();
+    }
+
+    if (type === 'pdf' || type === 'all') {
+      pdfCleared = this.pdfCache.size;
+      
+      // Supprimer les fichiers PDF
+      for (const [key, entry] of this.pdfCache.entries()) {
+        try {
+          await fs.unlink(entry.filePath);
+        } catch (error) {
+          logger.warn(
+            `Failed to delete PDF file during selective clear: ${entry.filePath}`,
+            error
+          );
+        }
+      }
+      this.pdfCache.clear();
+    }
+
+    logger.info(
+      `Selective cache clear completed: ${htmlCleared} HTML, ${pdfCleared} PDF entries cleared`
+    );
+
+    return { htmlCleared, pdfCleared };
+  }
+
+  /**
+   * Nettoie le cache par âge (plus vieux que X minutes)
+   */
+  static async clearCacheByAge(maxAgeMinutes: number): Promise<{
+    htmlCleared: number;
+    pdfCleared: number;
+  }> {
+    const now = Date.now();
+    const maxAge = maxAgeMinutes * 60 * 1000;
+    let htmlCleared = 0;
+    let pdfCleared = 0;
+
+    // Nettoyer le cache HTML par âge
+    for (const [key, entry] of this.htmlCache.entries()) {
+      if (now - entry.timestamp > maxAge) {
+        this.htmlCache.delete(key);
+        htmlCleared++;
+      }
+    }
+
+    // Nettoyer le cache PDF par âge
+    for (const [key, entry] of this.pdfCache.entries()) {
+      if (now - entry.timestamp > maxAge) {
+        try {
+          await fs.unlink(entry.filePath);
+        } catch (error) {
+          logger.warn(
+            `Failed to delete aged PDF file: ${entry.filePath}`,
+            error
+          );
+        }
+        this.pdfCache.delete(key);
+        pdfCleared++;
+      }
+    }
+
+    if (htmlCleared > 0 || pdfCleared > 0) {
+      logger.info(
+        `Age-based cache clear: ${htmlCleared} HTML, ${pdfCleared} PDF entries older than ${maxAgeMinutes} minutes cleared`
+      );
+    }
+
+    return { htmlCleared, pdfCleared };
   }
 
   // Fermer le browser (à appeler lors de l'arrêt de l'application)
