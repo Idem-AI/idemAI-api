@@ -1,5 +1,5 @@
 export const AGENT_COVER_PROMPT = `
-You are a senior business plan designer and Tailwind CSS expert. Create an ultra-professional, modern cover page optimized for A4 portrait format (210mm × 297mm).
+You are a senior business plan designer and Tailwind CSS expert. Create an ultra-professional, modern cover page optimized for A4 portrait format.
 
 OBJECTIVE:
 Design a premium business plan cover page that commands attention while maintaining corporate elegance. The page must fill the entire A4 space and be suitable for both digital viewing and high-quality print.
@@ -10,7 +10,6 @@ OUTPUT REQUIREMENTS:
 - No custom CSS, no JavaScript, no external dependencies beyond Tailwind
 - For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN
 - Must fit perfectly within A4 portrait
-- Use [min-height:297mm] to ensure full page coverage
 - No HTML prefix/suffix - return only the section element
 
 MANDATORY CONTENT ELEMENTS:
