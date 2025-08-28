@@ -5,13 +5,19 @@ import { PromptService } from "../services/prompt.service";
 import logger from "../config/logger";
 import { userService } from "../services/user.service";
 import { ISectionResult } from "../services/common/generic.service";
-import { GenerateBusinessPlanWithAdditionalInfosDto, TeamMemberInput, GenerateBusinessPlanResponse } from "../dtos/businessPlan/generateBusinessPlanWithAdditionalInfos.dto";
+import {
+  GenerateBusinessPlanWithAdditionalInfosDto,
+  TeamMemberInput,
+  GenerateBusinessPlanResponse,
+} from "../dtos/businessPlan/generateBusinessPlanWithAdditionalInfos.dto";
 
 // Create instances of the services
 const promptService = new PromptService();
 const businessPlanService = new BusinessPlanService(promptService);
 
-
+/**
+ * Contrôleur pour récupérer les business plans d'un projet
+ */
 export const getBusinessPlansByProjectController = async (
   req: CustomRequest,
   res: Response
@@ -79,13 +85,17 @@ export const generateBusinessPlanPdfController = async (
 
   try {
     if (!userId) {
-      logger.warn("User not authenticated for generateBusinessPlanPdfController");
+      logger.warn(
+        "User not authenticated for generateBusinessPlanPdfController"
+      );
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
 
     if (!projectId) {
-      logger.warn("Project ID is required for generateBusinessPlanPdfController");
+      logger.warn(
+        "Project ID is required for generateBusinessPlanPdfController"
+      );
       res.status(400).json({ message: "Project ID is required" });
       return;
     }
@@ -278,10 +288,6 @@ export const generateBusinessPlanStreamingController = async (
     res.setHeader("Connection", "keep-alive");
     res.setHeader("X-Accel-Buffering", "no"); // Pour Nginx
 
-    // Check if additional infos are provided (multipart request)
-    const hasAdditionalInfos = req.body.email || req.body.teamMembers;
-    let uploadedImages: { [memberIndex: number]: any } | undefined;
-
     // Fonction de callback pour envoyer chaque résultat d'étape
     const streamCallback = async (stepResult: ISectionResult) => {
       try {
@@ -314,98 +320,22 @@ export const generateBusinessPlanStreamingController = async (
       }
     };
 
-    let updatedProject: any;
-
-    if (hasAdditionalInfos) {
-      // Handle additional infos with images
-      const {
-        email,
-        phone,
-        address,
-        city,
-        country,
-        zipCode,
-        teamMembers: teamMembersJson
-      } = req.body as GenerateBusinessPlanWithAdditionalInfosDto;
-
-      if (!email) {
-        logger.warn("Email is required when providing additional infos");
-        res.write(`data: ${JSON.stringify({ error: "Email is required" })}\n\n`);
-        res.end();
-        return;
-      }
-
-      if (!teamMembersJson) {
-        logger.warn("Team members are required when providing additional infos");
-        res.write(`data: ${JSON.stringify({ error: "Team members are required" })}\n\n`);
-        res.end();
-        return;
-      }
-
-      // Parse team members JSON
-      let teamMembers: TeamMemberInput[];
-      try {
-        teamMembers = JSON.parse(teamMembersJson);
-        if (!Array.isArray(teamMembers)) {
-          throw new Error("Team members must be an array");
-        }
-      } catch (error: any) {
-        logger.warn(`Invalid team members JSON: ${error.message}`);
-        res.write(`data: ${JSON.stringify({ error: "Invalid team members JSON format" })}\n\n`);
-        res.end();
-        return;
-      }
-
-      // Get uploaded files (if any)
-      const uploadedFiles = (req.files as Express.Multer.File[]) || [];
-
-      // Prepare additional infos
-      const additionalInfos = {
-        email,
-        phone,
-        address,
-        city,
-        country,
-        zipCode,
-        teamMembers: teamMembers.map(member => ({
-          name: member.name,
-          role: member.role,
-          email: member.email,
-          bio: member.bio,
-          socialLinks: member.socialLinks,
-          pictureUrl: undefined,
-        })),
-      };
-
-      logger.info(`Processing business plan with additional infos - ${teamMembers.length} team members, ${uploadedFiles.length} images`);
-
-      // Generate with additional infos
-      const result = await businessPlanService.generateBusinessPlanWithAdditionalInfos(
+    // Appel au service avec le callback de streaming
+    const updatedProject =
+      await businessPlanService.generateBusinessPlanWithStreaming(
         userId,
         projectId,
-        additionalInfos,
-        uploadedFiles.length > 0 ? uploadedFiles : undefined,
-        streamCallback
+        streamCallback // Passer le callback de streaming
       );
-
-      updatedProject = result.project;
-      uploadedImages = result.uploadedImages;
-    } else {
-      // Standard generation without additional infos
-      logger.info(`Processing standard business plan generation`);
-      updatedProject = await businessPlanService.generateBusinessPlanWithStreaming(
-        userId,
-        projectId,
-        streamCallback
-      );
-    }
 
     if (!updatedProject) {
       logger.warn(
         `Failed to generate business plan - UserId: ${userId}, ProjectId: ${projectId}`
       );
       res.write(
-        `data: ${JSON.stringify({ error: "Failed to generate business plan" })}\n\n`
+        `data: ${JSON.stringify({
+          error: "Failed to generate business plan",
+        })}\n\n`
       );
       res.end();
       return;
@@ -419,12 +349,11 @@ export const generateBusinessPlanStreamingController = async (
     );
     userService.incrementUsage(userId, 1);
 
-    // Envoyer un événement de fin avec images uploadées si applicable
+    // Envoyer un événement de fin
     res.write(
-      `data: ${JSON.stringify({ 
-        type: "complete", 
+      `data: ${JSON.stringify({
+        type: "complete",
         businessPlan: newBusinessPlan,
-        ...(uploadedImages && { uploadedImages })
       })}\n\n`
     );
     res.end();
@@ -441,139 +370,107 @@ export const generateBusinessPlanStreamingController = async (
 };
 
 /**
- * Contrôleur pour générer un business plan avec informations additionnelles et upload d'images
+ * Controller pour mettre à jour les informations additionnelles d'un projet
+ * Supporte l'upload d'images des team members via multipart/form-data
  */
-export const generateBusinessPlanWithAdditionalInfosController = async (
+export const setAdditionalInfoController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
-  const userId = req.user?.uid;
-  logger.info(
-    `generateBusinessPlanWithAdditionalInfosController called - UserId: ${userId}, ProjectId: ${projectId}`
-  );
-
   try {
+    const userId = req.user?.uid;
+    const { projectId } = req.params;
+
+    logger.info(
+      `Set additional info request from userId: ${userId}, projectId: ${projectId}`
+    );
+
     if (!userId) {
-      logger.warn("User not authenticated for generateBusinessPlanWithAdditionalInfosController");
-      res.status(401).json({ message: "User not authenticated" });
+      logger.warn("Unauthorized set additional info request - no userId");
+      res.status(401).json({ message: "Non autorisé" });
       return;
     }
 
     if (!projectId) {
-      logger.warn("Project ID is required for generateBusinessPlanWithAdditionalInfosController");
-      res.status(400).json({ message: "Project ID is required" });
+      logger.warn("Missing projectId for set additional info");
+      res.status(400).json({ message: "Project ID requis" });
       return;
     }
 
-    // Validate request body
-    const {
-      email,
-      phone,
-      address,
-      city,
-      country,
-      zipCode,
-      teamMembers: teamMembersJson
-    } = req.body as GenerateBusinessPlanWithAdditionalInfosDto;
-
-    if (!email) {
-      logger.warn("Email is required for generateBusinessPlanWithAdditionalInfosController");
-      res.status(400).json({ message: "Email is required" });
-      return;
-    }
-
-    if (!teamMembersJson) {
-      logger.warn("Team members are required for generateBusinessPlanWithAdditionalInfosController");
-      res.status(400).json({ message: "Team members are required" });
-      return;
-    }
-
-    // Parse team members JSON
-    let teamMembers: TeamMemberInput[];
+    // Parse additional infos from request body
+    let additionalInfos;
     try {
-      teamMembers = JSON.parse(teamMembersJson);
-      if (!Array.isArray(teamMembers)) {
-        throw new Error("Team members must be an array");
+      // Check if additionalInfos is a string (from multipart) or already an object
+      if (typeof req.body.additionalInfos === "string") {
+        additionalInfos = JSON.parse(req.body.additionalInfos);
+      } else {
+        additionalInfos = req.body;
       }
-    } catch (error: any) {
-      logger.warn(`Invalid team members JSON: ${error.message}`);
-      res.status(400).json({ message: "Invalid team members JSON format" });
+    } catch (parseError: any) {
+      logger.error(`Error parsing additional infos: ${parseError.message}`);
+      res
+        .status(400)
+        .json({ message: "Format des informations additionnelles invalide" });
       return;
     }
 
-    // Get uploaded files (if any)
-    const uploadedFiles = (req.files as Express.Multer.File[]) || [];
-    
-    logger.info(`Received additional infos with ${teamMembers.length} team members and ${uploadedFiles.length} images`);
+    // Validate required fields
+    if (!additionalInfos.email) {
+      logger.warn("Missing required email in additional infos");
+      res
+        .status(400)
+        .json({ message: "Email requis dans les informations additionnelles" });
+      return;
+    }
 
-    // Prepare additional infos
-    const additionalInfos = {
-      email,
-      phone,
-      address,
-      city,
-      country,
-      zipCode,
-      teamMembers: teamMembers.map(member => ({
-        name: member.name,
-        role: member.role,
-        email: member.email,
-        bio: member.bio,
-        socialLinks: member.socialLinks,
-        pictureUrl: undefined, // Will be set after upload
-      })),
-    };
+    if (
+      !additionalInfos.teamMembers ||
+      !Array.isArray(additionalInfos.teamMembers)
+    ) {
+      logger.warn("Missing or invalid teamMembers in additional infos");
+      res
+        .status(400)
+        .json({
+          message: "Team members requis dans les informations additionnelles",
+        });
+      return;
+    }
 
-    // Generate business plan with additional infos and uploaded images
-    const result = await businessPlanService.generateBusinessPlanWithAdditionalInfos(
+    // Get team member images from uploaded files
+    const teamMemberImages = req.files as Express.Multer.File[] | undefined;
+
+    logger.info(
+      `Processing additional infos with ${
+        additionalInfos.teamMembers.length
+      } team members and ${teamMemberImages?.length || 0} images`
+    );
+
+    const result = await businessPlanService.setAdditionalInfos(
       userId,
       projectId,
       additionalInfos,
-      uploadedFiles.length > 0 ? uploadedFiles : undefined
+      teamMemberImages
     );
 
     if (!result.project) {
-      logger.warn(
-        `Failed to generate business plan with additional infos - UserId: ${userId}, ProjectId: ${projectId}`
-      );
-      res.status(500).json({ 
-        success: false,
-        message: "Failed to generate business plan with additional infos" 
-      });
+      logger.warn(`Failed to set additional infos for project: ${projectId}`);
+      res
+        .status(404)
+        .json({ message: "Projet non trouvé ou échec de la mise à jour" });
       return;
     }
 
-    // Get the business plan from the updated project
-    const newBusinessPlan = result.project.analysisResultModel?.businessPlan;
-
-    logger.info(
-      `Business plan with additional infos generated successfully - UserId: ${userId}, ProjectId: ${projectId}`
-    );
-
-    // Increment user usage
-    userService.incrementUsage(userId, 1);
-
-    // Prepare response
-    const response: GenerateBusinessPlanResponse = {
-      success: true,
-      message: "Business plan generated successfully with additional informations",
-      businessPlan: newBusinessPlan,
+    logger.info(`Additional infos set successfully for project: ${projectId}`);
+    res.json({
+      message: "Informations additionnelles mises à jour avec succès",
+      project: result.project,
       uploadedImages: result.uploadedImages,
-    };
-
-    res.status(201).json(response);
-  } catch (error: any) {
-    logger.error(
-      `Error in generateBusinessPlanWithAdditionalInfosController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
-      { stack: error.stack, body: req.body }
-    );
-
-    res.status(500).json({
-      success: false,
-      message: "Error generating business plan with additional infos",
-      error: error.message,
     });
+  } catch (error: any) {
+    logger.error(`Error in setAdditionalInfoController: ${error.message}`, {
+      stack: error.stack,
+      body: req.body,
+    });
+    res.status(500).json({ message: "Erreur interne du serveur" });
   }
 };
-

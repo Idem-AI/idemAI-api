@@ -568,4 +568,110 @@ export class BusinessPlanService extends GenericService {
         Object.keys(uploadedImages).length > 0 ? uploadedImages : undefined,
     };
   }
+
+  /**
+   * Met à jour les informations additionnelles d'un projet avec upload des images des team members
+   * @param userId - ID de l'utilisateur
+   * @param projectId - ID du projet
+   * @param additionalInfos - Informations additionnelles de l'entreprise
+   * @param teamMemberImages - Images des team members uploadées
+   * @returns Projet mis à jour avec les informations additionnelles
+   */
+  async setAdditionalInfos(
+    userId: string,
+    projectId: string,
+    additionalInfos: {
+      email: string;
+      phone?: string;
+      address?: string;
+      city?: string;
+      country?: string;
+      zipCode?: string;
+      teamMembers: TeamMember[];
+    },
+    teamMemberImages?: Express.Multer.File[]
+  ): Promise<{ project: ProjectModel | null; uploadedImages?: { [memberIndex: number]: any } }> {
+    logger.info(
+      `Setting additional infos for userId: ${userId}, projectId: ${projectId}`,
+      {
+        additionalInfos: {
+          email: additionalInfos.email,
+          teamMembersCount: additionalInfos.teamMembers.length,
+          hasImages: !!teamMemberImages && teamMemberImages.length > 0,
+        },
+      }
+    );
+
+    // Upload team member images if provided
+    let uploadedImages: { [memberIndex: number]: any } = {};
+    if (teamMemberImages && teamMemberImages.length > 0) {
+      try {
+        uploadedImages = await storageService.uploadTeamMemberImages(
+          teamMemberImages,
+          userId,
+          projectId
+        );
+        logger.info(
+          `Uploaded ${Object.keys(uploadedImages).length} team member images`
+        );
+      } catch (error: any) {
+        logger.error(`Error uploading team member images: ${error.message}`, {
+          stack: error.stack,
+        });
+        // Continue without images rather than fail completely
+      }
+    }
+
+    // Update team members with uploaded image URLs
+    const updatedTeamMembers = additionalInfos.teamMembers.map(
+      (member, index) => ({
+        ...member,
+        pictureUrl: uploadedImages[index]?.downloadURL || member.pictureUrl,
+      })
+    );
+
+    // Get current project to update with additional infos
+    const project = await this.getProject(projectId, userId);
+    if (!project) {
+      logger.warn(`Project not found: ${projectId} for user: ${userId}`);
+      return { project: null };
+    }
+
+    // Update project with additional informations only
+    const updatedProject = {
+      ...project,
+      additionalInfos: {
+        email: additionalInfos.email,
+        phone: additionalInfos.phone || "",
+        address: additionalInfos.address || "",
+        city: additionalInfos.city || "",
+        country: additionalInfos.country || "",
+        zipCode: additionalInfos.zipCode || "",
+        teamMembers: updatedTeamMembers,
+      },
+      updatedAt: new Date(), // Update timestamp
+    };
+
+    // Save updated project with additional infos
+    const savedProject = await this.projectRepository.update(
+      projectId,
+      updatedProject,
+      `users/${userId}/projects`
+    );
+
+    if (!savedProject) {
+      logger.error(
+        `Failed to update project with additional infos: ${projectId}`
+      );
+      return { project: null };
+    }
+
+    logger.info(`Additional infos updated successfully for project: ${projectId}`);
+
+    return {
+      project: savedProject,
+      uploadedImages:
+        Object.keys(uploadedImages).length > 0 ? uploadedImages : undefined,
+    };
+  }
 }

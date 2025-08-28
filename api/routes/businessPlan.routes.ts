@@ -5,7 +5,7 @@ import {
   deleteBusinessPlanController,
   generateBusinessPlanStreamingController,
   generateBusinessPlanPdfController,
-  generateBusinessPlanWithAdditionalInfosController,
+  setAdditionalInfoController,
 } from "../controllers/businessPlan.controller";
 import { authenticate } from "../services/auth.service";
 import { checkQuota } from "../middleware/quota.middleware";
@@ -33,15 +33,15 @@ const upload = multer({
   },
 });
 
-// Generate a new business plan for a project (streaming with optional additional infos)
+// Generate a new business plan for a project (streaming)
 /**
  * @openapi
  * /businessPlans/generate/{projectId}:
  *   get:
  *     tags:
  *       - Business Plans
- *     summary: Generate a business plan with real-time streaming (supports optional additional infos via multipart)
- *     description: Creates a business plan with streaming progress. Optionally supports additional company information and team member images via multipart/form-data
+ *     summary: Generate a business plan with real-time streaming
+ *     description: Creates a business plan with streaming progress based on the project's existing data
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -51,44 +51,6 @@ const upload = multer({
  *         schema:
  *           type: string
  *         description: The ID of the project for which to generate the business plan
- *     requestBody:
- *       description: Optional additional company information and team member images
- *       required: false
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 description: Company contact email (if provided, teamMembers is required)
- *               phone:
- *                 type: string
- *                 description: Company phone number
- *               address:
- *                 type: string
- *                 description: Company address
- *               city:
- *                 type: string
- *                 description: Company city
- *               country:
- *                 type: string
- *                 description: Company country
- *               zipCode:
- *                 type: string
- *                 description: Company zip code
- *               teamMembers:
- *                 type: string
- *                 description: JSON string containing team members information (required if email provided)
- *               teamMemberImage_0:
- *                 type: string
- *                 format: binary
- *                 description: Profile picture for team member at index 0
- *               teamMemberImage_1:
- *                 type: string
- *                 format: binary
- *                 description: Profile picture for team member at index 1
  *     responses:
  *       '200':
  *         description: Server-Sent Events stream with business plan generation progress
@@ -96,19 +58,50 @@ const upload = multer({
  *           text/event-stream:
  *             schema:
  *               type: string
- *               description: SSE stream with JSON messages containing step progress and final result with optional uploaded images
+ *               description: SSE stream with JSON messages containing step progress and final business plan result
+ *             examples:
+ *               progress:
+ *                 summary: Progress event
+ *                 value: 'data: {"type":"progress","step":"Analyse du marché","content":"...","progress":25}\n\n'
+ *               complete:
+ *                 summary: Completion event
+ *                 value: 'data: {"type":"complete","businessPlan":{"executiveSummary":"...","marketAnalysis":"..."}}\n\n'
+ *               error:
+ *                 summary: Error event
+ *                 value: 'data: {"error":"Error message"}\n\n'
  *       '400':
- *         description: Bad request
+ *         description: Bad request - Invalid project ID
+ *         content:
+ *           text/event-stream:
+ *             schema:
+ *               type: string
+ *               example: 'data: {"error":"Project ID is required"}\n\n'
  *       '401':
- *         description: Unauthorized
+ *         description: Unauthorized - Authentication required
+ *         content:
+ *           text/event-stream:
+ *             schema:
+ *               type: string
+ *               example: 'data: {"error":"User not authenticated"}\n\n'
+ *       '429':
+ *         description: Too many requests - Quota exceeded
+ *         content:
+ *           text/event-stream:
+ *             schema:
+ *               type: string
+ *               example: 'data: {"error":"Quota exceeded"}\n\n'
  *       '500':
  *         description: Internal server error
+ *         content:
+ *           text/event-stream:
+ *             schema:
+ *               type: string
+ *               example: 'data: {"error":"Failed to generate business plan"}\n\n'
  */
 businessPlanRoutes.get(
   `/${resourceName}/generate/:projectId`,
   authenticate,
   checkQuota,
-  upload.any(), // Support multipart pour les additional infos optionnelles
   generateBusinessPlanStreamingController
 );
 
@@ -330,15 +323,15 @@ businessPlanRoutes.get(
   generateBusinessPlanPdfController
 );
 
-// Generate business plan with additional informations (non-streaming)
+// Set additional information for a business plan project (with team member images upload)
 /**
  * @openapi
- * /businessPlans/with-infos/{projectId}:
+ * /businessPlans/set-additional-info/{projectId}:
  *   post:
  *     tags:
  *       - Business Plans
- *     summary: Generate a business plan with additional company informations and team member images
- *     description: Creates a business plan including additional company details and uploads team member profile pictures
+ *     summary: Set additional information for a business plan project
+ *     description: Updates the additional company information including team members and their profile pictures via multipart/form-data
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -347,37 +340,20 @@ businessPlanRoutes.get(
  *         required: true
  *         schema:
  *           type: string
- *         description: The ID of the project for which to generate the business plan
+ *         description: The ID of the project to update
  *     requestBody:
  *       required: true
  *       content:
  *         multipart/form-data:
  *           schema:
  *             type: object
+ *             required:
+ *               - additionalInfos
  *             properties:
- *               email:
+ *               additionalInfos:
  *                 type: string
- *                 format: email
- *                 description: Company contact email
- *               phone:
- *                 type: string
- *                 description: Company phone number
- *               address:
- *                 type: string
- *                 description: Company address
- *               city:
- *                 type: string
- *                 description: Company city
- *               country:
- *                 type: string
- *                 description: Company country
- *               zipCode:
- *                 type: string
- *                 description: Company zip code
- *               teamMembers:
- *                 type: string
- *                 description: JSON string containing team members information (without images)
- *                 example: '[{"name":"John Doe","role":"CEO","email":"john@example.com","bio":"Experienced leader","socialLinks":{"linkedin":"https://linkedin.com/in/johndoe"}}]'
+ *                 description: JSON string containing additional company information
+ *                 example: '{"email":"contact@company.com","phone":"+33123456789","address":"123 Rue Example","city":"Paris","country":"France","zipCode":"75001","teamMembers":[{"name":"John Doe","position":"CEO","bio":"Experienced leader"}]}'
  *               teamMemberImage_0:
  *                 type: string
  *                 format: binary
@@ -386,28 +362,60 @@ businessPlanRoutes.get(
  *                 type: string
  *                 format: binary
  *                 description: Profile picture for team member at index 1
- *             required:
- *               - email
- *               - teamMembers
  *     responses:
- *       '201':
- *         description: Business plan generated successfully with additional informations
+ *       200:
+ *         description: Additional information updated successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/GenerateBusinessPlanResponse'
- *       '400':
- *         description: Bad request - Missing required fields or invalid format
- *       '401':
- *         description: Unauthorized
- *       '500':
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Informations additionnelles mises à jour avec succès"
+ *                 project:
+ *                   $ref: '#/components/schemas/Project'
+ *                 uploadedImages:
+ *                   type: object
+ *                   description: Map of uploaded image URLs by team member index
+ *       400:
+ *         description: Bad request - Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Email requis dans les informations additionnelles"
+ *       401:
+ *         description: Unauthorized - Invalid or missing authentication
+ *       404:
+ *         description: Project not found or update failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Projet non trouvé ou échec de la mise à jour"
+ *       500:
  *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Erreur interne du serveur"
  */
 businessPlanRoutes.post(
-  `/${resourceName}/with-infos/:projectId`,
+  `/${resourceName}/set-additional-info/:projectId`,
   authenticate,
-  checkQuota,
-  upload.any(), // Accept multiple files with any field names
-  generateBusinessPlanWithAdditionalInfosController
+  upload.any(), // Support multiple files with any field names
+  setAdditionalInfoController
 );
+
 
