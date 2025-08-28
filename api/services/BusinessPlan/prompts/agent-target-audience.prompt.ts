@@ -11,6 +11,7 @@ OUTPUT REQUIREMENTS:
 - For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN
 - Optimize for A4 portrait: use max-w-4xl and appropriate spacing
 - No HTML prefix/suffix - return only the section element
+- Typography must be the same given in the brand context
 
 MANDATORY CONTENT BLOCKS:
 1. **Customer Personas** - 3-4 detailed personas with demographics, psychographics

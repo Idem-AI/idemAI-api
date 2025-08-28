@@ -36,7 +36,7 @@ IMPORTANT:
 - Generate exactly 4 unique ColorModel objects. The first one must be "Dégradé Premium" using the Sozy template colors (#6a11cb to #2575fc gradient).
 - Generate exactly 4 unique TypographyModel objects. The first one must be "Système Sozy" using Exo 2 as primary font and Roboto as secondary font.
 - All IDs must be unique (e.g., "color-scheme-1", "color-scheme-2", "typography-set-1", "typography-set-2").
-- URLs should be slug-like based on the name (e.g., "palette/vibrant-innovation").
+- URLs should be a google font url (e.g., "https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap").
 - Colors should be valid hex codes (e.g., "#RRGGBB").
 - Font names should be real, commonly used web fonts (e.g., from Google Fonts like "Inter", "Roboto", "Open Sans").
 - The "name" fields should be descriptive of the style (e.g., "Vibrant Innovation", "Modern & Clean").

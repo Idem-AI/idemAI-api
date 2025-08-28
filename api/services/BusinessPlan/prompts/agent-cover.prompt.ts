@@ -11,6 +11,7 @@ OUTPUT REQUIREMENTS:
 - For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN
 - Must fit perfectly within A4 portrait
 - No HTML prefix/suffix - return only the section element
+- Typography must be the same given in the brand context
 
 MANDATORY CONTENT ELEMENTS:
 1. Company logo (use provided logoUrl) - prominent placement, professional sizing

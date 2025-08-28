@@ -6,6 +6,7 @@ import * as crypto from "crypto";
 import logger from "../config/logger";
 import { SectionModel } from "../models/section.model";
 import { ProjectModel } from "../models/project.model";
+import { TypographyModel } from "../models/brand-identity.model";
 
 export interface PdfGenerationOptions {
   title?: string;
@@ -21,6 +22,7 @@ export interface PdfGenerationOptions {
     bottom?: string;
     left?: string;
   };
+  typography?: TypographyModel;
 }
 
 interface CacheEntry {
@@ -41,7 +43,7 @@ export class PdfService {
   private static htmlCache: Map<string, CacheEntry> = new Map();
   private static pdfCache: Map<string, PdfCacheEntry> = new Map();
   private static isInitialized = false;
-  
+
   // Configuration du cache
   private static readonly HTML_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
   private static readonly PDF_CACHE_TTL = 60 * 60 * 1000; // 1 heure
@@ -53,7 +55,7 @@ export class PdfService {
       return;
     }
 
-    logger.info('Initializing Puppeteer browser instance at startup');
+    logger.info("Initializing Puppeteer browser instance at startup");
     this.browserInstance = await puppeteer.launch({
       headless: true,
       args: [
@@ -65,26 +67,28 @@ export class PdfService {
         "--disable-default-apps",
         "--disable-features=TranslateUI",
         "--disable-web-security",
-        "--disable-features=VizDisplayCompositor"
+        "--disable-features=VizDisplayCompositor",
       ],
       timeout: 30000,
     });
 
     // Précharger les ressources statiques
     await this.preloadResources();
-    
+
     // Démarrer le nettoyage périodique du cache
     this.startCacheCleanup();
-    
+
     this.isInitialized = true;
-    
-    logger.info('Browser and resources initialized successfully at startup');
+
+    logger.info("Browser and resources initialized successfully at startup");
   }
 
   // Obtenir l'instance du browser (déjà initialisée)
   private static getBrowser(): Browser {
     if (!this.browserInstance || !this.browserInstance.isConnected()) {
-      throw new Error('Browser not initialized. Call PdfService.initialize() first.');
+      throw new Error(
+        "Browser not initialized. Call PdfService.initialize() first."
+      );
     }
     return this.browserInstance;
   }
@@ -92,9 +96,18 @@ export class PdfService {
   // Précharger toutes les ressources statiques en cache
   private static async preloadResources(): Promise<void> {
     const resources = [
-      { key: 'primeicons', path: path.join(process.cwd(), "public", "css", "primeicons.css") },
-      { key: 'tailwind', path: path.join(process.cwd(), "public", "scripts", "tailwind.js") },
-      { key: 'chartjs', path: path.join(process.cwd(), "public", "scripts", "chart.js") }
+      {
+        key: "primeicons",
+        path: path.join(process.cwd(), "public", "css", "primeicons.css"),
+      },
+      {
+        key: "tailwind",
+        path: path.join(process.cwd(), "public", "scripts", "tailwind.js"),
+      },
+      {
+        key: "chartjs",
+        path: path.join(process.cwd(), "public", "scripts", "chart.js"),
+      },
     ];
 
     for (const resource of resources) {
@@ -118,17 +131,17 @@ export class PdfService {
     const page = await browser.newPage();
 
     // Injecter les ressources depuis le cache
-    const primeiconsContent = this.resourcesCache.get('primeicons');
+    const primeiconsContent = this.resourcesCache.get("primeicons");
     if (primeiconsContent) {
       await page.addStyleTag({ content: primeiconsContent });
     }
 
-    const tailwindContent = this.resourcesCache.get('tailwind');
+    const tailwindContent = this.resourcesCache.get("tailwind");
     if (tailwindContent) {
       await page.addScriptTag({ content: tailwindContent });
     }
 
-    const chartjsContent = this.resourcesCache.get('chartjs');
+    const chartjsContent = this.resourcesCache.get("chartjs");
     if (chartjsContent) {
       await page.addScriptTag({ content: chartjsContent });
     }
@@ -160,8 +173,11 @@ export class PdfService {
     for (const [key, entry] of this.pdfCache.entries()) {
       if (now - entry.timestamp > entry.ttl) {
         // Supprimer le fichier PDF
-        fs.unlink(entry.filePath).catch(err => 
-          logger.warn(`Failed to delete cached PDF file: ${entry.filePath}`, err)
+        fs.unlink(entry.filePath).catch((err) =>
+          logger.warn(
+            `Failed to delete cached PDF file: ${entry.filePath}`,
+            err
+          )
         );
         this.pdfCache.delete(key);
         pdfCleaned++;
@@ -169,7 +185,9 @@ export class PdfService {
     }
 
     if (htmlCleaned > 0 || pdfCleaned > 0) {
-      logger.info(`Cache cleanup: ${htmlCleaned} HTML entries, ${pdfCleaned} PDF entries removed`);
+      logger.info(
+        `Cache cleanup: ${htmlCleaned} HTML entries, ${pdfCleaned} PDF entries removed`
+      );
     }
   }
 
@@ -179,29 +197,31 @@ export class PdfService {
       title: options.title,
       projectName: options.projectName,
       projectDescription: options.projectDescription,
-      sections: options.sections.map(s => ({ name: s.name, data: s.data })),
+      sections: options.sections.map((s) => ({ name: s.name, data: s.data })),
       sectionDisplayOrder: options.sectionDisplayOrder,
       footerText: options.footerText,
       format: options.format,
-      margins: options.margins
+      margins: options.margins,
+      typography: options.typography,
     };
-    
-    return crypto.createHash('sha256')
+
+    return crypto
+      .createHash("sha256")
       .update(JSON.stringify(cacheData))
-      .digest('hex');
+      .digest("hex");
   }
 
   // Récupérer HTML depuis le cache
   private static getCachedHtml(cacheKey: string): string | null {
     const entry = this.htmlCache.get(cacheKey);
     if (!entry) return null;
-    
+
     const now = Date.now();
     if (now - entry.timestamp > entry.ttl) {
       this.htmlCache.delete(cacheKey);
       return null;
     }
-    
+
     logger.info(`🔄 HTML cache hit for key: ${cacheKey.substring(0, 8)}...`);
     return entry.data;
   }
@@ -211,7 +231,7 @@ export class PdfService {
     this.htmlCache.set(cacheKey, {
       data: html,
       timestamp: Date.now(),
-      ttl: this.HTML_CACHE_TTL
+      ttl: this.HTML_CACHE_TTL,
     });
     logger.info(`HTML cached for key: ${cacheKey.substring(0, 8)}...`);
   }
@@ -220,23 +240,23 @@ export class PdfService {
   private static getCachedPdf(cacheKey: string): string | null {
     const entry = this.pdfCache.get(cacheKey);
     if (!entry) return null;
-    
+
     const now = Date.now();
     if (now - entry.timestamp > entry.ttl) {
       // Supprimer le fichier expiré
-      fs.unlink(entry.filePath).catch(err => 
+      fs.unlink(entry.filePath).catch((err) =>
         logger.warn(`Failed to delete expired PDF: ${entry.filePath}`, err)
       );
       this.pdfCache.delete(cacheKey);
       return null;
     }
-    
+
     // Vérifier que le fichier existe toujours
     if (!fs.existsSync(entry.filePath)) {
       this.pdfCache.delete(cacheKey);
       return null;
     }
-    
+
     logger.info(`🚀 PDF cache hit for key: ${cacheKey.substring(0, 8)}...`);
     return entry.filePath;
   }
@@ -246,43 +266,50 @@ export class PdfService {
     this.pdfCache.set(cacheKey, {
       filePath,
       timestamp: Date.now(),
-      ttl: this.PDF_CACHE_TTL
+      ttl: this.PDF_CACHE_TTL,
     });
     logger.info(`PDF cached for key: ${cacheKey.substring(0, 8)}...`);
   }
 
   // Méthodes utilitaires pour la gestion du cache
-  static getCacheStats(): { htmlEntries: number; pdfEntries: number; totalSize: number } {
+  static getCacheStats(): {
+    htmlEntries: number;
+    pdfEntries: number;
+    totalSize: number;
+  } {
     let totalSize = 0;
-    
+
     // Calculer la taille approximative du cache HTML
     for (const [, entry] of this.htmlCache.entries()) {
-      totalSize += Buffer.byteLength(entry.data, 'utf8');
+      totalSize += Buffer.byteLength(entry.data, "utf8");
     }
-    
+
     return {
       htmlEntries: this.htmlCache.size,
       pdfEntries: this.pdfCache.size,
-      totalSize
+      totalSize,
     };
   }
 
   static clearCache(): void {
     // Nettoyer les fichiers PDF
     for (const [, entry] of this.pdfCache.entries()) {
-      fs.unlink(entry.filePath).catch(err => 
-        logger.warn(`Failed to delete PDF file during cache clear: ${entry.filePath}`, err)
+      fs.unlink(entry.filePath).catch((err) =>
+        logger.warn(
+          `Failed to delete PDF file during cache clear: ${entry.filePath}`,
+          err
+        )
       );
     }
-    
+
     this.htmlCache.clear();
     this.pdfCache.clear();
-    logger.info('All caches cleared manually');
+    logger.info("All caches cleared manually");
   }
 
   static invalidateCacheByProject(projectName: string): number {
     let invalidated = 0;
-    
+
     // Invalider les entrées HTML contenant le nom du projet
     for (const [key, entry] of this.htmlCache.entries()) {
       if (entry.data.includes(projectName)) {
@@ -290,14 +317,16 @@ export class PdfService {
         invalidated++;
       }
     }
-    
+
     // Invalider les entrées PDF (plus complexe car on n'a que le hash)
     // On pourrait améliorer en stockant des métadonnées
-    
+
     if (invalidated > 0) {
-      logger.info(`Invalidated ${invalidated} cache entries for project: ${projectName}`);
+      logger.info(
+        `Invalidated ${invalidated} cache entries for project: ${projectName}`
+      );
     }
-    
+
     return invalidated;
   }
 
@@ -307,9 +336,9 @@ export class PdfService {
       await this.browserInstance.close();
       this.browserInstance = null;
       this.isInitialized = false;
-      logger.info('Browser instance closed');
+      logger.info("Browser instance closed");
     }
-    
+
     // Nettoyer tous les fichiers PDF en cache
     for (const [key, entry] of this.pdfCache.entries()) {
       try {
@@ -341,19 +370,25 @@ export class PdfService {
 
     // Générer la clé de cache basée sur le contenu
     const cacheKey = PdfService.generateCacheKey(options);
-    
+
     logger.info(
-      `Generating PDF for project: ${projectName} with ${sections.length} sections (cache key: ${cacheKey.substring(0, 8)}...)`
+      `Generating PDF for project: ${projectName} with ${
+        sections.length
+      } sections (cache key: ${cacheKey.substring(0, 8)}...)`
     );
 
     // Vérifier le cache PDF d'abord
     const cachedPdfPath = PdfService.getCachedPdf(cacheKey);
     if (cachedPdfPath) {
-      logger.info(`🚀 CACHE HIT - Returning cached PDF for project: ${projectName} (saved ~5-8s)`);
+      logger.info(
+        `🚀 CACHE HIT - Returning cached PDF for project: ${projectName} (saved ~5-8s)`
+      );
       return cachedPdfPath;
     }
-    
-    logger.info(`❌ CACHE MISS - Generating new PDF for project: ${projectName}`);
+
+    logger.info(
+      `❌ CACHE MISS - Generating new PDF for project: ${projectName}`
+    );
 
     try {
       // Trier les sections selon l'ordre spécifié
@@ -364,9 +399,11 @@ export class PdfService {
 
       // Vérifier le cache HTML
       let htmlContent = PdfService.getCachedHtml(cacheKey);
-      
+
       if (!htmlContent) {
-        logger.info(`⚡ Generating new HTML content for project: ${projectName}`);
+        logger.info(
+          `⚡ Generating new HTML content for project: ${projectName}`
+        );
         // Créer le contenu HTML à partir des sections (optimisé)
         htmlContent = this.generateOptimizedHtmlFromSections({
           title,
@@ -374,12 +411,15 @@ export class PdfService {
           projectDescription,
           sections: sortedSections,
           footerText,
+          typography: options.typography,
         });
-        
+
         // Mettre en cache le HTML généré
         PdfService.setCachedHtml(cacheKey, htmlContent);
       } else {
-        logger.info(`🔄 HTML CACHE HIT - Using cached HTML for project: ${projectName} (saved ~2-3s)`);
+        logger.info(
+          `🔄 HTML CACHE HIT - Using cached HTML for project: ${projectName} (saved ~2-3s)`
+        );
       }
 
       // Utiliser une page optimisée avec ressources pré-chargées
@@ -480,9 +520,16 @@ export class PdfService {
     projectDescription: string;
     sections: SectionModel[];
     footerText: string;
+    typography?: TypographyModel;
   }): string {
-    const { title, projectName, projectDescription, sections, footerText } =
-      options;
+    const {
+      title,
+      projectName,
+      projectDescription,
+      sections,
+      footerText,
+      typography,
+    } = options;
 
     let htmlContent = `
       <!DOCTYPE html>
@@ -491,17 +538,44 @@ export class PdfService {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${title} - ${projectName}</title>
+        ${
+          typography?.url
+            ? `<link href="${typography.url}" rel="stylesheet">`
+            : ""
+        }
         <script>
-          // Configuration optimisée des scripts
+          // Configuration optimisée des scripts avec typographie du projet
           function setupScripts() {
+            const primaryFont = ${
+              typography?.primaryFont
+                ? `'${typography.primaryFont}'`
+                : "'Inter'"
+            };
+            const secondaryFont = ${
+              typography?.secondaryFont
+                ? `'${typography.secondaryFont}'`
+                : "'Inter'"
+            };
+            
             if (typeof window.tailwind !== 'undefined') {
               window.tailwind.config = {
-                theme: { extend: { fontFamily: { 'inter': ['Inter', 'sans-serif'] } } },
+                theme: { 
+                  extend: { 
+                    fontFamily: { 
+                      'primary': [primaryFont, 'sans-serif'],
+                      'secondary': [secondaryFont, 'sans-serif'],
+                      'sans': [secondaryFont, 'system-ui', 'sans-serif']
+                    } 
+                  } 
+                },
                 corePlugins: { preflight: false }
               };
             }
             if (typeof window.Chart !== 'undefined') {
-              window.Chart.defaults.font = { family: 'Inter, sans-serif', size: 12 };
+              window.Chart.defaults.font = { 
+                family: secondaryFont + ', sans-serif', 
+                size: 12 
+              };
               window.Chart.defaults.responsive = true;
               window.Chart.defaults.maintainAspectRatio = false;
             }
@@ -518,7 +592,27 @@ export class PdfService {
           }
           
           body {
-            font-family: 'Inter', system-ui, sans-serif;
+            font-family: ${
+              typography?.primaryFont
+                ? `'${typography.primaryFont}'`
+                : "'Inter'"
+            }, system-ui, sans-serif;
+          }
+          
+          h1, h2, h3, h4, h5, h6 {
+            font-family: ${
+              typography?.primaryFont
+                ? `'${typography.primaryFont}'`
+                : "'Inter'"
+            }, system-ui, sans-serif;
+          }
+          
+          p, div, span, li, td, th {
+            font-family: ${
+              typography?.secondaryFont
+                ? `'${typography.secondaryFont}'`
+                : "'Inter'"
+            }, system-ui, sans-serif;
           }
           
           /* Styles pour éviter la coupure des éléments */

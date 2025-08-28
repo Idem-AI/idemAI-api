@@ -11,6 +11,7 @@ OUTPUT REQUIREMENTS:
 - For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN
 - Optimize for A4 portrait: use max-w-4xl and appropriate spacing
 - No HTML prefix/suffix - return only the section element
+- Typography must be the same given in the brand context
 
 MANDATORY CONTENT BLOCKS:
 1. **Financial Details** - detailed projections, assumptions, and calculations
