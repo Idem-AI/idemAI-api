@@ -46,7 +46,7 @@ const router = Router();
 
 /**
  * @swagger
- * /api/cache/stats:
+ * /cache/stats:
  *   get:
  *     summary: Get Redis cache statistics
  *     tags: [Cache]
@@ -71,7 +71,7 @@ router.get('/stats', CacheController.getCacheStats);
 
 /**
  * @swagger
- * /api/cache/clear:
+ * /cache/clear:
  *   delete:
  *     summary: Clear Redis cache completely
  *     tags: [Cache]
@@ -96,7 +96,7 @@ router.delete('/clear', authenticate, CacheController.clearCache);
 
 /**
  * @swagger
- * /api/cache/user/{userId}:
+ * /cache/user/{userId}:
  *   delete:
  *     summary: Invalidate cache for a specific user
  *     tags: [Cache]
@@ -135,7 +135,7 @@ router.delete('/user/:userId?', authenticate, CacheController.invalidateUserCach
 
 /**
  * @swagger
- * /api/cache/project/{projectId}:
+ * /cache/project/{projectId}:
  *   delete:
  *     summary: Invalidate cache for a specific project
  *     tags: [Cache]
@@ -174,7 +174,7 @@ router.delete('/project/:projectId', authenticate, CacheController.invalidatePro
 
 /**
  * @swagger
- * /api/cache/pattern:
+ * /cache/pattern:
  *   delete:
  *     summary: Invalidate cache by pattern
  *     tags: [Cache]
@@ -218,7 +218,7 @@ router.delete('/pattern', authenticate, CacheController.invalidateCacheByPattern
 
 /**
  * @swagger
- * /api/cache/key:
+ * /cache/key:
  *   get:
  *     summary: Check if a key exists in cache
  *     tags: [Cache]
@@ -258,7 +258,7 @@ router.get('/key', CacheController.checkCacheKey);
 
 /**
  * @swagger
- * /api/cache/ttl:
+ * /cache/ttl:
  *   put:
  *     summary: Update TTL of a cache key
  *     tags: [Cache]
@@ -363,7 +363,7 @@ router.put('/ttl', authenticate, CacheController.updateCacheTTL);
 
 /**
  * @swagger
- * /api/cache/pdf/stats:
+ * /cache/pdf/stats:
  *   get:
  *     summary: Get local PDF cache statistics
  *     tags: [Cache PDF]
@@ -388,7 +388,7 @@ router.get('/pdf/stats', CacheController.getPdfCacheStats);
 
 /**
  * @swagger
- * /api/cache/pdf/clear:
+ * /cache/pdf/clear:
  *   delete:
  *     summary: Clear PDF cache (selectively or completely)
  *     tags: [Cache PDF]
@@ -421,7 +421,7 @@ router.delete('/pdf/clear', CacheController.clearPdfCache);
 
 /**
  * @swagger
- * /api/cache/pdf/project/{projectId}:
+ * /cache/pdf/project/{projectId}:
  *   delete:
  *     summary: Invalidate PDF cache for a specific project
  *     tags: [Cache PDF]
@@ -464,7 +464,7 @@ router.delete('/pdf/project/:projectId', authenticate, CacheController.invalidat
 
 /**
  * @swagger
- * /api/cache/pdf/user/{userId}:
+ * /cache/pdf/user/{userId}:
  *   delete:
  *     summary: Invalidate PDF cache for a specific user
  *     tags: [Cache PDF]
@@ -507,7 +507,7 @@ router.delete('/pdf/user/:userId?', authenticate, CacheController.invalidatePdfC
 
 /**
  * @swagger
- * /api/cache/pdf/age:
+ * /cache/pdf/age:
  *   delete:
  *     summary: Clean PDF cache by age
  *     tags: [Cache PDF]

@@ -77,21 +77,28 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Si pas d'origin (requêtes same-origin), autoriser
+      // Si pas d'origin (requêtes same-origin comme Swagger UI), autoriser
       if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      // Autoriser les requêtes depuis le même serveur (pour Swagger UI)
+      if (origin.startsWith(`http://localhost:${port}`)) {
         callback(null, true);
         return;
       }
 
       // Vérifier si l'origin est dans la liste autorisée
       if (allowedOrigins.includes(origin)) {
-        callback(null, origin); // Retourner l'origin spécifique au lieu de true
+        callback(null, true);
       } else {
+        console.warn(`CORS: Origin not allowed: ${origin}`);
         callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: [
       "Content-Type",
       "Authorization",
@@ -102,6 +109,8 @@ app.use(
       "Connection",
       "User-Agent",
       "Referer",
+      "Origin",
+      "X-Requested-With",
     ],
     exposedHeaders: [
       "Content-Type",
