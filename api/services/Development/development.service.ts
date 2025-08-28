@@ -7,9 +7,10 @@ import {
 } from "../../models/development.model";
 import { ProjectModel } from "../../models/project.model";
 import { GitHubService } from "../github.service";
-import { PushToGitHubRequest, PushToGitHubResponse } from "../../dtos/github/github.dto";
-
-
+import {
+  PushToGitHubRequest,
+  PushToGitHubResponse,
+} from "../../dtos/github/github.dto";
 
 export class DevelopmentService extends GenericService {
   private githubService: GitHubService;
@@ -76,7 +77,9 @@ export class DevelopmentService extends GenericService {
     } else {
       // INTEGRATED or undefined -> keep provided configs and default to INTEGRATED
       logger.info(
-        `landingPageConfig=${lp ?? "INTEGRATED (default)"}: keeping provided configs for projectId: ${projectId}`
+        `landingPageConfig=${
+          lp ?? "INTEGRATED (default)"
+        }: keeping provided configs for projectId: ${projectId}`
       );
       if (!developmentConfigs.landingPageConfig) {
         developmentConfigs.landingPageConfig = LandingPageConfig.INTEGRATED;
@@ -148,44 +151,67 @@ export class DevelopmentService extends GenericService {
       // If files are provided in the request, use them
       if (request.files && Object.keys(request.files).length > 0) {
         filesToPush = request.files;
-        logger.info(`Using ${Object.keys(filesToPush).length} files from request`);
+        logger.info(
+          `Using ${Object.keys(filesToPush).length} files from request`
+        );
       } else {
         // If no files in request, check if project has development files
         // This could be from WebContainer or other sources
         if (project.analysisResultModel?.development) {
           // Check for WebContainer files in development array
           const development = project.analysisResultModel.development;
-          
+
           // If development is an array (WebContainerModel[])
           if (Array.isArray(development)) {
-            const webContainer = development.find(wc => wc.metadata?.fileContents);
+            const webContainer = development.find(
+              (wc) => wc.metadata?.fileContents
+            );
             if (webContainer?.metadata?.fileContents) {
               filesToPush = webContainer.metadata.fileContents;
-              logger.info(`Using ${Object.keys(filesToPush).length} files from WebContainer`);
+              logger.info(
+                `Using ${
+                  Object.keys(filesToPush).length
+                } files from WebContainer`
+              );
             }
           }
           // If development has configs with files
           else if (development.configs) {
             // You might want to generate files based on configs here
-            logger.info("Development configs found but no direct files available");
+            logger.info(
+              "Development configs found but no direct files available"
+            );
           }
         }
 
         // If still no files, create a basic project structure
         if (Object.keys(filesToPush).length === 0) {
           filesToPush = this.generateBasicProjectStructure(project);
-          logger.info(`Generated basic project structure with ${Object.keys(filesToPush).length} files`);
+          logger.info(
+            `Generated basic project structure with ${
+              Object.keys(filesToPush).length
+            } files`
+          );
         }
       }
 
       // Use the GitHub service to push files
-      const result = await this.githubService.pushToGitHub(userId, request, filesToPush);
+      const result = await this.githubService.pushToGitHub(
+        userId,
+        request,
+        filesToPush
+      );
 
       // If successful, update project with GitHub URL
       if (result.success && result.repositoryUrl) {
         // Update WebContainer or project with GitHub info
-        if (project.analysisResultModel?.development && Array.isArray(project.analysisResultModel.development)) {
-          const webContainer = project.analysisResultModel.development.find(wc => wc.metadata?.fileContents);
+        if (
+          project.analysisResultModel?.development &&
+          Array.isArray(project.analysisResultModel.development)
+        ) {
+          const webContainer = project.analysisResultModel.development.find(
+            (wc) => wc.metadata?.fileContents
+          );
           if (webContainer?.metadata) {
             webContainer.metadata.githubUrl = result.repositoryUrl;
             webContainer.metadata.lastPushedAt = new Date().toISOString();
@@ -197,8 +223,10 @@ export class DevelopmentService extends GenericService {
           project,
           `users/${userId}/projects`
         );
-        
-        logger.info(`Successfully updated project with GitHub URL: ${result.repositoryUrl}`);
+
+        logger.info(
+          `Successfully updated project with GitHub URL: ${result.repositoryUrl}`
+        );
       }
 
       logger.info(
@@ -213,10 +241,12 @@ export class DevelopmentService extends GenericService {
         projectId,
         repositoryName: request.repositoryName,
       });
-      
+
       return {
         success: false,
-        message: `Failed to push to GitHub: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `Failed to push to GitHub: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
       };
     }
   }
@@ -224,13 +254,15 @@ export class DevelopmentService extends GenericService {
   /**
    * Generate basic project structure when no files are available
    */
-  private generateBasicProjectStructure(project: ProjectModel): Record<string, string> {
+  private generateBasicProjectStructure(
+    project: ProjectModel
+  ): Record<string, string> {
     const files: Record<string, string> = {};
 
     // Create README.md
     files["README.md"] = `# ${project.name || "Project"}
 
-${project.description || "A project generated from Lexis API"}
+${project.description || "A project generated from Idem API"}
 
 ## Description
 ${project.description || "No description available"}
@@ -245,21 +277,26 @@ ${new Date().toISOString()}
     // Create package.json if it's a web project
     if (project.analysisResultModel?.development?.configs?.frontend) {
       const frontend = project.analysisResultModel.development.configs.frontend;
-      files["package.json"] = JSON.stringify({
-        name: project.name?.toLowerCase().replace(/\s+/g, '-') || "lexis-project",
-        version: "1.0.0",
-        description: project.description || "Generated project",
-        main: "index.js",
-        scripts: {
-          dev: "vite",
-          build: "vite build",
-          preview: "vite preview"
+      files["package.json"] = JSON.stringify(
+        {
+          name:
+            project.name?.toLowerCase().replace(/\s+/g, "-") || "idem-project",
+          version: "1.0.0",
+          description: project.description || "Generated project",
+          main: "index.js",
+          scripts: {
+            dev: "vite",
+            build: "vite build",
+            preview: "vite preview",
+          },
+          dependencies: {},
+          devDependencies: {
+            vite: "^4.5.0",
+          },
         },
-        dependencies: {},
-        devDependencies: {
-          vite: "^4.5.0"
-        }
-      }, null, 2);
+        null,
+        2
+      );
     }
 
     // Create basic HTML file
@@ -272,7 +309,7 @@ ${new Date().toISOString()}
 </head>
 <body>
     <h1>${project.name || "Welcome to your project"}</h1>
-    <p>${project.description || "This project was generated from Lexis API"}</p>
+    <p>${project.description || "This project was generated from Idem API"}</p>
 </body>
 </html>`;
 

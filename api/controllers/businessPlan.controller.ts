@@ -5,11 +5,6 @@ import { PromptService } from "../services/prompt.service";
 import logger from "../config/logger";
 import { userService } from "../services/user.service";
 import { ISectionResult } from "../services/common/generic.service";
-import {
-  GenerateBusinessPlanWithAdditionalInfosDto,
-  TeamMemberInput,
-  GenerateBusinessPlanResponse,
-} from "../dtos/businessPlan/generateBusinessPlanWithAdditionalInfos.dto";
 
 // Create instances of the services
 const promptService = new PromptService();
@@ -105,6 +100,11 @@ export const generateBusinessPlanPdfController = async (
       userId,
       projectId
     );
+
+    if (pdfPath === "") {
+      res.status(404).json({ message: "No business plan found" });
+      return;
+    }
 
     // Lire le fichier PDF généré
     const fs = require("fs-extra");
@@ -428,11 +428,9 @@ export const setAdditionalInfoController = async (
       !Array.isArray(additionalInfos.teamMembers)
     ) {
       logger.warn("Missing or invalid teamMembers in additional infos");
-      res
-        .status(400)
-        .json({
-          message: "Team members requis dans les informations additionnelles",
-        });
+      res.status(400).json({
+        message: "Team members requis dans les informations additionnelles",
+      });
       return;
     }
 

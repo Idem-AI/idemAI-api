@@ -416,9 +416,7 @@ export class BusinessPlanService extends GenericService {
       logger.warn(
         `No business plan sections found for project ${projectId} when generating PDF.`
       );
-      throw new Error(
-        `No business plan sections found for project ${projectId}`
-      );
+      return "";
     }
 
     // Utiliser le PdfService pour générer le PDF
@@ -590,7 +588,10 @@ export class BusinessPlanService extends GenericService {
       teamMembers: TeamMember[];
     },
     teamMemberImages?: Express.Multer.File[]
-  ): Promise<{ project: ProjectModel | null; uploadedImages?: { [memberIndex: number]: any } }> {
+  ): Promise<{
+    project: ProjectModel | null;
+    uploadedImages?: { [memberIndex: number]: any };
+  }> {
     logger.info(
       `Setting additional infos for userId: ${userId}, projectId: ${projectId}`,
       {
@@ -666,7 +667,9 @@ export class BusinessPlanService extends GenericService {
       return { project: null };
     }
 
-    logger.info(`Additional infos updated successfully for project: ${projectId}`);
+    logger.info(
+      `Additional infos updated successfully for project: ${projectId}`
+    );
 
     return {
       project: savedProject,

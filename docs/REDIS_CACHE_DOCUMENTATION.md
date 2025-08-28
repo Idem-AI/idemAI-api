@@ -2,7 +2,7 @@
 
 ## Vue d'ensemble
 
-Le système de cache Redis a été implémenté pour optimiser drastiquement les performances de l'API Lexis en mettant en cache les résultats coûteux des générations AI et des requêtes de base de données fréquentes.
+Le système de cache Redis a été implémenté pour optimiser drastiquement les performances de l'API Idem en mettant en cache les résultats coûteux des générations AI et des requêtes de base de données fréquentes.
 
 ## Architecture
 
@@ -270,7 +270,7 @@ Le système vérifiera automatiquement la connexion Redis au démarrage et affic
 redis-cli ping
 
 # Voir les clés en cache
-redis-cli keys "lexis:*"
+redis-cli keys "idem:*"
 
 # Statistiques Redis
 redis-cli info memory

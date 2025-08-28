@@ -59,22 +59,30 @@ export class BrandingService extends GenericService {
       "\n\nHere is the project branding logo: " +
       JSON.stringify(project.analysisResultModel.branding.logo);
 
-    const contentHash = crypto.createHash('sha256')
-      .update(JSON.stringify({
-        name: project.name,
-        description: project.description,
-        branding: project.analysisResultModel?.branding,
-        projectDescription
-      }))
-      .digest('hex')
+    const contentHash = crypto
+      .createHash("sha256")
+      .update(
+        JSON.stringify({
+          name: project.name,
+          description: project.description,
+          branding: project.analysisResultModel?.branding,
+          projectDescription,
+        })
+      )
+      .digest("hex")
       .substring(0, 16);
 
-    const cacheKey = cacheService.generateAIKey('branding', userId, projectId, contentHash);
-    
+    const cacheKey = cacheService.generateAIKey(
+      "branding",
+      userId,
+      projectId,
+      contentHash
+    );
+
     // Check cache first
-    const cachedResult = await cacheService.get<ProjectModel>(cacheKey, { 
-      prefix: 'ai',
-      ttl: 7200 // 2 hours
+    const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
+      prefix: "ai",
+      ttl: 7200, // 2 hours
     });
 
     if (cachedResult) {
@@ -82,7 +90,9 @@ export class BrandingService extends GenericService {
       return cachedResult;
     }
 
-    logger.info(`Branding cache miss, generating new content for projectId: ${projectId}`);
+    logger.info(
+      `Branding cache miss, generating new content for projectId: ${projectId}`
+    );
 
     try {
       // Define branding steps
@@ -214,11 +224,11 @@ export class BrandingService extends GenericService {
         logger.info(
           `Successfully updated project with ID: ${projectId} with branding`
         );
-        
+
         // Cache the result for future requests
-        await cacheService.set(cacheKey, updatedProject, { 
-          prefix: 'ai',
-          ttl: 7200 // 2 hours
+        await cacheService.set(cacheKey, updatedProject, {
+          prefix: "ai",
+          ttl: 7200, // 2 hours
         });
         logger.info(`Branding cached for projectId: ${projectId}`);
       }
@@ -514,12 +524,16 @@ export class BrandingService extends GenericService {
     );
 
     // Generate cache key for PDF
-    const pdfCacheKey = cacheService.generateAIKey('branding-pdf', userId, projectId);
-    
+    const pdfCacheKey = cacheService.generateAIKey(
+      "branding-pdf",
+      userId,
+      projectId
+    );
+
     // Check if PDF is already cached
-    const cachedPdfPath = await cacheService.get<string>(pdfCacheKey, { 
-      prefix: 'pdf',
-      ttl: 3600 // 1 hour
+    const cachedPdfPath = await cacheService.get<string>(pdfCacheKey, {
+      prefix: "pdf",
+      ttl: 3600, // 1 hour
     });
 
     if (cachedPdfPath) {
@@ -527,7 +541,9 @@ export class BrandingService extends GenericService {
       return cachedPdfPath;
     }
 
-    logger.info(`Branding PDF cache miss, generating new PDF for projectId: ${projectId}`);
+    logger.info(
+      `Branding PDF cache miss, generating new PDF for projectId: ${projectId}`
+    );
 
     // Récupérer le projet et ses données de branding
     const project = await this.projectRepository.findById(
@@ -547,7 +563,7 @@ export class BrandingService extends GenericService {
       logger.warn(
         `No branding sections found for project ${projectId} when generating PDF.`
       );
-      throw new Error(`No branding sections found for project ${projectId}`);
+      return "";
     }
 
     // Utiliser le PdfService pour générer le PDF
@@ -569,9 +585,9 @@ export class BrandingService extends GenericService {
     });
 
     // Cache the PDF path for future requests
-    await cacheService.set(pdfCacheKey, pdfPath, { 
-      prefix: 'pdf',
-      ttl: 3600 // 1 hour
+    await cacheService.set(pdfCacheKey, pdfPath, {
+      prefix: "pdf",
+      ttl: 3600, // 1 hour
     });
     logger.info(`Branding PDF cached for projectId: ${projectId}`);
 

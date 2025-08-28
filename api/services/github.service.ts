@@ -197,7 +197,7 @@ export class GitHubService {
           const { data } = await octokit.rest.repos.createForAuthenticatedUser({
             name: request.repositoryName,
             description:
-              request.description || `Project generated from Lexis API`,
+              request.description || `Project generated from Idem API`,
             private: request.isPrivate || false,
             auto_init: true,
           });

@@ -13,7 +13,7 @@ This guide explains how to set up GitHub integration for pushing project files t
    - Go to GitHub Settings > Developer settings > OAuth Apps
    - Click "New OAuth App"
    - Fill in the application details:
-     - Application name: `Lexis API GitHub Integration`
+     - Application name: `Idem API GitHub Integration`
      - Homepage URL: `https://your-domain.com`
      - Authorization callback URL: `https://your-domain.com/api/github/auth/callback`
    - Note down the `Client ID` and `Client Secret`
@@ -72,9 +72,9 @@ Content-Type: application/json
 
 {
   "repositoryName": "my-awesome-project",
-  "description": "Project generated from Lexis API",
+  "description": "Project generated from Idem API",
   "isPrivate": false,
-  "commitMessage": "Initial commit from Lexis API",
+  "commitMessage": "Initial commit from Idem API",
   "files": {
     "README.md": "# My Project\n\nThis is awesome!",
     "package.json": "{\n  \"name\": \"my-project\"\n}",

@@ -53,7 +53,7 @@ export class DeploymentService extends GenericService {
    */
   private generateDefaultKey(): string {
     return crypto
-      .scryptSync("lexis-api-default-key", "salt", 32)
+      .scryptSync("idem-api-default-key", "salt", 32)
       .toString("hex");
   }
 
@@ -62,7 +62,7 @@ export class DeploymentService extends GenericService {
       const key = Buffer.from(this.ENCRYPTION_KEY, "hex");
       const iv = crypto.randomBytes(16);
       const cipher = crypto.createCipheriv(this.ENCRYPTION_ALGORITHM, key, iv);
-      cipher.setAAD(Buffer.from("lexis-deployment-vars"));
+      cipher.setAAD(Buffer.from("idem-deployment-vars"));
 
       let encrypted = cipher.update(value, "utf8", "hex");
       encrypted += cipher.final("hex");
@@ -99,7 +99,7 @@ export class DeploymentService extends GenericService {
         key,
         iv
       );
-      decipher.setAAD(Buffer.from("lexis-deployment-vars"));
+      decipher.setAAD(Buffer.from("idem-deployment-vars"));
       decipher.setAuthTag(authTag);
 
       let decrypted = decipher.update(encrypted, "hex", "utf8");

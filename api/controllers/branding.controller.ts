@@ -504,16 +504,26 @@ export const generateBrandingPdfController = async (
     }
 
     // Générer le PDF à partir des sections de branding
-    const pdfPath = await brandingService.generateBrandingPdf(userId, projectId);
+    const pdfPath = await brandingService.generateBrandingPdf(
+      userId,
+      projectId
+    );
+    if (pdfPath === "") {
+      res.status(404).json({ message: "No Branding  found for thiss project" });
+      return;
+    }
 
     // Lire le fichier PDF généré
-    const fs = require('fs-extra');
+    const fs = require("fs-extra");
     const pdfBuffer = await fs.readFile(pdfPath);
 
     // Configurer les headers pour le téléchargement du PDF
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="branding-${projectId}.pdf"`);
-    res.setHeader('Content-Length', pdfBuffer.length);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="branding-${projectId}.pdf"`
+    );
+    res.setHeader("Content-Length", pdfBuffer.length);
 
     // Envoyer le PDF
     res.send(pdfBuffer);
@@ -524,7 +534,6 @@ export const generateBrandingPdfController = async (
     logger.info(
       `PDF generated and sent successfully - UserId: ${userId}, ProjectId: ${projectId}`
     );
-
   } catch (error: any) {
     logger.error(
       `Error in generateBrandingPdfController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
