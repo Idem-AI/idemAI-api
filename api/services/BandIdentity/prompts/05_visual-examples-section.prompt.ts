@@ -1,55 +1,163 @@
 export const VISUAL_EXAMPLES_SECTION_PROMPT = `
-You are a visionary UI/UX designer and brand experience architect. Create compelling visual examples that demonstrate how this brand comes to life across digital touchpoints and real-world applications.
+You are a UI/UX and brand design expert specializing in creating realistic, branded interface mockups. Based on the project context, generate comprehensive visual examples showing how the brand identity translates into digital experiences.
 
-CREATIVE MISSION:
-Design visual examples that tell the story of the brand in action - showcase how the identity system creates meaningful, engaging experiences for users. Let the brand's personality, industry context, and target audience inspire innovative applications that go beyond standard templates.
+REQUIREMENTS:
+- Output: raw HTML only, no explanation
+- Use ONLY Tailwind CSS utility classes (no custom CSS, JS, or external styles)
+- For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN
+- Format as a single-line string (no line breaks)
+- Layout must fit within A4 portrait (210mm x 297mm)
+- Create detailed, realistic UI mockups that demonstrate brand application
 
-TECHNICAL FOUNDATION:
-- Raw HTML with Tailwind CSS utilities only
-- Single minified line, A4 portrait optimized
-- Use PrimeIcons for visual elements (pi pi-icon-name)
-- Replace brand placeholders with actual project values
-- Create detailed, realistic mockups that inspire
-- Professional tone with creative flair
-
-CREATIVE FREEDOM:
-You have complete control over:
-- Interface design approaches and user experience flows
-- Brand application contexts and scenarios
-- Visual storytelling through mockup presentations
-- Innovation in demonstrating brand consistency
-- Platform selection and user journey mapping
-- Creative interpretation of brand personality in UI
-
-BRAND EXPERIENCE STORIES:
-Choose applications that best showcase this brand:
-- Mobile applications and user interfaces
-- Web platforms and digital experiences
-- Marketing materials and campaigns
-- Physical products and packaging
-- Social media and content applications
-- Enterprise software and dashboards
-- E-commerce and retail experiences
-
-CONTEXT-DRIVEN APPLICATIONS:
-Adapt your examples to the brand context:
-- Tech/SaaS: Dashboards, mobile apps, developer tools
-- Creative: Portfolio sites, design tools, artistic platforms
-- Healthcare: Patient apps, medical interfaces, wellness platforms
-- Finance: Banking apps, trading platforms, financial dashboards
-- Retail: E-commerce sites, mobile shopping, brand experiences
-- Education: Learning platforms, student apps, educational tools
-
-STORYTELLING THROUGH MOCKUPS:
-Create examples that demonstrate:
-- Brand personality expression through UI design
-- Consistent visual language across touchpoints  
-- User experience that aligns with brand values
-- Innovative applications that inspire teams
-- Real-world usage scenarios and contexts
-- Emotional connection between brand and user
-
-PROJECT CONTEXT:
+COMPREHENSIVE STRUCTURE:
+<section class="w-full py-16 px-8 bg-gradient-to-b from-gray-50 to-white">
+  <div class="max-w-7xl mx-auto">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl font-black text-gray-900 mb-4 tracking-tight">Visual Examples</h2>
+      <div class="w-24 h-1 bg-gradient-to-r from-pink-600 to-purple-600 mx-auto mb-6 rounded-full"></div>
+      <p class="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">Real-world applications demonstrating how our brand identity creates cohesive, engaging user experiences across digital platforms.</p>
+    </div>
+    
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-12">
+      <!-- Mobile Application Mockup -->
+      <div class="bg-white rounded-3xl p-10 shadow-xl border border-gray-100">
+        <div class="flex items-center gap-4 mb-8">
+          <div class="w-4 h-4 bg-pink-600 rounded-full"></div>
+          <h3 class="text-2xl font-bold text-gray-900">Mobile Application</h3>
+        </div>
+        
+        <!-- Mobile Device Frame -->
+        <div class="mx-auto max-w-sm">
+          <div class="bg-gray-900 rounded-[3rem] p-2 shadow-2xl">
+            <div class="bg-black rounded-[2.5rem] p-1">
+              <div class="bg-white rounded-[2rem] overflow-hidden">
+                <!-- Status Bar -->
+                <div class="bg-gray-50 px-6 py-3 flex justify-between items-center text-xs font-semibold">
+                  <span>9:41</span>
+                  <div class="flex gap-1">
+                    <div class="w-4 h-2 bg-gray-300 rounded-sm"></div>
+                    <div class="w-4 h-2 bg-gray-300 rounded-sm"></div>
+                    <div class="w-4 h-2 bg-green-500 rounded-sm"></div>
+                  </div>
+                </div>
+                
+                <!-- App Header -->
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-6 text-white">
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                      <div class="w-4 h-4 bg-white rounded"></div>
+                    </div>
+                    <div class="w-6 h-6 bg-white/20 rounded-full"></div>
+                  </div>
+                  <h1 class="text-xl font-bold mb-1">{{Brand Name}}</h1>
+                  <p class="text-blue-100 text-sm">Welcome back, User</p>
+                </div>
+                
+                <!-- Content Area -->
+                <div class="p-6 space-y-6">
+                  <!-- Quick Actions -->
+                  <div>
+                    <h2 class="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 border border-blue-100">
+                        <div class="w-8 h-8 bg-blue-600 rounded-xl mb-3 flex items-center justify-center">
+                          <div class="w-4 h-4 bg-white rounded"></div>
+                        </div>
+                        <p class="text-sm font-semibold text-gray-800">Action 1</p>
+                        <p class="text-xs text-gray-600">Description</p>
+                      </div>
+                      <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 border border-purple-100">
+                        <div class="w-8 h-8 bg-purple-600 rounded-xl mb-3 flex items-center justify-center">
+                          <div class="w-4 h-4 bg-white rounded"></div>
+                        </div>
+                        <p class="text-sm font-semibold text-gray-800">Action 2</p>
+                        <p class="text-xs text-gray-600">Description</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Recent Activity -->
+                  <div>
+                    <h2 class="text-lg font-bold text-gray-900 mb-4">Recent Activity</h2>
+                    <div class="space-y-3">
+                      <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                        <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                          <div class="w-5 h-5 bg-white rounded"></div>
+                        </div>
+                        <div class="flex-1">
+                          <p class="text-sm font-semibold text-gray-800">Activity Title</p>
+                          <p class="text-xs text-gray-600">2 hours ago</p>
+                        </div>
+                        <div class="w-2 h-2 bg-blue-600 rounded-full"></div>
+                      </div>
+                      <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                        <div class="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                          <div class="w-5 h-5 bg-white rounded"></div>
+                        </div>
+                        <div class="flex-1">
+                          <p class="text-sm font-semibold text-gray-800">Another Activity</p>
+                          <p class="text-xs text-gray-600">1 day ago</p>
+                        </div>
+                        <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Bottom Navigation -->
+                <div class="bg-white border-t border-gray-100 px-6 py-4">
+                  <div class="flex justify-around">
+                    <div class="flex flex-col items-center gap-1">
+                      <div class="w-6 h-6 bg-blue-600 rounded"></div>
+                      <span class="text-xs text-blue-600 font-medium">Home</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-1">
+                      <div class="w-6 h-6 bg-gray-300 rounded"></div>
+                      <span class="text-xs text-gray-400">Search</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-1">
+                      <div class="w-6 h-6 bg-gray-300 rounded"></div>
+                      <span class="text-xs text-gray-400">Profile</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mt-8 space-y-4">
+          <h4 class="text-lg font-bold text-gray-800">Design Principles</h4>
+          <ul class="space-y-2 text-sm text-gray-600">
+            <li class="flex items-start gap-2"><span class="text-pink-500 mt-1">•</span>Clean, intuitive navigation with branded color hierarchy</li>
+            <li class="flex items-start gap-2"><span class="text-pink-500 mt-1">•</span>Consistent use of brand gradients and rounded corners</li>
+            <li class="flex items-start gap-2"><span class="text-pink-500 mt-1">•</span>Accessible contrast ratios and touch-friendly interactions</li>
+            <li class="flex items-start gap-2"><span class="text-pink-500 mt-1">•</span>Typography scale optimized for mobile readability</li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- Web Application Mockup -->
+      <div class="bg-white rounded-3xl p-10 shadow-xl border border-gray-100">
+        <div class="flex items-center gap-4 mb-8">
+          <div class="w-4 h-4 bg-purple-600 rounded-full"></div>
+          <h3 class="text-2xl font-bold text-gray-900">Web Application</h3>
+        </div>
+        
+        <!-- Browser Frame -->
+        <div class="bg-gray-100 rounded-2xl p-4 shadow-lg">
+          <!-- Browser Chrome -->
+          <div class="bg-white rounded-t-xl border-b border-gray-200">
+            <div class="flex items-center justify-between px-4 py-3">
+              <div class="flex items-center gap-2">
+                <div class="flex gap-2">
+                  <div class="w-3 h-3 bg-red-400 rounded-full"></div>
+                  <div class="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                  <div class="w-3 h-3 bg-green-400 rounded-full"></div>
+                </div>
+              </div>
+              <div class="flex-1 max-w-md mx-4">
+                <div class="bg-gray-100 rounded-lg px-4 py-2 text-xs text-gray-600">{{brand-domain}}.com</div>
               </div>
               <div class="w-16"></div>
             </div>
