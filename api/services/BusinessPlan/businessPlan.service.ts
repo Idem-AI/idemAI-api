@@ -371,29 +371,6 @@ export class BusinessPlanService extends GenericService {
     logger.info(
       `Generating PDF for business plan sections - projectId: ${projectId}, userId: ${userId}`
     );
-
-    // Generate cache key for PDF
-    const pdfCacheKey = cacheService.generateAIKey(
-      "business-plan-pdf",
-      userId,
-      projectId
-    );
-
-    // Check if PDF is already cached
-    const cachedPdfPath = await cacheService.get<string>(pdfCacheKey, {
-      prefix: "pdf",
-      ttl: 3600, // 1 hour
-    });
-
-    if (cachedPdfPath) {
-      logger.info(`Business plan PDF cache hit for projectId: ${projectId}`);
-      return cachedPdfPath;
-    }
-
-    logger.info(
-      `Business plan PDF cache miss, generating new PDF for projectId: ${projectId}`
-    );
-
     // Récupérer le projet et ses données de business plan
     const project = await this.projectRepository.findById(
       projectId,
@@ -418,6 +395,28 @@ export class BusinessPlanService extends GenericService {
       );
       return "";
     }
+
+    // Generate cache key for PDF
+    const pdfCacheKey = cacheService.generateAIKey(
+      "business-plan-pdf",
+      userId,
+      projectId
+    );
+
+    // Check if PDF is already cached
+    const cachedPdfPath = await cacheService.get<string>(pdfCacheKey, {
+      prefix: "pdf",
+      ttl: 3600, // 1 hour
+    });
+
+    if (cachedPdfPath) {
+      logger.info(`Business plan PDF cache hit for projectId: ${projectId}`);
+      return cachedPdfPath;
+    }
+
+    logger.info(
+      `Business plan PDF cache miss, generating new PDF for projectId: ${projectId}`
+    );
 
     // Utiliser le PdfService pour générer le PDF
     const pdfPath = await this.pdfService.generatePdf({

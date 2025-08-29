@@ -522,6 +522,25 @@ export class BrandingService extends GenericService {
     logger.info(
       `Generating PDF for branding sections - projectId: ${projectId}, userId: ${userId}`
     );
+    // Récupérer le projet et ses données de branding
+    const project = await this.projectRepository.findById(
+      projectId,
+      `users/${userId}/projects`
+    );
+
+    if (!project) {
+      logger.warn(
+        `Project not found with ID: ${projectId} for user: ${userId} when generating branding PDF.`
+      );
+      throw new Error(`Project not found with ID: ${projectId}`);
+    }
+    const branding = project.analysisResultModel.branding;
+    if (!branding || !branding.sections || branding.sections.length === 0) {
+      logger.warn(
+        `No branding sections found for project ${projectId} when generating PDF.`
+      );
+      return "";
+    }
 
     // Generate cache key for PDF
     const pdfCacheKey = cacheService.generateAIKey(
@@ -544,27 +563,6 @@ export class BrandingService extends GenericService {
     logger.info(
       `Branding PDF cache miss, generating new PDF for projectId: ${projectId}`
     );
-
-    // Récupérer le projet et ses données de branding
-    const project = await this.projectRepository.findById(
-      projectId,
-      `users/${userId}/projects`
-    );
-
-    if (!project) {
-      logger.warn(
-        `Project not found with ID: ${projectId} for user: ${userId} when generating branding PDF.`
-      );
-      throw new Error(`Project not found with ID: ${projectId}`);
-    }
-
-    const branding = project.analysisResultModel.branding;
-    if (!branding || !branding.sections || branding.sections.length === 0) {
-      logger.warn(
-        `No branding sections found for project ${projectId} when generating PDF.`
-      );
-      return "";
-    }
 
     // Utiliser le PdfService pour générer le PDF
     const pdfPath = await this.pdfService.generatePdf({

@@ -1,40 +1,60 @@
 export const BRAND_HEADER_SECTION_PROMPT = `
-You are a senior brand systems designer and prompt engineer. Create an ultra-modern, premium BRAND HEADER section using only HTML with Tailwind CSS utilities.
+You are a visionary brand designer and visual impact specialist. Create a FULL-PAGE, breathtaking brand header that commands attention and leaves a lasting impression - this is the first thing people see and it must be unforgettable.
 
-STRICT OUTPUT REQUIREMENTS:
-1) Output ONLY raw HTML with Tailwind CSS classes (no Markdown fences, no comments).
-2) Must fit within a single A4 portrait.
-3) Responsive on screen, but optimized for A4 print export.
-4) No custom CSS or JavaScript. Tailwind utilities only.
-5) For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN.
-6) Single line output: compact, minified HTML without line breaks.
-7) All visible text in English. Replace {{brandName}} and {{currentDate}} with project context (date format: long English form, e.g., "August 21, 2025").
-8) Avoid lorem ipsum or filler; keep copy sharp and brand-agnostic unless context provides specifics.
+CREATIVE MISSION:
+Design a full-page header that takes up the entire A4 portrait space (297mm height × 210mm width) with maximum visual impact. This is not just a header - it's a brand statement, a visual manifesto that captures the essence of the brand in one powerful page. Create something that makes people stop, look, and remember.
 
-DESIGN PRINCIPLES:
-- Premium minimalism with refined gradients, subtle layering, and clean negative space.
-- Typography: clear hierarchy, WCAG AA compliant contrast, modern proportion.
-- Colors: adapt from project palette; if absent, use slate/blue/indigo with soft overlays.
-- Subtle glassmorphism (optional), soft shadows, restrained ornaments.
-- Composition must remain visually balanced and print-friendly, but arrangement is up to creative choice.
-- Keep DOM shallow, lightweight, semantic.
-- Icons: use PrimeIcons for visual elements (pi pi-icon-name classes)
+FULL-PAGE SPECIFICATIONS:
+- MANDATORY: Use min-h-screen or h-screen for full page coverage
+- MANDATORY: Use w-full for complete width coverage  
+- Create edge-to-edge design with no visible margins or padding
+- Think of it as a magazine cover, movie poster, or art piece
+- Use the entire canvas - every pixel should serve the brand story
+- Print optimization: A4 portrait (210mm × 297mm) with bleed consideration
 
-CONTENT REQUIREMENTS:
-- Prominent display of {{brandName}} as main headline.
-- Subtitle: “Brand Identity Guidelines”.
-- Metadata chips: version label + {{currentDate}} (both compact and visually distinct).
-- Optional subtle divider, accent motif, or decorative micro-element if it enhances balance.
+VISUAL IMPACT STRATEGIES:
+Create maximum impact through:
+- **Scale & Proportion**: Oversized typography, massive brand elements
+- **Dynamic Layouts**: Diagonal compositions, overlapping elements, asymmetric balance
+- **Color Drama**: Bold gradients, high contrast, strategic color blocking
+- **Depth & Dimension**: Layered elements, shadows, subtle 3D effects
+- **Movement & Energy**: Flowing shapes, directional elements, visual rhythm
+- **Unexpected Elements**: Creative interpretations, artistic flourishes, memorable details
 
-QUALITY BAR:
-- Must fit entirely on one A4 portrait page with safe margins.
-- Layout premium, professional, uncluttered, print-optimized.
-- Text and accents crisp when exported as PDF.
-- Uses {{brandName}} and {{currentDate}} correctly with tasteful defaults if missing.
+TECHNICAL FOUNDATION:
+- Raw HTML with Tailwind CSS utilities only
+- Single minified line output
+- Use PrimeIcons strategically (pi pi-icon-name)
+- Replace {{brandName}} and {{currentDate}} with actual values
+- WCAG AA compliant text contrast
+- Print-friendly with crisp elements
+
+FULL-PAGE COMPOSITION IDEAS:
+- **Hero Typography**: Brand name spanning full width/height with dramatic sizing
+- **Background Artistry**: Complex gradients, geometric patterns, or organic shapes
+- **Layered Information**: Multiple depth levels with strategic content placement
+- **Visual Anchors**: Large branded elements that command attention
+- **Atmospheric Effects**: Subtle textures, glows, or visual treatments
+- **Strategic Whitespace**: Intentional negative space that enhances impact
+
+BRAND-SPECIFIC IMPACT:
+Amplify impact based on brand context:
+- **Tech/Innovation**: Futuristic aesthetics, geometric precision, digital-inspired elements
+- **Creative/Agency**: Artistic experimentation, bold color combinations, unexpected layouts
+- **Finance/Legal**: Sophisticated monumentality, architectural inspiration, authoritative presence  
+- **Lifestyle**: Emotional warmth, human-centered design, approachable grandeur
+- **B2B**: Professional dynamism, efficiency with style, confident leadership
+- **Startups**: Disruptive energy, boundary-pushing design, fearless creativity
+
+MANDATORY ELEMENTS:
+- Brand name as the dominant visual element
+- "Brand Identity Guidelines" or creative equivalent
+- Date and version (elegantly integrated)
+- Visual elements that reinforce brand personality
 
 PROJECT CONTEXT:
-Use provided brand details (colors, tone, metadata). If unavailable, apply elegant, professional defaults aligned with high-end identity systems.
+Transform provided brand details into a full-page visual experience. Use colors, tone, and metadata to create something uniquely powerful for this specific brand.
 
 OUTPUT:
-Generate ONLY the minified HTML string of the section, clean and production-ready.
+Generate ONLY the minified HTML string that creates a full-page, visually stunning brand header.
 `;
