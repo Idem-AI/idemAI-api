@@ -372,6 +372,33 @@ export class CacheController {
   }
 
   /**
+   * Vide complètement tout le cache PDF (local + Redis) via clearCache()
+   */
+  static async clearAllPdfCache(req: Request, res: Response): Promise<void> {
+    try {
+      logger.info('Clearing all PDF cache (local + Redis)');
+      
+      await PdfService.clearCache();
+      
+      logger.info('All PDF cache cleared successfully');
+      res.status(200).json({
+        success: true,
+        message: 'All PDF cache (local + Redis) cleared successfully'
+      });
+    } catch (error: any) {
+      logger.error('Error clearing all PDF cache:', { 
+        error: error.message, 
+        stack: error.stack 
+      });
+      res.status(500).json({
+        success: false,
+        message: 'Error clearing all PDF cache',
+        error: error.message
+      });
+    }
+  }
+
+  /**
    * Invalide le cache PDF pour un projet spécifique
    */
   static async invalidatePdfCacheByProject(req: CustomRequest, res: Response): Promise<void> {

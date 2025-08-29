@@ -7,6 +7,7 @@ import logger from "../config/logger";
 import { SectionModel } from "../models/section.model";
 import { ProjectModel } from "../models/project.model";
 import { TypographyModel } from "../models/brand-identity.model";
+import { cacheService } from "./cache.service";
 
 export interface PdfGenerationOptions {
   title?: string;
@@ -326,8 +327,8 @@ export class PdfService {
     };
   }
 
-  static clearCache(): void {
-    // Nettoyer les fichiers PDF
+  static async clearCache(): Promise<void> {
+    // Nettoyer les fichiers PDF locaux
     for (const [, entry] of this.pdfCache.entries()) {
       fs.unlink(entry.filePath).catch((err) =>
         logger.warn(
@@ -337,9 +338,19 @@ export class PdfService {
       );
     }
 
+    // Vider les caches locaux
     this.htmlCache.clear();
     this.pdfCache.clear();
-    logger.info("All caches cleared manually");
+
+    // Vider aussi les cachedPdfPath dans Redis (préfixe "pdf")
+    try {
+      const deletedRedisKeys = await cacheService.deletePattern("pdf:*");
+      logger.info(`Cleared ${deletedRedisKeys} PDF entries from Redis cache`);
+    } catch (error) {
+      logger.warn("Failed to clear PDF entries from Redis cache:", error);
+    }
+
+    logger.info("All caches (local + Redis) cleared manually");
   }
 
   static invalidateCacheByProject(projectName: string): number {
@@ -376,7 +387,7 @@ export class PdfService {
     const htmlEntries = this.htmlCache.size;
     this.htmlCache.clear();
     
-    // Invalider les entrées PDF
+    // Invalider les entrées PDF locales
     const pdfEntries = this.pdfCache.size;
     for (const [key, entry] of this.pdfCache.entries()) {
       try {
@@ -387,11 +398,20 @@ export class PdfService {
     }
     this.pdfCache.clear();
 
-    invalidated = htmlEntries + pdfEntries;
+    // Invalider aussi les entrées Redis pour ce projet
+    try {
+      const deletedRedisKeys = await cacheService.invalidateProjectCache(projectId);
+      logger.info(`Invalidated ${deletedRedisKeys} Redis cache entries for project: ${projectId}`);
+      invalidated += deletedRedisKeys;
+    } catch (error) {
+      logger.warn(`Failed to invalidate Redis cache for project ${projectId}:`, error);
+    }
+
+    invalidated += htmlEntries + pdfEntries;
 
     if (invalidated > 0) {
       logger.info(
-        `Invalidated ${invalidated} PDF cache entries for project: ${projectId}`
+        `Invalidated ${invalidated} total cache entries (local + Redis) for project: ${projectId}`
       );
     }
 
@@ -409,7 +429,7 @@ export class PdfService {
     const htmlEntries = this.htmlCache.size;
     const pdfEntries = this.pdfCache.size;
 
-    // Nettoyer les fichiers PDF
+    // Nettoyer les fichiers PDF locaux
     for (const [key, entry] of this.pdfCache.entries()) {
       try {
         await fs.unlink(entry.filePath);
@@ -421,11 +441,20 @@ export class PdfService {
     this.htmlCache.clear();
     this.pdfCache.clear();
 
-    invalidated = htmlEntries + pdfEntries;
+    // Invalider aussi les entrées Redis pour cet utilisateur
+    try {
+      const deletedRedisKeys = await cacheService.invalidateUserCache(userId);
+      logger.info(`Invalidated ${deletedRedisKeys} Redis cache entries for user: ${userId}`);
+      invalidated += deletedRedisKeys;
+    } catch (error) {
+      logger.warn(`Failed to invalidate Redis cache for user ${userId}:`, error);
+    }
+
+    invalidated += htmlEntries + pdfEntries;
 
     if (invalidated > 0) {
       logger.info(
-        `Invalidated ${invalidated} PDF cache entries for user: ${userId}`
+        `Invalidated ${invalidated} total cache entries (local + Redis) for user: ${userId}`
       );
     }
 
@@ -450,7 +479,7 @@ export class PdfService {
     if (type === 'pdf' || type === 'all') {
       pdfCleared = this.pdfCache.size;
       
-      // Supprimer les fichiers PDF
+      // Supprimer les fichiers PDF locaux
       for (const [key, entry] of this.pdfCache.entries()) {
         try {
           await fs.unlink(entry.filePath);
@@ -462,6 +491,16 @@ export class PdfService {
         }
       }
       this.pdfCache.clear();
+    }
+
+    // Nettoyer aussi le cache Redis si on nettoie tout
+    if (type === 'all') {
+      try {
+        const deletedRedisKeys = await cacheService.deletePattern('pdf:*');
+        logger.info(`Cleared ${deletedRedisKeys} Redis PDF cache entries during selective clear`);
+      } catch (error) {
+        logger.warn('Failed to clear Redis PDF cache during selective clear:', error);
+      }
     }
 
     logger.info(
