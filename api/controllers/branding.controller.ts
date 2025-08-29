@@ -508,7 +508,7 @@ export const generateBrandingPdfController = async (
       userId,
       projectId
     );
-    if (pdfPath === "") {
+    if (pdfPath === "" || !pdfPath) {
       res.status(404).json({ message: "No Branding  found for thiss project" });
       return;
     }

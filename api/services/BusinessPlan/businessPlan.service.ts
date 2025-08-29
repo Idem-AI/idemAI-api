@@ -168,6 +168,15 @@ export class BusinessPlanService extends GenericService {
           async (result: ISectionResult) => {
             logger.info(`Received streamed result for step: ${result.name}`);
 
+            // Skip progress and completion events - handle only actual step results
+            if (
+              result.data === "steps_in_progress" ||
+              result.data === "all_steps_completed"
+            ) {
+              await streamCallback(result);
+              return;
+            }
+
             // Convert result to section model
             const section: SectionModel = {
               name: result.name,
@@ -177,40 +186,28 @@ export class BusinessPlanService extends GenericService {
             };
 
             // Add to sections array
-            if (
-              result.data !== "steps_in_progress" &&
-              result.data !== "all_steps_completed"
-            ) {
-              sectionResults.push(section);
-            }
+            sectionResults.push(section);
 
-            // Call the provided callback
-            await streamCallback(result);
-          },
-          promptConfig,
-          "business_plan",
-          userId,
-          // Finalization callback - update project before sending completion message
-          async () => {
-            logger.info(`Starting project update for business plan - projectId: ${projectId}`);
+            // Update project immediately after each step
+            logger.info(`Updating project after step: ${result.name} - projectId: ${projectId}`);
             
-            // Get the existing project to prepare for update
-            const oldProject = await this.projectRepository.findById(
+            // Get the current project
+            const currentProject = await this.projectRepository.findById(
               projectId,
               `users/${userId}/projects`
             );
-            if (!oldProject) {
+            if (!currentProject) {
               logger.warn(
-                `Original project not found with ID: ${projectId} for user: ${userId} before updating with business plan.`
+                `Project not found with ID: ${projectId} for user: ${userId} during step update.`
               );
               throw new Error(`Project not found: ${projectId}`);
             }
 
-            // Create the new project with updated business plan
-            const newProject = {
-              ...oldProject,
+            // Create the updated project with current sections
+            const updatedProjectData = {
+              ...currentProject,
               analysisResultModel: {
-                ...oldProject.analysisResultModel,
+                ...currentProject.analysisResultModel,
                 businessPlan: {
                   sections: sectionResults,
                 },
@@ -220,25 +217,32 @@ export class BusinessPlanService extends GenericService {
             // Update the project in the database
             const updatedProject = await this.projectRepository.update(
               projectId,
-              newProject,
+              updatedProjectData,
               `users/${userId}/projects`
             );
 
             if (updatedProject) {
               logger.info(
-                `Successfully updated project with ID: ${projectId} with business plan`
+                `Successfully updated project with step: ${result.name} - projectId: ${projectId}`
               );
 
-              // Cache the result for future requests
+              // Update cache with latest project state
               await cacheService.set(cacheKey, updatedProject, {
                 prefix: "ai",
                 ttl: 7200, // 2 hours
               });
-              logger.info(`Business plan cached for projectId: ${projectId}`);
+              logger.info(`Business plan cached after step: ${result.name} - projectId: ${projectId}`);
+
+              // Only send to frontend after successful database update
+              await streamCallback(result);
             } else {
-              throw new Error(`Failed to update project: ${projectId}`);
+              logger.error(`Failed to update project after step: ${result.name} - projectId: ${projectId}`);
+              throw new Error(`Failed to update project after step: ${result.name}`);
             }
-          }
+          },
+          promptConfig,
+          "business_plan",
+          userId
         );
 
         // Return the updated project (it should be available in cache or fetch it again)

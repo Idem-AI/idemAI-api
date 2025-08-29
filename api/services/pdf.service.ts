@@ -538,6 +538,7 @@ export class PdfService {
   }
 
   async generatePdf(options: PdfGenerationOptions): Promise<string> {
+
     const {
       title = "Document",
       projectName,
@@ -553,7 +554,7 @@ export class PdfService {
         left: "15mm",
       },
     } = options;
-
+    logger.info(`sections length: ${sections.length}`);
     // Générer la clé de cache basée sur le contenu
     const cacheKey = PdfService.generateCacheKey(options);
 

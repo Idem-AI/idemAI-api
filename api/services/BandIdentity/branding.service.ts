@@ -145,6 +145,15 @@ export class BrandingService extends GenericService {
           async (result: ISectionResult) => {
             logger.info(`Received streamed result for step: ${result.name}`);
 
+            // Skip progress and completion events - handle only actual step results
+            if (
+              result.data === "steps_in_progress" ||
+              result.data === "all_steps_completed"
+            ) {
+              await streamCallback(result);
+              return;
+            }
+
             // Convert result to section model
             const section: SectionModel = {
               name: result.name,
@@ -154,51 +163,45 @@ export class BrandingService extends GenericService {
             };
 
             // Add to sections array
-            if (
-              result.data !== "steps_in_progress" &&
-              result.data !== "all_steps_completed"
-            ) {
-              sections.push(section);
-            }
+            sections.push(section);
 
-            // Call the provided callback
-            await streamCallback(result);
-          },
-          undefined, // promptConfig
-          "branding", // promptType
-          userId,
-          // Finalization callback - update project before sending completion message
-          async () => {
-            logger.info(`Starting project update for branding - projectId: ${projectId}`);
-            
-            // Get the existing project to prepare for update
-            const oldProject = await this.projectRepository.findById(
+            // Update project immediately after each step
+            logger.info(
+              `Updating project after step: ${result.name} - projectId: ${projectId}`
+            );
+
+            // Get the current project
+            const currentProject = await this.projectRepository.findById(
               projectId,
               `users/${userId}/projects`
             );
-            if (!oldProject) {
+            if (!currentProject) {
               logger.warn(
-                `Original project not found with ID: ${projectId} for user: ${userId} before updating with branding.`
+                `Project not found with ID: ${projectId} for user: ${userId} during step update.`
               );
               throw new Error(`Project not found: ${projectId}`);
             }
 
-            // Create the new project with updated branding
-            const newProject = {
-              ...oldProject,
+            // Create the updated project with current sections
+            const updatedProjectData = {
+              ...currentProject,
               analysisResultModel: {
-                ...oldProject.analysisResultModel,
+                ...currentProject.analysisResultModel,
                 branding: {
                   sections: sections,
-                  colors: oldProject.analysisResultModel.branding.colors,
-                  typography: oldProject.analysisResultModel.branding.typography,
-                  logo: oldProject.analysisResultModel.branding.logo,
+                  colors: currentProject.analysisResultModel.branding.colors,
+                  typography:
+                    currentProject.analysisResultModel.branding.typography,
+                  logo: currentProject.analysisResultModel.branding.logo,
                   generatedLogos:
-                    oldProject.analysisResultModel.branding.generatedLogos || [],
+                    currentProject.analysisResultModel.branding
+                      .generatedLogos || [],
                   generatedColors:
-                    oldProject.analysisResultModel.branding.generatedColors || [],
+                    currentProject.analysisResultModel.branding
+                      .generatedColors || [],
                   generatedTypography:
-                    oldProject.analysisResultModel.branding.generatedTypography || [],
+                    currentProject.analysisResultModel.branding
+                      .generatedTypography || [],
                   createdAt: new Date(),
                   updatedAt: new Date(),
                 },
@@ -208,25 +211,38 @@ export class BrandingService extends GenericService {
             // Update the project in the database
             const updatedProject = await this.projectRepository.update(
               projectId,
-              newProject,
+              updatedProjectData,
               `users/${userId}/projects`
             );
 
             if (updatedProject) {
               logger.info(
-                `Successfully updated project with ID: ${projectId} with branding`
+                `Successfully updated project with step: ${result.name} - projectId: ${projectId}`
               );
 
-              // Cache the result for future requests
+              // Update cache with latest project state
               await cacheService.set(cacheKey, updatedProject, {
                 prefix: "ai",
                 ttl: 7200, // 2 hours
               });
-              logger.info(`Branding cached for projectId: ${projectId}`);
+              logger.info(
+                `Branding cached after step: ${result.name} - projectId: ${projectId}`
+              );
+
+              // Only send to frontend after successful database update
+              await streamCallback(result);
             } else {
-              throw new Error(`Failed to update project: ${projectId}`);
+              logger.error(
+                `Failed to update project after step: ${result.name} - projectId: ${projectId}`
+              );
+              throw new Error(
+                `Failed to update project after step: ${result.name}`
+              );
             }
-          }
+          },
+          undefined, // promptConfig
+          "branding", // promptType
+          userId
         );
 
         // Return the updated project (it should be available in cache or fetch it again)
@@ -272,7 +288,8 @@ export class BrandingService extends GenericService {
               generatedColors:
                 oldProject.analysisResultModel.branding.generatedColors || [],
               generatedTypography:
-                oldProject.analysisResultModel.branding.generatedTypography || [],
+                oldProject.analysisResultModel.branding.generatedTypography ||
+                [],
               createdAt: new Date(),
               updatedAt: new Date(),
             },
@@ -609,53 +626,61 @@ export class BrandingService extends GenericService {
       return "";
     }
 
-    // Generate cache key for PDF
-    const pdfCacheKey = cacheService.generateAIKey(
-      "branding-pdf",
-      userId,
-      projectId
-    );
+    try {
+      // Generate cache key for PDF
+      const pdfCacheKey = cacheService.generateAIKey(
+        "branding-pdf",
+        userId,
+        projectId
+      );
 
-    // Check if PDF is already cached
-    const cachedPdfPath = await cacheService.get<string>(pdfCacheKey, {
-      prefix: "pdf",
-      ttl: 3600, // 1 hour
-    });
+      // Check if PDF is already cached
+      const cachedPdfPath = await cacheService.get<string>(pdfCacheKey, {
+        prefix: "pdf",
+        ttl: 3600, // 1 hour
+      });
 
-    if (cachedPdfPath) {
-      logger.info(`Branding PDF cache hit for projectId: ${projectId}`);
-      return cachedPdfPath;
+      if (cachedPdfPath) {
+        logger.info(`Branding PDF cache hit for projectId: ${projectId}`);
+        return cachedPdfPath;
+      }
+
+      logger.info(
+        `Branding PDF cache miss, generating new PDF for projectId: ${projectId}`
+      );
+
+      // Utiliser le PdfService pour générer le PDF
+      const pdfPath = await this.pdfService.generatePdf({
+        title: "Branding",
+        projectName: project.name || "Projet Sans Nom",
+        projectDescription: project.description || "",
+        sections: branding.sections,
+        sectionDisplayOrder: [
+          "Brand Header",
+          "Logo System",
+          "Color Palette",
+          "Typography",
+          "Usage Guidelines",
+          // "Visual Examples",
+          "Brand Footer",
+        ],
+        footerText: "Generated by Idem",
+      });
+
+      // Cache the PDF path for future requests
+      await cacheService.set(pdfCacheKey, pdfPath, {
+        prefix: "pdf",
+        ttl: 3600, // 1 hour
+      });
+      logger.info(`Branding PDF cached for projectId: ${projectId}`);
+
+      return pdfPath;
+    } catch (error) {
+      logger.error(
+        `Error generating branding PDF for projectId: ${projectId}`,
+        error
+      );
+      throw error;
     }
-
-    logger.info(
-      `Branding PDF cache miss, generating new PDF for projectId: ${projectId}`
-    );
-
-    // Utiliser le PdfService pour générer le PDF
-    const pdfPath = await this.pdfService.generatePdf({
-      title: "Branding",
-      projectName: project.name || "Projet Sans Nom",
-      projectDescription: project.description || "",
-      sections: branding.sections,
-      sectionDisplayOrder: [
-        "Brand Header",
-        "Logo System",
-        "Color Palette",
-        "Typography",
-        "Usage Guidelines",
-        // "Visual Examples",
-        "Brand Footer",
-      ],
-      footerText: "Generated by Idem",
-    });
-
-    // Cache the PDF path for future requests
-    await cacheService.set(pdfCacheKey, pdfPath, {
-      prefix: "pdf",
-      ttl: 3600, // 1 hour
-    });
-    logger.info(`Branding PDF cached for projectId: ${projectId}`);
-
-    return pdfPath;
   }
 }
