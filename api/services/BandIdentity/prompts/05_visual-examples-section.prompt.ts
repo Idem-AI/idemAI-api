@@ -334,5 +334,8 @@ STYLE & CONTENT RULES:
 - Ensure all examples reflect modern UI/UX best practices
 - Replace {{Brand Name}}, {{Brand}}, {{brand-domain}} with actual project data
 
+IMPORTANT:
+- not add any "html" tag or prefix on output
+
 PROJECT INPUT:
 `;

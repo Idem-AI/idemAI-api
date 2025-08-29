@@ -89,6 +89,9 @@ QUALITY STANDARDS:
 - Strategic financial planning
 - Print-ready formatting with extensive charts
 
+IMPORTANT:
+- not add any "html" tag or prefix on output
+
 OUTPUT FORMAT:
 Return only the minified HTML section with extensive embedded Chart.js code (NO script tags, NO animations), ready for business plan integration.
 
@@ -97,4 +100,5 @@ IMPORTANT CHART.JS RULES:
 - Never include <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 - Chart.js library is automatically available
 - Use static charts optimized for PDF generation
+- chart mus not take more than 1/2 of the page
 `;

@@ -273,6 +273,8 @@ CONTENT REQUIREMENTS:
 - Maintain professional, instructional tone throughout
 - Include visual examples for clarity
 
+IMPORTANT:
+- not add any "html" tag or prefix on output
 LOGO URLS AND PROJECT DESCRIPTION:
 
 `;

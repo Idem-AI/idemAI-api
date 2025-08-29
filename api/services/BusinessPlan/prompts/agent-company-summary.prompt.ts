@@ -61,6 +61,9 @@ QUALITY STANDARDS:
 - Clear visual organization
 - Print-ready formatting
 
+IMPORTANT:
+- not add any "html" tag or prefix on output
+
 OUTPUT FORMAT:
 Return only the minified HTML section, ready for business plan integration.
 `;

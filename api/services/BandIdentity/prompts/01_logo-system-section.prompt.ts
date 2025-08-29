@@ -69,6 +69,8 @@ QUALITY ASSURANCE CHECKLIST (MUST PASS BEFORE RETURNING):
 - Contrast meets WCAG AA; print-friendly (shadows/gradients subtle, text sharp).
 - Final page looks premium, balanced, and ready for PDF export.
 
+IMPORTANT:
+- not add any "html" tag or prefix on output
 OUTPUT:
 Return ONLY the well-formatted, indented HTML for this section (no extra commentary).
 `;

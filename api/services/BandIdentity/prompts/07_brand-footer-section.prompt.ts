@@ -48,6 +48,9 @@ CONTENT REPLACEMENT RULES:
 - Replace {{document_id}} with unique identifier
 - Replace {{generation_timestamp}} with current timestamp
 
+IMPORTANT:
+- not add any "html" tag or prefix on output
+
 OUTPUT:
 Return ONLY the final minified HTML string, ready to be injected and exported as A4 PDF.
 `;

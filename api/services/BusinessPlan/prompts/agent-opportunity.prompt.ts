@@ -85,4 +85,8 @@ IMPORTANT CHART.JS RULES:
 - Never include <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 - Chart.js library is automatically available
 - Use static charts optimized for PDF generation
+- chart mus not take more than 1/2 of the page
+
+IMPORTANT:
+- not add any "html" tag or prefix on output
 `;

@@ -38,6 +38,9 @@ PROJECT CONTEXT:
 - Replace [Primary Font Name] and [Secondary Font Name] with actual brand fonts
 - Font descriptions must reflect character and purpose aligned with brand values
 
+IMPORTANT:
+- not add any "html" tag or prefix on output
+
 OUTPUT:
 Generate ONLY the final HTML code, minified and well-structured, ready for single-page A4 PDF export.
 `;

@@ -59,5 +59,7 @@ QUALITY CHECKLIST (MUST PASS):
 - Accessible contrast; AA/AAA tags present.
 - Print-friendly: no overly faint translucency, all text sharp.
 
+IMPORTANT:
+- not add any "html" tag or prefix on output
 PROJECT DESCRIPTION:
 `;
