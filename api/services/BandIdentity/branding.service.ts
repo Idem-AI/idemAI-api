@@ -102,36 +102,36 @@ export class BrandingService extends GenericService {
           stepName: "Brand Header",
           hasDependencies: false,
         },
-        {
-          promptConstant: LOGO_SYSTEM_SECTION_PROMPT + projectDescription,
-          stepName: "Logo System",
-          hasDependencies: false,
-        },
-        {
-          promptConstant: COLOR_PALETTE_SECTION_PROMPT + projectDescription,
-          stepName: "Color Palette",
-          hasDependencies: false,
-        },
-        {
-          promptConstant: TYPOGRAPHY_SECTION_PROMPT + projectDescription,
-          stepName: "Typography",
-          hasDependencies: false,
-        },
-        {
-          promptConstant: USAGE_GUIDELINES_SECTION_PROMPT + projectDescription,
-          stepName: "Usage Guidelines",
-          hasDependencies: false,
-        },
+        // {
+        //   promptConstant: LOGO_SYSTEM_SECTION_PROMPT + projectDescription,
+        //   stepName: "Logo System",
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: COLOR_PALETTE_SECTION_PROMPT + projectDescription,
+        //   stepName: "Color Palette",
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: TYPOGRAPHY_SECTION_PROMPT + projectDescription,
+        //   stepName: "Typography",
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: USAGE_GUIDELINES_SECTION_PROMPT + projectDescription,
+        //   stepName: "Usage Guidelines",
+        //   hasDependencies: false,
+        // },
         // {
         //   promptConstant: VISUAL_EXAMPLES_SECTION_PROMPT + projectDescription,
         //   stepName: "Visual Examples",
         //   hasDependencies: false,
         // },
-        {
-          promptConstant: BRAND_FOOTER_SECTION_PROMPT + projectDescription,
-          stepName: "Brand Footer",
-          hasDependencies: false,
-        },
+        // {
+        //   promptConstant: BRAND_FOOTER_SECTION_PROMPT + projectDescription,
+        //   stepName: "Brand Footer",
+        //   hasDependencies: false,
+        // },
       ];
 
       // Initialize empty sections array to collect results as they come in
@@ -166,8 +166,75 @@ export class BrandingService extends GenericService {
           },
           undefined, // promptConfig
           "branding", // promptType
-          userId
+          userId,
+          // Finalization callback - update project before sending completion message
+          async () => {
+            logger.info(`Starting project update for branding - projectId: ${projectId}`);
+            
+            // Get the existing project to prepare for update
+            const oldProject = await this.projectRepository.findById(
+              projectId,
+              `users/${userId}/projects`
+            );
+            if (!oldProject) {
+              logger.warn(
+                `Original project not found with ID: ${projectId} for user: ${userId} before updating with branding.`
+              );
+              throw new Error(`Project not found: ${projectId}`);
+            }
+
+            // Create the new project with updated branding
+            const newProject = {
+              ...oldProject,
+              analysisResultModel: {
+                ...oldProject.analysisResultModel,
+                branding: {
+                  sections: sections,
+                  colors: oldProject.analysisResultModel.branding.colors,
+                  typography: oldProject.analysisResultModel.branding.typography,
+                  logo: oldProject.analysisResultModel.branding.logo,
+                  generatedLogos:
+                    oldProject.analysisResultModel.branding.generatedLogos || [],
+                  generatedColors:
+                    oldProject.analysisResultModel.branding.generatedColors || [],
+                  generatedTypography:
+                    oldProject.analysisResultModel.branding.generatedTypography || [],
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                },
+              },
+            };
+
+            // Update the project in the database
+            const updatedProject = await this.projectRepository.update(
+              projectId,
+              newProject,
+              `users/${userId}/projects`
+            );
+
+            if (updatedProject) {
+              logger.info(
+                `Successfully updated project with ID: ${projectId} with branding`
+              );
+
+              // Cache the result for future requests
+              await cacheService.set(cacheKey, updatedProject, {
+                prefix: "ai",
+                ttl: 7200, // 2 hours
+              });
+              logger.info(`Branding cached for projectId: ${projectId}`);
+            } else {
+              throw new Error(`Failed to update project: ${projectId}`);
+            }
+          }
         );
+
+        // Return the updated project (it should be available in cache or fetch it again)
+        const finalProject = await this.projectRepository.findById(
+          projectId,
+          `users/${userId}/projects`
+        );
+        return finalProject;
       } else {
         // Fallback to non-streaming processing
         const stepResults = await this.processSteps(steps, project);
@@ -177,62 +244,62 @@ export class BrandingService extends GenericService {
           data: result.data,
           summary: result.summary,
         }));
-      }
 
-      // Get the existing project to prepare for update
-      const oldProject = await this.projectRepository.findById(
-        projectId,
-        `users/${userId}/projects`
-      );
-      if (!oldProject) {
-        logger.warn(
-          `Original project not found with ID: ${projectId} for user: ${userId} before updating with branding.`
+        // Get the existing project to prepare for update
+        const oldProject = await this.projectRepository.findById(
+          projectId,
+          `users/${userId}/projects`
         );
-        return null;
-      }
+        if (!oldProject) {
+          logger.warn(
+            `Original project not found with ID: ${projectId} for user: ${userId} before updating with branding.`
+          );
+          return null;
+        }
 
-      // Create the new project with updated branding
-      const newProject = {
-        ...oldProject,
-        analysisResultModel: {
-          ...oldProject.analysisResultModel,
-          branding: {
-            sections: sections,
-            colors: oldProject.analysisResultModel.branding.colors,
-            typography: oldProject.analysisResultModel.branding.typography,
-            logo: oldProject.analysisResultModel.branding.logo,
-            generatedLogos:
-              oldProject.analysisResultModel.branding.generatedLogos || [],
-            generatedColors:
-              oldProject.analysisResultModel.branding.generatedColors || [],
-            generatedTypography:
-              oldProject.analysisResultModel.branding.generatedTypography || [],
-            createdAt: new Date(),
-            updatedAt: new Date(),
+        // Create the new project with updated branding
+        const newProject = {
+          ...oldProject,
+          analysisResultModel: {
+            ...oldProject.analysisResultModel,
+            branding: {
+              sections: sections,
+              colors: oldProject.analysisResultModel.branding.colors,
+              typography: oldProject.analysisResultModel.branding.typography,
+              logo: oldProject.analysisResultModel.branding.logo,
+              generatedLogos:
+                oldProject.analysisResultModel.branding.generatedLogos || [],
+              generatedColors:
+                oldProject.analysisResultModel.branding.generatedColors || [],
+              generatedTypography:
+                oldProject.analysisResultModel.branding.generatedTypography || [],
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
           },
-        },
-      };
+        };
 
-      // Update the project in the database
-      const updatedProject = await this.projectRepository.update(
-        projectId,
-        newProject,
-        `users/${userId}/projects`
-      );
-
-      if (updatedProject) {
-        logger.info(
-          `Successfully updated project with ID: ${projectId} with branding`
+        // Update the project in the database
+        const updatedProject = await this.projectRepository.update(
+          projectId,
+          newProject,
+          `users/${userId}/projects`
         );
 
-        // Cache the result for future requests
-        await cacheService.set(cacheKey, updatedProject, {
-          prefix: "ai",
-          ttl: 7200, // 2 hours
-        });
-        logger.info(`Branding cached for projectId: ${projectId}`);
+        if (updatedProject) {
+          logger.info(
+            `Successfully updated project with ID: ${projectId} with branding`
+          );
+
+          // Cache the result for future requests
+          await cacheService.set(cacheKey, updatedProject, {
+            prefix: "ai",
+            ttl: 7200, // 2 hours
+          });
+          logger.info(`Branding cached for projectId: ${projectId}`);
+        }
+        return updatedProject;
       }
-      return updatedProject;
     } catch (error) {
       logger.error(
         `Error generating branding for projectId ${projectId}:`,

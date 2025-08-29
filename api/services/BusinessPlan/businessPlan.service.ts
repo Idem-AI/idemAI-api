@@ -111,46 +111,46 @@ export class BusinessPlanService extends GenericService {
           stepName: "Cover Page",
           hasDependencies: false,
         },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_COMPANY_SUMMARY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Company Summary",
-          hasDependencies: false,
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_OPPORTUNITY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Opportunity",
-          hasDependencies: false,
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_TARGET_AUDIENCE_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Target Audience",
-          hasDependencies: false,
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_PRODUCTS_SERVICES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Products & Services",
-          hasDependencies: false,
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_MARKETING_SALES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Marketing & Sales",
-          hasDependencies: false,
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Financial Plan",
-          hasDependencies: false,
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_GOAL_PLANNING_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Goal Planning",
-          hasDependencies: false,
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_APPENDIX_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: "Appendix",
-          hasDependencies: false,
-        },
+        // {
+        //   promptConstant: `${projectDescription}\n${AGENT_COMPANY_SUMMARY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+        //   stepName: "Company Summary",
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: `${projectDescription}\n${AGENT_OPPORTUNITY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+        //   stepName: "Opportunity",
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: `${projectDescription}\n${AGENT_TARGET_AUDIENCE_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+        //   stepName: "Target Audience",
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: `${projectDescription}\n${AGENT_PRODUCTS_SERVICES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+        //   stepName: "Products & Services",
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: `${projectDescription}\n${AGENT_MARKETING_SALES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+        //   stepName: "Marketing & Sales",
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+        //   stepName: "Financial Plan",
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: `${projectDescription}\n${AGENT_GOAL_PLANNING_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+        //   stepName: "Goal Planning",
+        //   hasDependencies: false,
+        // },
+        // {
+        //   promptConstant: `${projectDescription}\n${AGENT_APPENDIX_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+        //   stepName: "Appendix",
+        //   hasDependencies: false,
+        // },
       ];
       const promptConfig: PromptConfig = {
         provider: LLMProvider.GEMINI,
@@ -189,8 +189,64 @@ export class BusinessPlanService extends GenericService {
           },
           promptConfig,
           "business_plan",
-          userId
+          userId,
+          // Finalization callback - update project before sending completion message
+          async () => {
+            logger.info(`Starting project update for business plan - projectId: ${projectId}`);
+            
+            // Get the existing project to prepare for update
+            const oldProject = await this.projectRepository.findById(
+              projectId,
+              `users/${userId}/projects`
+            );
+            if (!oldProject) {
+              logger.warn(
+                `Original project not found with ID: ${projectId} for user: ${userId} before updating with business plan.`
+              );
+              throw new Error(`Project not found: ${projectId}`);
+            }
+
+            // Create the new project with updated business plan
+            const newProject = {
+              ...oldProject,
+              analysisResultModel: {
+                ...oldProject.analysisResultModel,
+                businessPlan: {
+                  sections: sectionResults,
+                },
+              },
+            };
+
+            // Update the project in the database
+            const updatedProject = await this.projectRepository.update(
+              projectId,
+              newProject,
+              `users/${userId}/projects`
+            );
+
+            if (updatedProject) {
+              logger.info(
+                `Successfully updated project with ID: ${projectId} with business plan`
+              );
+
+              // Cache the result for future requests
+              await cacheService.set(cacheKey, updatedProject, {
+                prefix: "ai",
+                ttl: 7200, // 2 hours
+              });
+              logger.info(`Business plan cached for projectId: ${projectId}`);
+            } else {
+              throw new Error(`Failed to update project: ${projectId}`);
+            }
+          }
         );
+
+        // Return the updated project (it should be available in cache or fetch it again)
+        const finalProject = await this.projectRepository.findById(
+          projectId,
+          `users/${userId}/projects`
+        );
+        return finalProject;
       } else {
         // Fallback to non-streaming processing
         const stepResults = await this.processSteps(
@@ -204,51 +260,51 @@ export class BusinessPlanService extends GenericService {
           data: result.data,
           summary: result.summary,
         }));
-      }
 
-      // Get the existing project to prepare for update
-      const oldProject = await this.projectRepository.findById(
-        projectId,
-        `users/${userId}/projects`
-      );
-      if (!oldProject) {
-        logger.warn(
-          `Original project not found with ID: ${projectId} for user: ${userId} before updating with business plan.`
+        // Get the existing project to prepare for update
+        const oldProject = await this.projectRepository.findById(
+          projectId,
+          `users/${userId}/projects`
         );
-        return null;
-      }
+        if (!oldProject) {
+          logger.warn(
+            `Original project not found with ID: ${projectId} for user: ${userId} before updating with business plan.`
+          );
+          return null;
+        }
 
-      // Create the new project with updated business plan
-      const newProject = {
-        ...oldProject,
-        analysisResultModel: {
-          ...oldProject.analysisResultModel,
-          businessPlan: {
-            sections: sectionResults,
+        // Create the new project with updated business plan
+        const newProject = {
+          ...oldProject,
+          analysisResultModel: {
+            ...oldProject.analysisResultModel,
+            businessPlan: {
+              sections: sectionResults,
+            },
           },
-        },
-      };
+        };
 
-      // Update the project in the database
-      const updatedProject = await this.projectRepository.update(
-        projectId,
-        newProject,
-        `users/${userId}/projects`
-      );
-
-      if (updatedProject) {
-        logger.info(
-          `Successfully updated project with ID: ${projectId} with business plan`
+        // Update the project in the database
+        const updatedProject = await this.projectRepository.update(
+          projectId,
+          newProject,
+          `users/${userId}/projects`
         );
 
-        // Cache the result for future requests
-        await cacheService.set(cacheKey, updatedProject, {
-          prefix: "ai",
-          ttl: 7200, // 2 hours
-        });
-        logger.info(`Business plan cached for projectId: ${projectId}`);
+        if (updatedProject) {
+          logger.info(
+            `Successfully updated project with ID: ${projectId} with business plan`
+          );
+
+          // Cache the result for future requests
+          await cacheService.set(cacheKey, updatedProject, {
+            prefix: "ai",
+            ttl: 7200, // 2 hours
+          });
+          logger.info(`Business plan cached for projectId: ${projectId}`);
+        }
+        return updatedProject;
       }
-      return updatedProject;
     } catch (error) {
       logger.error(
         `Error generating business plan for projectId ${projectId}:`,

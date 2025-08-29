@@ -208,6 +208,7 @@ Please generate *only* the content for the '${
    * @param promptConfig Optional prompt configuration
    * @param promptType Optional prompt type
    * @param userId Optional user ID
+   * @param finalizationCallback Optional callback called before sending completion message
    */
   protected async processStepsWithStreaming(
     steps: IPromptStep[],
@@ -215,7 +216,8 @@ Please generate *only* the content for the '${
     stepCallback: (result: ISectionResult) => Promise<void>,
     promptConfig?: PromptConfig,
     promptType?: string,
-    userId?: string
+    userId?: string,
+    finalizationCallback?: () => Promise<void>
   ): Promise<void> {
     const completedSteps: Map<string, { name: string; content: string }> =
       new Map();
@@ -475,6 +477,13 @@ Please generate *only* the content for the '${
     // Wait for all remaining promises to complete
     if (stepPromises.size > 0) {
       await Promise.all(Array.from(stepPromises.values()));
+    }
+
+    // Execute finalization callback before sending completion message
+    if (finalizationCallback) {
+      logger.info(`Executing finalization callback for project ${project.id}`);
+      await finalizationCallback();
+      logger.info(`Finalization callback completed for project ${project.id}`);
     }
 
     // Send final completion message to frontend
