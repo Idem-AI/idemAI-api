@@ -5,7 +5,6 @@ import * as os from "os";
 import * as crypto from "crypto";
 import logger from "../config/logger";
 import { SectionModel } from "../models/section.model";
-import { ProjectModel } from "../models/project.model";
 import { TypographyModel } from "../models/brand-identity.model";
 import { cacheService } from "./cache.service";
 
@@ -593,13 +592,28 @@ export class PdfService {
         left: "15mm",
       },
     } = options;
-    logger.info(`sections length: ${sections.length}`);
-    // Générer la clé de cache basée sur le contenu
-    const cacheKey = PdfService.generateCacheKey(options);
+    
+    // Nettoyer les sections en supprimant le préfixe "html" du contenu data
+    const cleanedSections = sections.map(section => {
+      if (section.data && typeof section.data === 'string' && section.data.toLowerCase().startsWith('html')) {
+        return {
+          ...section,
+          data: section.data.substring(4) // Supprimer les 4 premiers caractères "html"
+        };
+      }
+      return section;
+    });
+    
+    logger.info(`sections length: ${cleanedSections.length}`);
+    // Générer la clé de cache basée sur le contenu nettoyé
+    const cacheKey = PdfService.generateCacheKey({
+      ...options,
+      sections: cleanedSections
+    });
 
     logger.info(
       `Generating PDF for project: ${projectName} with ${
-        sections.length
+        cleanedSections.length
       } sections (cache key: ${cacheKey.substring(0, 8)}...)`
     );
 
@@ -619,7 +633,7 @@ export class PdfService {
     try {
       // Trier les sections selon l'ordre spécifié
       const sortedSections = this.sortSectionsByOrder(
-        sections,
+        cleanedSections,
         sectionDisplayOrder
       );
 

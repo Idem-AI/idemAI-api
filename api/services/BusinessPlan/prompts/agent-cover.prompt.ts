@@ -52,8 +52,8 @@ MANDATORY ELEMENTS:
 - Date and version (elegantly integrated)
 - Visual elements that reinforce business personality
 
-IMPORTANT:
-- not add any "html" tag or prefix on output
+VERY IMPORTANT:
+- not add any "html" tag or prefix on output. just give code not prefix
 - Replace {{companyName}} and {{currentDate}} with actual values in project context
 PROJECT CONTEXT:
 Transform provided business details into a full-page visual experience. Use colors, tone, and metadata to create something uniquely powerful for this specific business plan.
