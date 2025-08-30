@@ -6,6 +6,7 @@ import JSZip from "jszip";
 import fsExtra from "fs-extra";
 import path from "path";
 import { storageService } from "./storage.service";
+import { v4 as uuidv4 } from "uuid";
 
 class ProjectService {
   private projectRepository: IRepository<ProjectModel>;
@@ -25,12 +26,12 @@ class ProjectService {
     }
 
     try {
-      // Generate a temporary project ID for storage purposes
-      const tempProjectId = storageService.generateProjectId();
+      // Generate the final project ID using UUID
+      const projectId = uuidv4();
 
       logger.info(`Creating project for user ${userId}`, {
         userId,
-        tempProjectId,
+        projectId,
         hasLogoVariations:
           !!projectData.analysisResultModel?.branding?.logo?.variations,
       });
@@ -56,7 +57,7 @@ class ProjectService {
       ) {
         logger.info(`Uploading logo variations to Firebase Storage`, {
           userId,
-          tempProjectId,
+          projectId,
           variations: Object.keys(logoVariations),
         });
 
@@ -66,7 +67,7 @@ class ProjectService {
             primaryLogo,
             logoVariations,
             userId,
-            tempProjectId
+            projectId
           );
 
           // Replace SVG content with download URLs
@@ -94,7 +95,7 @@ class ProjectService {
 
           logger.info(`Logo variations uploaded successfully`, {
             userId,
-            tempProjectId,
+            projectId,
             uploadedUrls: {
               lightBackground: updatedVariations.lightBackground,
               darkBackground: updatedVariations.darkBackground,
@@ -104,7 +105,7 @@ class ProjectService {
         } catch (uploadError: any) {
           logger.error(`Failed to upload logo variations`, {
             userId,
-            tempProjectId,
+            projectId,
             error: uploadError.message,
             stack: uploadError.stack,
           });
@@ -116,14 +117,15 @@ class ProjectService {
       } else {
         logger.info(`No logo variations to upload for project`, {
           userId,
-          tempProjectId,
+          projectId,
         });
       }
 
-      // Create the project in the database
+      // Create the project in the database with the generated UUID as document ID
       const newProject = await this.projectRepository.create(
         projectToCreate,
-        `users/${userId}/projects`
+        `users/${userId}/projects`,
+        projectId
       );
 
       if (!newProject || !newProject.id) {
@@ -133,7 +135,6 @@ class ProjectService {
       logger.info(`Project created successfully`, {
         userId,
         projectId: newProject.id,
-        tempProjectId,
         hasUploadedLogos: !!(
           logoVariations && Object.keys(logoVariations).length > 0
         ),

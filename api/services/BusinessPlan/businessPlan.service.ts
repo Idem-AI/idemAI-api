@@ -189,8 +189,10 @@ export class BusinessPlanService extends GenericService {
             sectionResults.push(section);
 
             // Update project immediately after each step
-            logger.info(`Updating project after step: ${result.name} - projectId: ${projectId}`);
-            
+            logger.info(
+              `Updating project after step: ${result.name} - projectId: ${projectId}`
+            );
+
             // Get the current project
             const currentProject = await this.projectRepository.findById(
               projectId,
@@ -231,13 +233,19 @@ export class BusinessPlanService extends GenericService {
                 prefix: "ai",
                 ttl: 7200, // 2 hours
               });
-              logger.info(`Business plan cached after step: ${result.name} - projectId: ${projectId}`);
+              logger.info(
+                `Business plan cached after step: ${result.name} - projectId: ${projectId}`
+              );
 
               // Only send to frontend after successful database update
               await streamCallback(result);
             } else {
-              logger.error(`Failed to update project after step: ${result.name} - projectId: ${projectId}`);
-              throw new Error(`Failed to update project after step: ${result.name}`);
+              logger.error(
+                `Failed to update project after step: ${result.name} - projectId: ${projectId}`
+              );
+              throw new Error(
+                `Failed to update project after step: ${result.name}`
+              );
             }
           },
           promptConfig,
@@ -506,124 +514,6 @@ export class BusinessPlanService extends GenericService {
     logger.info(`Business plan PDF cached for projectId: ${projectId}`);
 
     return pdfPath;
-  }
-
-  /**
-   * Génère un business plan avec les informations additionnelles et upload des images des team members
-   * @param userId - ID de l'utilisateur
-   * @param projectId - ID du projet
-   * @param additionalInfos - Informations additionnelles de l'entreprise
-   * @param teamMemberImages - Images des team members uploadées
-   * @param streamCallback - Callback pour streaming en temps réel
-   * @returns Projet mis à jour avec le business plan
-   */
-  async generateBusinessPlanWithAdditionalInfos(
-    userId: string,
-    projectId: string,
-    additionalInfos: {
-      email: string;
-      phone?: string;
-      address?: string;
-      city?: string;
-      country?: string;
-      zipCode?: string;
-      teamMembers: TeamMember[];
-    },
-    teamMemberImages?: Express.Multer.File[],
-    streamCallback?: (sectionResult: ISectionResult) => Promise<void>
-  ): Promise<{
-    project: ProjectModel | null;
-    uploadedImages?: { [memberIndex: number]: any };
-  }> {
-    logger.info(
-      `Generating business plan with additional infos for userId: ${userId}, projectId: ${projectId}`,
-      {
-        additionalInfos: {
-          email: additionalInfos.email,
-          teamMembersCount: additionalInfos.teamMembers.length,
-          hasImages: !!teamMemberImages && teamMemberImages.length > 0,
-        },
-      }
-    );
-
-    // Upload team member images if provided
-    let uploadedImages: { [memberIndex: number]: any } = {};
-    if (teamMemberImages && teamMemberImages.length > 0) {
-      try {
-        uploadedImages = await storageService.uploadTeamMemberImages(
-          teamMemberImages,
-          userId,
-          projectId
-        );
-        logger.info(
-          `Uploaded ${Object.keys(uploadedImages).length} team member images`
-        );
-      } catch (error: any) {
-        logger.error(`Error uploading team member images: ${error.message}`, {
-          stack: error.stack,
-        });
-        // Continue without images rather than fail completely
-      }
-    }
-
-    // Update team members with uploaded image URLs
-    const updatedTeamMembers = additionalInfos.teamMembers.map(
-      (member, index) => ({
-        ...member,
-        pictureUrl: uploadedImages[index]?.downloadURL || member.pictureUrl,
-      })
-    );
-
-    // Get current project to update with additional infos
-    const project = await this.getProject(projectId, userId);
-    if (!project) {
-      logger.warn(`Project not found: ${projectId} for user: ${userId}`);
-      return { project: null };
-    }
-
-    // Update project with additional informations
-    const updatedProject = {
-      ...project,
-      additionalInfos: {
-        email: additionalInfos.email,
-        phone: additionalInfos.phone || "",
-        address: additionalInfos.address || "",
-        city: additionalInfos.city || "",
-        country: additionalInfos.country || "",
-        zipCode: additionalInfos.zipCode || "",
-        teamMembers: updatedTeamMembers,
-      },
-    };
-
-    // Save updated project with additional infos
-    const savedProject = await this.projectRepository.update(
-      projectId,
-      updatedProject,
-      `users/${userId}/projects`
-    );
-
-    if (!savedProject) {
-      logger.error(
-        `Failed to update project with additional infos: ${projectId}`
-      );
-      return { project: null };
-    }
-
-    logger.info(`Project updated with additional infos: ${projectId}`);
-
-    // Generate business plan with the updated project (including additional infos)
-    const projectWithBusinessPlan =
-      await this.generateBusinessPlanWithStreaming(
-        userId,
-        projectId,
-        streamCallback
-      );
-
-    return {
-      project: projectWithBusinessPlan,
-      uploadedImages:
-        Object.keys(uploadedImages).length > 0 ? uploadedImages : undefined,
-    };
   }
 
   /**
