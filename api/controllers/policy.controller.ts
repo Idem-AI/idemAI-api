@@ -1,7 +1,10 @@
 import { Response } from "express";
 import { CustomRequest } from "../interfaces/express.interface";
 import { policyAcceptanceService } from "../services/policyAcceptance.service";
-import { FinalizeProjectRequest, FinalizeProjectResponse } from "../models/policyAcceptance.model";
+import {
+  FinalizeProjectRequest,
+  FinalizeProjectResponse,
+} from "../models/policyAcceptance.model";
 import logger from "../config/logger";
 
 /**
@@ -15,7 +18,7 @@ export const finalizeProjectController = async (
   const acceptanceData: FinalizeProjectRequest = req.body;
   const userId = req.user?.uid;
   const ipAddress = req.ip || req.connection.remoteAddress;
-  const userAgent = req.get('User-Agent');
+  const userAgent = req.get("User-Agent");
 
   logger.info(
     `finalizeProjectController called - UserId: ${userId}, ProjectId: ${projectId}`,
@@ -36,26 +39,30 @@ export const finalizeProjectController = async (
     }
 
     // Validation des données d'acceptation
-    if (typeof acceptanceData.privacyPolicyAccepted !== 'boolean') {
+    if (typeof acceptanceData.privacyPolicyAccepted !== "boolean") {
       logger.warn("Privacy policy acceptance is required");
-      res.status(400).json({ message: "Privacy policy acceptance is required" });
+      res
+        .status(400)
+        .json({ message: "Privacy policy acceptance is required" });
       return;
     }
 
-    if (typeof acceptanceData.termsOfServiceAccepted !== 'boolean') {
+    if (typeof acceptanceData.termsOfServiceAccepted !== "boolean") {
       logger.warn("Terms of service acceptance is required");
-      res.status(400).json({ message: "Terms of service acceptance is required" });
+      res
+        .status(400)
+        .json({ message: "Terms of service acceptance is required" });
       return;
     }
 
-    if (typeof acceptanceData.betaPolicyAccepted !== 'boolean') {
+    if (typeof acceptanceData.betaPolicyAccepted !== "boolean") {
       logger.warn("Beta policy acceptance is required");
       res.status(400).json({ message: "Beta policy acceptance is required" });
       return;
     }
 
     // Finaliser le projet
-    const policyAcceptance = await policyAcceptanceService.finalizeProject(
+    const project = await policyAcceptanceService.finalizeProject(
       userId,
       projectId,
       acceptanceData,
@@ -67,7 +74,7 @@ export const finalizeProjectController = async (
       success: true,
       message: "Project finalized successfully",
       projectId,
-      acceptedAt: policyAcceptance.acceptedAt,
+      acceptedAt: project.policyAcceptance!.acceptedAt,
     };
 
     logger.info(
@@ -131,8 +138,14 @@ export const checkPolicyStatusController = async (
       return;
     }
 
-    const isAccepted = await policyAcceptanceService.isPolicyAccepted(userId, projectId);
-    const policyAcceptance = await policyAcceptanceService.getPolicyAcceptance(userId, projectId);
+    const isAccepted = await policyAcceptanceService.isPolicyAccepted(
+      userId,
+      projectId
+    );
+    const policyAcceptance = await policyAcceptanceService.getPolicyAcceptance(
+      userId,
+      projectId
+    );
 
     res.status(200).json({
       projectId,
@@ -172,12 +185,16 @@ export const getUserPolicyAcceptancesController = async (
 
   try {
     if (!userId) {
-      logger.warn("User not authenticated for getUserPolicyAcceptancesController");
+      logger.warn(
+        "User not authenticated for getUserPolicyAcceptancesController"
+      );
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
 
-    const acceptances = await policyAcceptanceService.getUserPolicyAcceptances(userId);
+    const acceptances = await policyAcceptanceService.getUserPolicyAcceptances(
+      userId
+    );
 
     res.status(200).json({
       userId,

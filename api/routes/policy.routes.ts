@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { authenticate } from "../middleware/authenticate.middleware";
 import {
   finalizeProjectController,
   checkPolicyStatusController,
   getUserPolicyAcceptancesController,
 } from "../controllers/policy.controller";
+import { authenticate } from "../services/auth.service";
 
 const router = Router();
 
@@ -64,7 +64,11 @@ const router = Router();
  *       500:
  *         description: Erreur serveur
  */
-router.post("/projects/:projectId/finalize", authenticate, finalizeProjectController);
+router.post(
+  "/projects/:projectId/finalize",
+  authenticate,
+  finalizeProjectController
+);
 
 /**
  * @openapi
@@ -101,7 +105,11 @@ router.post("/projects/:projectId/finalize", authenticate, finalizeProjectContro
  *       500:
  *         description: Erreur serveur
  */
-router.get("/projects/:projectId/policy-status", authenticate, checkPolicyStatusController);
+router.get(
+  "/projects/:projectId/policy-status",
+  authenticate,
+  checkPolicyStatusController
+);
 
 /**
  * @openapi
@@ -133,6 +141,10 @@ router.get("/projects/:projectId/policy-status", authenticate, checkPolicyStatus
  *       500:
  *         description: Erreur serveur
  */
-router.get("/policy/acceptances", authenticate, getUserPolicyAcceptancesController);
+router.get(
+  "/policy/acceptances",
+  authenticate,
+  getUserPolicyAcceptancesController
+);
 
 export default router;
