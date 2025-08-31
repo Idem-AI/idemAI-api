@@ -4,7 +4,6 @@ import {
   getBrandingByIdController,
   updateBrandingController,
   deleteBrandingController,
-  generateLogoColorsAndTypographyController,
   generateColorsAndTypographyController,
   generateLogoConceptsController,
   generateLogoVariationsController,
@@ -263,44 +262,6 @@ brandingRoutes.post(
 );
 
 
-// Generate both logos, colors and typography (legacy endpoint)
-/**
- * @openapi
- * /logo-colors-typography:
- *   post:
- *     tags:
- *       - Branding
- *     summary: Generate logos, colors and typography for a project (legacy)
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       description: Project data for complete branding generation.
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               project:
- *                 type: object
- *                 description: Project object containing project details.
- *     responses:
- *       '200':
- *         description: Logo, colors and typography generated successfully.
- *       '400':
- *         description: Bad request.
- *       '401':
- *         description: Unauthorized.
- *       '500':
- *         description: Internal server error.
- */
-brandingRoutes.post(
-  "/logo-colors-typography",
-  authenticate,
-  checkPolicyAcceptance,
-  checkQuota,
-  generateLogoColorsAndTypographyController
-);
 
 // Get all brandings for a specific project
 /**

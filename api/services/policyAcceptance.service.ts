@@ -1,6 +1,5 @@
 import logger from "../config/logger";
 import {
-  PolicyAcceptanceModel,
   FinalizeProjectRequest,
 } from "../models/policyAcceptance.model";
 import { ProjectModel, ProjectPolicyAcceptance } from "../models/project.model";
