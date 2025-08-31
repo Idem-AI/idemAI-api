@@ -12,4 +12,6 @@ export enum TargetModelType {
   DEPLOYMENT = 'deployments',
   WEBCONTAINER = 'webcontainers',
   ARCHETYPE = 'archetypes',
+  POLICY_ACCEPTANCE = 'policy_acceptances',
+  
 }

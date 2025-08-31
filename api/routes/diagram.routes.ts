@@ -9,6 +9,7 @@ import {
 } from "../controllers/diagram.controller";
 import { authenticate } from "../services/auth.service"; // Updated import path
 import { checkQuota } from "../middleware/quota.middleware";
+import { checkPolicyAcceptance } from "../middleware/policyCheck.middleware";
 
 export const diagramRoutes = Router();
 
@@ -70,6 +71,7 @@ const resourceName = "diagrams";
 diagramRoutes.post(
   `/${resourceName}/generate/:projectId`,
   authenticate,
+  checkPolicyAcceptance,
   checkQuota,
   generateDiagramController
 );
@@ -110,8 +112,9 @@ diagramRoutes.post(
  */
 diagramRoutes.get(
   `/${resourceName}/generate-stream/:projectId`,
-  // authenticate,
-  // checkQuota,
+  authenticate,
+  checkPolicyAcceptance,
+  checkQuota,
   generateDiagramStreamingController
 );
 

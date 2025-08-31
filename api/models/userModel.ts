@@ -27,6 +27,16 @@ export interface RefreshTokenData {
   ipAddress?: string;
 }
 
+export interface PolicyAcceptanceStatus {
+  privacyPolicy: boolean;
+  termsOfService: boolean;
+  betaPolicy: boolean;
+  marketingAcceptance?: boolean;
+  lastAcceptedAt?: Date;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
 export interface UserModel {
   uid: string;
   email: string;
@@ -39,4 +49,5 @@ export interface UserModel {
   roles: string[];
   githubIntegration?: GitHubIntegration;
   refreshTokens?: RefreshTokenData[];
+  policyAcceptance?: PolicyAcceptanceStatus;
 }

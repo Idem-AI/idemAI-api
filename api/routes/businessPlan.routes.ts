@@ -9,6 +9,7 @@ import {
 } from "../controllers/businessPlan.controller";
 import { authenticate } from "../services/auth.service";
 import { checkQuota } from "../middleware/quota.middleware";
+import { checkPolicyAcceptance } from "../middleware/policyCheck.middleware";
 import multer from "multer";
 
 export const businessPlanRoutes = Router();
@@ -101,6 +102,7 @@ const upload = multer({
 businessPlanRoutes.get(
   `/${resourceName}/generate/:projectId`,
   authenticate,
+  checkPolicyAcceptance,
   checkQuota,
   generateBusinessPlanStreamingController
 );

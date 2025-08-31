@@ -2,6 +2,20 @@ import { AnalysisResultModel } from "./analysisResult.model";
 import { ChatMessage, DeploymentModel } from "./deployment.model";
 
 /**
+ * Modèle d'acceptation des politiques intégré au projet
+ * (version simplifiée sans userId et projectId)
+ */
+export interface ProjectPolicyAcceptance {
+  privacyPolicyAccepted: boolean;
+  termsOfServiceAccepted: boolean;
+  betaPolicyAccepted: boolean;
+  marketingAccepted: boolean;
+  acceptedAt: Date;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+/**
  * @openapi
  * components:
  *   schemas:
@@ -47,6 +61,48 @@ import { ChatMessage, DeploymentModel } from "./deployment.model";
  *             type: string
  *         analysisResultModel:
  *           $ref: '#/components/schemas/AnalysisResultModel'
+ *         activeChatMessages:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/ChatMessage'
+ *         policyAcceptance:
+ *           type: object
+ *           nullable: true
+ *           properties:
+ *             privacyPolicyAccepted:
+ *               type: boolean
+ *             termsOfServiceAccepted:
+ *               type: boolean
+ *             betaPolicyAccepted:
+ *               type: boolean
+ *             marketingAccepted:
+ *               type: boolean
+ *             acceptedAt:
+ *               type: string
+ *               format: date-time
+ *             ipAddress:
+ *               type: string
+ *             userAgent:
+ *               type: string
+ *         additionalInfos:
+ *           type: object
+ *           properties:
+ *             email:
+ *               type: string
+ *             phone:
+ *               type: string
+ *             address:
+ *               type: string
+ *             city:
+ *               type: string
+ *             country:
+ *               type: string
+ *             zipCode:
+ *               type: string
+ *             teamMembers:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/TeamMember'
  *       required:
  *         - name
  *         - description
@@ -79,6 +135,7 @@ export interface ProjectModel {
   analysisResultModel: AnalysisResultModel;
   deployments: DeploymentModel[];
   activeChatMessages: ChatMessage[];
+  policyAcceptance?: ProjectPolicyAcceptance;
   additionalInfos: {
     email: string;
     phone: string;

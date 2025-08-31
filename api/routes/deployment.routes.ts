@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../services/auth.service";
+import { checkPolicyAcceptance } from "../middleware/policyCheck.middleware";
 import {
   CreateDeploymentController,
   GetDeploymentsByProjectController,
@@ -71,7 +72,7 @@ const resourceName = "/deployments";
  *       500:
  *         description: Internal server error
  */
-deploymentRoutes.post(`${resourceName}/generate`, generateDeploymentController);
+deploymentRoutes.post(`${resourceName}/generate`, authenticate, checkPolicyAcceptance, generateDeploymentController);
 
 /**
  * @openapi
@@ -340,6 +341,7 @@ deploymentRoutes.post(
 deploymentRoutes.post(
   `${resourceName}/execute/:deploymentId`,
   authenticate,
+  checkPolicyAcceptance,
   ExecuteDeploymentController
 );
 
@@ -923,6 +925,7 @@ deploymentRoutes.post(
 deploymentRoutes.get(
   `${resourceName}/execute/stream/:deploymentId`,
   authenticate,
+  checkPolicyAcceptance,
   ExecuteDeploymentStreamingController
 );
 

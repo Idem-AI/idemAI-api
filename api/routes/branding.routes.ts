@@ -13,6 +13,7 @@ import {
 } from "../controllers/branding.controller";
 import { authenticate } from "../services/auth.service"; // Updated import path
 import { checkQuota } from "../middleware/quota.middleware";
+import { checkPolicyAcceptance } from "../middleware/policyCheck.middleware";
 
 export const brandingRoutes = Router();
 
@@ -67,9 +68,10 @@ const resourceName = "brandings";
  *       '500':
  *         description: Internal server error.
  */
-brandingRoutes.get(
-  `/${resourceName}/generate/:projectId`,
+brandingRoutes.post(
+  "/generate/:projectId",
   authenticate,
+  checkPolicyAcceptance,
   checkQuota,
   generateBrandingStreamingController
 );
@@ -77,7 +79,7 @@ brandingRoutes.get(
 // Generate logo, colors, and typography for a project
 /**
  * @openapi
- * /brandings/genColorsAndTypography:
+ * /colors-typography:
  *   post:
  *     tags:
  *       - Branding
@@ -133,40 +135,10 @@ brandingRoutes.get(
  *       '500':
  *         description: Internal server error.
  */
-// Generate colors and typography only
-/**
- * @openapi
- * /brandings/genColorsAndTypography:
- *   post:
- *     tags:
- *       - Branding
- *     summary: Generate colors and typography for a project
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       description: Project data for colors and typography generation.
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               project:
- *                 type: object
- *                 description: Project object containing project details.
- *     responses:
- *       '200':
- *         description: Colors and typography generated successfully.
- *       '400':
- *         description: Bad request.
- *       '401':
- *         description: Unauthorized.
- *       '500':
- *         description: Internal server error.
- */
 brandingRoutes.post(
-  `/${resourceName}/genColorsAndTypography`,
+  "/colors-typography",
   authenticate,
+  checkPolicyAcceptance,
   checkQuota,
   generateColorsAndTypographyController
 );
@@ -174,7 +146,7 @@ brandingRoutes.post(
 // Étape 1: Generate logo concepts only (new 3-step approach)
 /**
  * @openapi
- * /brandings/genLogoConcepts:
+ * /logo-concepts/{projectId}:
  *   post:
  *     tags:
  *       - Branding
@@ -182,6 +154,13 @@ brandingRoutes.post(
  *     description: Generates 4 main logo concepts with text, without variations. Part of the new 3-step logo generation process.
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the project.
  *     requestBody:
  *       description: Project data for logo concept generation.
  *       required: true
@@ -219,8 +198,9 @@ brandingRoutes.post(
  *         description: Internal server error.
  */
 brandingRoutes.post(
-  `/${resourceName}/genLogoConcepts`,
+  "/logo-concepts/:projectId",
   authenticate,
+  checkPolicyAcceptance,
   checkQuota,
   generateLogoConceptsController
 );
@@ -228,7 +208,7 @@ brandingRoutes.post(
 // Étape 2: Generate logo variations for selected logo
 /**
  * @openapi
- * /brandings/genLogoVariations/{projectId}:
+ * /logo-variations:
  *   post:
  *     tags:
  *       - Branding
@@ -236,13 +216,6 @@ brandingRoutes.post(
  *     description: Generates lightBackground, darkBackground, and monochrome variations for a selected logo SVG.
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: projectId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the project.
  *     requestBody:
  *       description: Selected logo SVG for variation generation.
  *       required: true
@@ -278,14 +251,13 @@ brandingRoutes.post(
  *         description: Bad request.
  *       '401':
  *         description: Unauthorized.
- *       '404':
- *         description: Project not found.
  *       '500':
  *         description: Internal server error.
  */
 brandingRoutes.post(
-  `/${resourceName}/genLogoVariations/:projectId`,
+  "/logo-variations",
   authenticate,
+  checkPolicyAcceptance,
   checkQuota,
   generateLogoVariationsController
 );
@@ -294,7 +266,7 @@ brandingRoutes.post(
 // Generate both logos, colors and typography (legacy endpoint)
 /**
  * @openapi
- * /brandings/genLogoColorsAndTypography:
+ * /logo-colors-typography:
  *   post:
  *     tags:
  *       - Branding
@@ -323,8 +295,9 @@ brandingRoutes.post(
  *         description: Internal server error.
  */
 brandingRoutes.post(
-  `/${resourceName}/genLogoColorsAndTypography`,
+  "/logo-colors-typography",
   authenticate,
+  checkPolicyAcceptance,
   checkQuota,
   generateLogoColorsAndTypographyController
 );
