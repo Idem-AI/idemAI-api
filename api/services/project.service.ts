@@ -19,7 +19,7 @@ class ProjectService {
   async createUserProject(
     userId: string,
     projectData: Omit<ProjectModel, "id" | "createdAt" | "updatedAt" | "userId">
-  ): Promise<string> {
+  ): Promise<ProjectModel> {
     if (!userId) {
       logger.error("User ID is required to create a project.");
       throw new Error("User ID is required.");
@@ -50,9 +50,12 @@ class ProjectService {
       const primaryLogo = projectData.analysisResultModel?.branding?.logo?.svg;
       if (
         logoVariations &&
-        (logoVariations.lightBackground ||
-          logoVariations.darkBackground ||
-          logoVariations.monochrome ||
+        (logoVariations.iconOnly?.lightBackground ||
+          logoVariations.iconOnly?.darkBackground ||
+          logoVariations.iconOnly?.monochrome ||
+          logoVariations.withText?.lightBackground ||
+          logoVariations.withText?.darkBackground ||
+          logoVariations.withText?.monochrome ||
           primaryLogo)
       ) {
         logger.info(`Uploading logo variations to Firebase Storage`, {
@@ -63,8 +66,11 @@ class ProjectService {
 
         try {
           // Upload logo variations to Firebase Storage
+          const iconSvg =
+            projectData.analysisResultModel?.branding?.logo?.iconSvg;
           const uploadResults = await storageService.uploadLogoVariations(
             primaryLogo,
+            iconSvg,
             logoVariations,
             userId,
             projectId
@@ -72,9 +78,20 @@ class ProjectService {
 
           // Replace SVG content with download URLs
           const updatedVariations = {
-            lightBackground: uploadResults.lightBackground?.downloadURL,
-            darkBackground: uploadResults.darkBackground?.downloadURL,
-            monochrome: uploadResults.monochrome?.downloadURL,
+            withText: {
+              lightBackground:
+                uploadResults.withText?.lightBackground?.downloadURL,
+              darkBackground:
+                uploadResults.withText?.darkBackground?.downloadURL,
+              monochrome: uploadResults.withText?.monochrome?.downloadURL,
+            },
+            iconOnly: {
+              lightBackground:
+                uploadResults.iconOnly?.lightBackground?.downloadURL,
+              darkBackground:
+                uploadResults.iconOnly?.darkBackground?.downloadURL,
+              monochrome: uploadResults.iconOnly?.monochrome?.downloadURL,
+            },
           };
 
           // Update the project data with the URLs
@@ -87,6 +104,7 @@ class ProjectService {
                 logo: {
                   ...projectToCreate.analysisResultModel?.branding?.logo,
                   svg: uploadResults.primaryLogo!.downloadURL,
+                  iconSvg: uploadResults.iconSvg?.downloadURL,
                   variations: updatedVariations,
                 },
               },
@@ -97,9 +115,8 @@ class ProjectService {
             userId,
             projectId,
             uploadedUrls: {
-              lightBackground: updatedVariations.lightBackground,
-              darkBackground: updatedVariations.darkBackground,
-              monochrome: updatedVariations.monochrome,
+              withText: updatedVariations.withText,
+              iconOnly: updatedVariations.iconOnly,
             },
           });
         } catch (uploadError: any) {
@@ -140,7 +157,7 @@ class ProjectService {
         ),
       });
 
-      return newProject.id;
+      return newProject;
     } catch (error: any) {
       logger.error(`Error creating project in service: ${error.message}`, {
         userId,

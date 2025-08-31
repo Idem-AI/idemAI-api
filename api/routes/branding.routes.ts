@@ -7,6 +7,8 @@ import {
   generateLogoColorsAndTypographyController,
   generateColorsAndTypographyController,
   generateLogosController,
+  generateLogoConceptsController,
+  generateLogoVariationsController,
   generateBrandingStreamingController,
   generateBrandingPdfController,
 } from "../controllers/branding.controller";
@@ -170,18 +172,19 @@ brandingRoutes.post(
   generateColorsAndTypographyController
 );
 
-// Generate logos only
+// Étape 1: Generate logo concepts only (new 3-step approach)
 /**
  * @openapi
- * /brandings/genLogos:
+ * /brandings/genLogoConcepts:
  *   post:
  *     tags:
  *       - Branding
- *     summary: Generate logos for a project
+ *     summary: Generate 4 logo concepts for a project (Step 1 of 3)
+ *     description: Generates 4 main logo concepts with text, without variations. Part of the new 3-step logo generation process.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
- *       description: Project data for logo generation.
+ *       description: Project data for logo concept generation.
  *       required: true
  *       content:
  *         application/json:
@@ -191,9 +194,24 @@ brandingRoutes.post(
  *               project:
  *                 type: object
  *                 description: Project object containing project details.
+ *               colors:
+ *                 type: object
+ *                 description: Color palette for the project.
+ *               typography:
+ *                 type: object
+ *                 description: Typography settings for the project.
  *     responses:
  *       '200':
- *         description: Logos generated successfully.
+ *         description: Logo concepts generated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 logos:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/LogoModel'
  *       '400':
  *         description: Bad request.
  *       '401':
@@ -202,11 +220,77 @@ brandingRoutes.post(
  *         description: Internal server error.
  */
 brandingRoutes.post(
-  `/${resourceName}/genLogos`,
+  `/${resourceName}/genLogoConcepts`,
   authenticate,
   checkQuota,
-  generateLogosController
+  generateLogoConceptsController
 );
+
+// Étape 2: Generate logo variations for selected logo
+/**
+ * @openapi
+ * /brandings/genLogoVariations/{projectId}:
+ *   post:
+ *     tags:
+ *       - Branding
+ *     summary: Generate variations for a selected logo (Step 2 of 3)
+ *     description: Generates lightBackground, darkBackground, and monochrome variations for a selected logo SVG.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the project.
+ *     requestBody:
+ *       description: Selected logo SVG for variation generation.
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               selectedLogoSvg:
+ *                 type: string
+ *                 description: The SVG content of the selected logo.
+ *     responses:
+ *       '200':
+ *         description: Logo variations generated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 variations:
+ *                   type: object
+ *                   properties:
+ *                     lightBackground:
+ *                       type: string
+ *                       description: SVG optimized for light backgrounds.
+ *                     darkBackground:
+ *                       type: string
+ *                       description: SVG optimized for dark backgrounds.
+ *                     monochrome:
+ *                       type: string
+ *                       description: Monochrome SVG version.
+ *       '400':
+ *         description: Bad request.
+ *       '401':
+ *         description: Unauthorized.
+ *       '404':
+ *         description: Project not found.
+ *       '500':
+ *         description: Internal server error.
+ */
+brandingRoutes.post(
+  `/${resourceName}/genLogoVariations/:projectId`,
+  authenticate,
+  checkQuota,
+  generateLogoVariationsController
+);
+
 
 // Generate both logos, colors and typography (legacy endpoint)
 /**

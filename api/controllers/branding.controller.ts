@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { BrandingService } from "../services/BandIdentity/branding.service";
 import { PromptService } from "../services/prompt.service";
 import { CustomRequest } from "../interfaces/express.interface";
@@ -74,7 +74,7 @@ export const generateColorsAndTypographyController = async (
   const project = req.body.project;
   const userId = req.user?.uid;
   logger.info(
-    `generateColorsAndTypographyController called - UserId: ${userId}, ProjectId: ${project.id}`,
+    `generateColorsAndTypographyController called - UserId: ${userId}`,
     { body: req.body }
   );
   try {
@@ -85,11 +85,11 @@ export const generateColorsAndTypographyController = async (
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
-    if (!project.id) {
+    if (!project) {
       logger.warn(
-        "Project ID is required for generateColorsAndTypographyController"
+        "Project data is required for generateColorsAndTypographyController"
       );
-      res.status(400).json({ message: "Project ID is required" });
+      res.status(400).json({ message: "Project data is required" });
       return;
     }
 
@@ -128,52 +128,61 @@ export const generateColorsAndTypographyController = async (
   }
 };
 
-export const generateLogosController = async (
+/**
+ * Étape 1: Génère 4 concepts de logos principaux (sans variations)
+ */
+export const generateLogoConceptsController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const project = req.body.project;
+  const { projectId } = req.params;
   const colors = req.body.colors;
   const typography = req.body.typography;
   const userId = req.user?.uid;
   logger.info(
-    `generateLogosController called - UserId: ${userId}, ProjectId: ${project.id}`,
+    `generateLogoConceptsController called - UserId: ${userId}, ProjectId: ${projectId}`,
     { body: req.body }
   );
   try {
     if (!userId) {
-      logger.warn("User not authenticated for generateLogosController");
+      logger.warn("User not authenticated for generateLogoConceptsController");
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
-    if (!project.id) {
-      logger.warn("Project ID is required for generateLogosController");
+    if (!projectId) {
+      logger.warn("Project ID is required for generateLogoConceptsController");
       res.status(400).json({ message: "Project ID is required" });
       return;
     }
+    if (!colors || !typography) {
+      logger.warn("Colors and typography are required for generateLogoConceptsController");
+      res.status(400).json({ message: "Colors and typography are required" });
+      return;
+    }
 
-    const result = await brandingService.generateLogos(
+    const logos = await brandingService.generateLogoConcepts(
       userId,
-      project,
+      projectId,
       colors,
       typography
     );
 
-    if (!result) {
+    if (!logos) {
       logger.warn(
-        `Failed to generate logos - UserId: ${userId}, ProjectId: ${project.id}`
+        `Failed to generate logo concepts - UserId: ${userId}, ProjectId: ${projectId}`
       );
-      res.status(500).json({ message: "Failed to generate logos" });
+      res.status(500).json({ message: "Failed to generate logo concepts" });
       return;
     }
 
     logger.info(
-      `Successfully generated logos - UserId: ${userId}, ProjectId: ${project.id}`
+      `Successfully generated logo concepts - UserId: ${userId}, ProjectId: ${projectId}`
     );
-    res.status(200).json(result);
+    userService.incrementUsage(userId, 1);
+    res.status(200).json(logos);
   } catch (error) {
     logger.error(
-      `Error in generateLogosController - UserId: ${userId}, ProjectId: ${project?.id}`,
+      `Error in generateLogoConceptsController - UserId: ${userId}, ProjectId: ${projectId}`,
       {
         error: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined,
@@ -185,6 +194,77 @@ export const generateLogosController = async (
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }
+};
+
+/**
+ * Étape 2: Génère les variations d'un logo sélectionné
+ */
+export const generateLogoVariationsController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const { project } = req.body;
+  const { selectedlogoId } = req.params;
+  const userId = req.user?.uid;
+  logger.info(
+    `generateLogoVariationsController called - UserId: ${userId}, ProjectId: ${project.id}`,
+    { body: req.body }
+  );
+  try {
+    if (!userId) {
+      logger.warn(
+        "User not authenticated for generateLogoVariationsController"
+      );
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    const variations = await brandingService.generateLogoVariations(
+      userId,
+      project,
+      selectedlogoId
+    );
+
+    if (!variations) {
+      logger.warn(
+        `Failed to generate logo variations - UserId: ${userId}, ProjectId: ${project.id}`
+      );
+      res.status(500).json({ message: "Failed to generate logo variations" });
+      return;
+    }
+
+    logger.info(
+      `Successfully generated logo variations - UserId: ${userId}, ProjectId: ${project.id}`
+    );
+    userService.incrementUsage(userId, 1);
+    res.status(200).json({ variations });
+  } catch (error) {
+    logger.error(
+      `Error in generateLogoVariationsController - UserId: ${userId}, ProjectId: ${project.id}`,
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+        body: req.body,
+      }
+    );
+    res.status(500).json({
+      message: "Internal server error",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+/**
+ * @deprecated Utiliser generateLogoConceptsController() à la place
+ */
+export const generateLogosController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  logger.warn(
+    "generateLogosController is deprecated, use generateLogoConceptsController instead"
+  );
+  return generateLogoConceptsController(req, res);
 };
 
 export const getBrandingsByProjectController = async (

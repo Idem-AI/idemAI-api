@@ -1,12 +1,16 @@
 import logger from "../../config/logger";
 import { ProjectModel } from "../../models/project.model";
 import { PromptService } from "../prompt.service";
+
 import {
   BrandIdentityModel,
   ColorModel,
   TypographyModel,
 } from "../../models/brand-identity.model";
 import { LOGO_GENERATION_PROMPT } from "./prompts/singleGenerations/00_logo-generation-section.prompt";
+import { LOGO_VARIATIONS_GENERATION_PROMPT } from "./prompts/singleGenerations/01_logo-variations-generation.prompt";
+import { SvgOptimizerService } from "./svgOptimizer.service";
+import { SvgIconExtractorService } from "./svgIconExtractor.service";
 import { BRAND_HEADER_SECTION_PROMPT } from "./prompts/00_brand-header-section.prompt";
 import { LOGO_SYSTEM_SECTION_PROMPT } from "./prompts/01_logo-system-section.prompt";
 import { COLOR_PALETTE_SECTION_PROMPT } from "./prompts/02_color-palette-section.prompt";
@@ -14,6 +18,11 @@ import { TYPOGRAPHY_SECTION_PROMPT } from "./prompts/03_typography-section.promp
 import { USAGE_GUIDELINES_SECTION_PROMPT } from "./prompts/04_usage-guidelines-section.prompt";
 import { BRAND_FOOTER_SECTION_PROMPT } from "./prompts/07_brand-footer-section.prompt";
 import { SectionModel } from "../../models/section.model";
+import { DiagramModel } from "../../models/diagram.model";
+import { DevelopmentConfigsModel } from "../../models/development.model";
+import { LandingModel } from "../../models/landing.model";
+import { AnalysisResultBuilder } from "../../models/builders/analysisResult.builder";
+import { BrandIdentityBuilder } from "../../models/builders/brandIdentity.builder";
 import {
   GenericService,
   IPromptStep,
@@ -24,6 +33,7 @@ import { COLORS_TYPOGRAPHY_GENERATION_PROMPT } from "./prompts/singleGenerations
 import { PdfService } from "../pdf.service";
 import { cacheService } from "../cache.service";
 import crypto from "crypto";
+import { projectService } from "../project.service";
 
 export class BrandingService extends GenericService {
   private pdfService: PdfService;
@@ -334,13 +344,33 @@ export class BrandingService extends GenericService {
   ): Promise<{
     colors: ColorModel[];
     typography: TypographyModel[];
+    project: ProjectModel;
   }> {
-    logger.info(
-      `Generating colors and typography for userId: ${userId}, projectId: ${project.id}`
+    logger.info(`Generating colors and typography for userId: ${userId}`);
+
+    // Créer le projet
+    const createdProject = await projectService.createUserProject(
+      userId,
+      project
     );
 
-    if (!project.id) {
-      throw new Error(`Project not found with ID: ${project.id}`);
+    if (!createdProject.id) {
+      throw new Error(`Failed to create project`);
+    }
+
+    // Stocker le projet en cache
+    try {
+      const projectCacheKey = `project_${userId}_${createdProject.id}`;
+      await cacheService.set(projectCacheKey, createdProject, {
+        prefix: "project",
+        ttl: 3600, // 1 heure
+      });
+      logger.info(
+        `Project cached with ID: ${createdProject.id} for userId: ${userId}`
+      );
+    } catch (error) {
+      logger.error(`Error caching project for userId: ${userId}`, error);
+      // Continue without failing - cache is not critical
     }
 
     const projectDescription = this.extractProjectDescription(project);
@@ -365,23 +395,63 @@ export class BrandingService extends GenericService {
     return {
       colors: colorsTypographyResult.parsedData.colors,
       typography: colorsTypographyResult.parsedData.typography,
+      project: createdProject,
     };
   }
 
-  async generateLogos(
+  /**
+   * Étape 1: Génère 4 concepts de logos principaux (sans variations)
+   */
+  async generateLogoConcepts(
     userId: string,
-    project: ProjectModel,
+    projectId: string,
     colors: ColorModel,
     typography: TypographyModel
   ): Promise<{
     logos: LogoModel[];
   }> {
     logger.info(
-      `Generating logos for userId: ${userId}, projectId: ${project.id}`
+      `Generating logo concepts for userId: ${userId}, projectId: ${projectId}`
     );
 
-    if (!project.id) {
-      throw new Error(`Project not found with ID: ${project.id}`);
+    // Récupérer le projet depuis le cache d'abord
+    const projectCacheKey = `project_${userId}_${projectId}`;
+    let project = await cacheService.get<ProjectModel>(projectCacheKey, {
+      prefix: "project",
+    });
+
+    // Si pas en cache, récupérer depuis la base de données
+    if (!project) {
+      logger.info(
+        `Project not found in cache, fetching from database - ProjectId: ${projectId}, UserId: ${userId}`
+      );
+      project = await this.projectRepository.findById(
+        projectId,
+        `users/${userId}/projects`
+      );
+      if (!project) {
+        logger.error(
+          `Project not found with ID: ${projectId} for user: ${userId}`
+        );
+        throw new Error(`Project not found with ID: ${projectId}`);
+      }
+
+      // Mettre le projet en cache pour les prochaines utilisations
+      try {
+        await cacheService.set(projectCacheKey, project, {
+          prefix: "project",
+          ttl: 3600, // 1 heure
+        });
+        logger.info(
+          `Project cached after database fetch - ProjectId: ${projectId}`
+        );
+      } catch (error) {
+        logger.error(`Error caching project after fetch`, error);
+      }
+    } else {
+      logger.info(
+        `Project retrieved from cache - ProjectId: ${projectId}, UserId: ${userId}`
+      );
     }
 
     let projectDescription = this.extractProjectDescription(project);
@@ -392,9 +462,9 @@ export class BrandingService extends GenericService {
     const steps: IPromptStep[] = [
       {
         promptConstant: projectDescription + LOGO_GENERATION_PROMPT,
-        stepName: "Logo Generation",
+        stepName: "Logo Concepts Generation",
         modelParser: (content) =>
-          this.parseSection(content, "Logo Generation", project.id!),
+          this.parseSection(content, "Logo Concepts Generation", project.id!),
         hasDependencies: false,
       },
     ];
@@ -402,8 +472,194 @@ export class BrandingService extends GenericService {
     const logoResult = sectionResults[0];
     const parsedLogoContent = logoResult.parsedData;
 
+    // Étape 3: Optimiser les SVG générés (maintenant avec iconSvg déjà fourni par l'IA)
+    const optimizedLogos = SvgOptimizerService.optimizeLogos(parsedLogoContent);
+
+    // Plus besoin d'extraire les icônes car l'IA les génère directement
+    // Les logos ont maintenant les champs svg et iconSvg séparés
+
+    // Étape 5: Mettre à jour le projet avec les concepts de logo et sauvegarder en DB
+    try {
+      // Ajouter les logos au projet
+      if (!project.analysisResultModel) {
+        project.analysisResultModel = AnalysisResultBuilder.createEmpty();
+      }
+      if (!project.analysisResultModel.branding) {
+        project.analysisResultModel.branding = BrandIdentityBuilder.createEmpty();
+      }
+      if (!project.analysisResultModel.branding.generatedLogos) {
+        project.analysisResultModel.branding.generatedLogos = [];
+      }
+
+      project.analysisResultModel.branding.generatedLogos = optimizedLogos;
+
+      // Sauvegarder le projet mis à jour en base de données
+      const updatedProject = await this.projectRepository.update(
+        project.id!,
+        project,
+        `users/${userId}/projects`
+      );
+
+      // Mettre à jour le cache du projet
+      await cacheService.set(projectCacheKey, updatedProject, {
+        prefix: "project",
+        ttl: 3600, // 1 heure
+      });
+
+      logger.info(
+        `Project updated with logo concepts - ProjectId: ${project.id}, LogoCount: ${optimizedLogos.length}`
+      );
+    } catch (error) {
+      logger.error(`Error updating project with logo concepts`, error);
+      throw new Error("Failed to save logo concepts to project");
+    }
+
+    // Étape 6: Sauvegarder chaque logo dans le cache avec son ID comme clé
+    try {
+      for (const logo of optimizedLogos) {
+        const logoCacheKey = `logo_concept_${userId}_${logo.id}`;
+        await cacheService.set(logoCacheKey, logo, {
+          prefix: "logo",
+          ttl: 3600, // 1 heure
+        });
+        logger.info(
+          `Logo concept cached with ID: ${logo.id} for userId: ${userId}`
+        );
+      }
+    } catch (error) {
+      logger.error(`Error caching logo concepts for userId: ${userId}`, error);
+      // Continue without failing - cache is not critical
+    }
+
     return {
-      logos: parsedLogoContent,
+      logos: optimizedLogos,
+    };
+  }
+
+  /**
+   * Étape 2: Génère les variations d'un logo sélectionné
+   */
+  async generateLogoVariations(
+    userId: string,
+    project: ProjectModel,
+    logoId: string
+  ): Promise<{
+    withText: {
+      lightBackground?: string;
+      darkBackground?: string;
+      monochrome?: string;
+    };
+    iconOnly: {
+      lightBackground?: string;
+      darkBackground?: string;
+      monochrome?: string;
+    };
+  }> {
+    logger.info(
+      `Generating logo variations for userId: ${userId}, projectId: ${project.id}, logoId: ${logoId}`
+    );
+    const logoCacheKey = `logo_concept_${userId}_${logoId}`;
+    const cachedLogo = await cacheService.get<LogoModel>(logoCacheKey, {
+      prefix: "logo",
+    });
+
+    if (!cachedLogo) {
+      logger.error(
+        `Logo not found in cache with ID: ${logoId} for userId: ${userId}`
+      );
+      throw new Error(`Logo concept not found in cache with ID: ${logoId}`);
+    }
+
+    logger.info(`Retrieved logo from cache: ${logoId} for userId: ${userId}`);
+
+    // Utiliser le SVG du logo récupéré du cache
+    const selectedLogoSvg = cachedLogo.svg;
+    const selectedIconSvg = cachedLogo.iconSvg;
+
+    // L'icône est maintenant directement fournie par l'IA, plus besoin d'extraction
+    const iconResult = {
+      fullLogo: selectedLogoSvg,
+      iconOnly: selectedIconSvg || selectedLogoSvg, // Fallback au logo complet si pas d'icône
+    };
+
+    const prompt = `Selected logo SVG: ${JSON.stringify(
+      iconResult
+    )}\n\n${LOGO_VARIATIONS_GENERATION_PROMPT}`;
+
+    const steps: IPromptStep[] = [
+      {
+        promptConstant: prompt,
+        stepName: "Logo Variations Generation",
+        modelParser: (content) => {
+          try {
+            const parsed = JSON.parse(content);
+            return {
+              name: "Logo Variations Generation",
+              type: "variations",
+              data: content,
+              summary: "Logo variations generated",
+              parsedData: parsed.variations,
+            };
+          } catch (error) {
+            logger.error("Error parsing logo variations:", error);
+            throw new Error("Failed to parse logo variations");
+          }
+        },
+        hasDependencies: false,
+      },
+    ];
+
+    const sectionResults = await this.processSteps(steps, project);
+    const variationsResult = sectionResults[0];
+    const variations = variationsResult.parsedData;
+
+    // Étape 3: Optimiser les variations SVG
+    const optimizedVariations: any = {};
+    if (variations.lightBackground) {
+      optimizedVariations.lightBackground = SvgOptimizerService.optimizeSvg(
+        variations.lightBackground
+      );
+    }
+    if (variations.darkBackground) {
+      optimizedVariations.darkBackground = SvgOptimizerService.optimizeSvg(
+        variations.darkBackground
+      );
+    }
+    if (variations.monochrome) {
+      optimizedVariations.monochrome = SvgOptimizerService.optimizeSvg(
+        variations.monochrome
+      );
+    }
+
+    // Étape 4: Générer les variations avec et sans texte
+    const variationsWithText =
+      SvgIconExtractorService.generateVariationsWithText(
+        selectedLogoSvg,
+        optimizedVariations
+      );
+
+    // Les variations générées par l'IA sont déjà des icônes uniquement
+    // Plus besoin d'extraction supplémentaire
+    const iconVariations = {
+      lightBackground: optimizedVariations.lightBackground,
+      darkBackground: optimizedVariations.darkBackground,
+      monochrome: optimizedVariations.monochrome,
+    };
+
+    // Étape 5: Supprimer le logo du cache après génération des variations
+    try {
+      await cacheService.delete(logoCacheKey, { prefix: "logo" });
+      logger.info(
+        `Deleted logo concept from cache: ${logoId} for userId: ${userId}`
+      );
+    } catch (error) {
+      logger.error(`Error deleting logo from cache: ${logoId}`, error);
+      // Continue without failing - cache cleanup is not critical
+    }
+
+    return {
+      withText: variationsWithText.withText,
+      iconOnly: iconVariations,
     };
   }
 
@@ -440,9 +696,9 @@ export class BrandingService extends GenericService {
       },
       {
         promptConstant: projectDescription + LOGO_GENERATION_PROMPT,
-        stepName: "Logo Generation",
+        stepName: "Logo Concepts Generation",
         modelParser: (content) =>
-          this.parseSection(content, "Logo Generation", project.id!),
+          this.parseSection(content, "Logo Concepts Generation", project.id!),
         hasDependencies: false,
       },
     ];
@@ -451,8 +707,11 @@ export class BrandingService extends GenericService {
     const logoResult = sectionResults[1];
     const parsedLogoContent = logoResult.parsedData;
 
+    // Étape 3: Optimiser les logos générés
+    const optimizedLogos = SvgOptimizerService.optimizeLogos(parsedLogoContent);
+
     return {
-      logos: parsedLogoContent,
+      logos: optimizedLogos,
       colors: colorsTypographyResult.parsedData.colors,
       typography: colorsTypographyResult.parsedData.typography,
     };

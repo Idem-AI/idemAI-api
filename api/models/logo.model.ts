@@ -2,23 +2,34 @@
  * @openapi
  * components:
  *   schemas:
- *     LogoVariations:
+ *     LogoVariationSet:
  *       type: object
  *       properties:
  *         lightBackground:
  *           type: string
  *           format: svg
- *           description: SVG content of the logo version optimized for light backgrounds.
+ *           description: SVG content optimized for light backgrounds.
  *           nullable: true
  *         darkBackground:
  *           type: string
  *           format: svg
- *           description: SVG content of the logo version optimized for dark backgrounds.
+ *           description: SVG content optimized for dark backgrounds.
  *           nullable: true
  *         monochrome:
  *           type: string
  *           format: svg
- *           description: SVG content of the simplified monochrome version (black or white).
+ *           description: Monochrome version (black or white).
+ *           nullable: true
+ *     LogoVariations:
+ *       type: object
+ *       properties:
+ *         withText:
+ *           $ref: '#/components/schemas/LogoVariationSet'
+ *           description: Logo variations including text elements.
+ *           nullable: true
+ *         iconOnly:
+ *           $ref: '#/components/schemas/LogoVariationSet'
+ *           description: Icon-only variations without text elements.
  *           nullable: true
  *     LogoModel:
  *       type: object
@@ -31,7 +42,12 @@
  *         svg:
  *           type: string
  *           format: svg
- *           description: Main SVG logo content (default full version).
+ *           description: Main SVG logo content (full version with text).
+ *         iconSvg:
+ *           type: string
+ *           format: svg
+ *           description: Icon-only SVG content (without text elements).
+ *           nullable: true
  *         concept:
  *           type: string
  *           description: Branding story or meaning behind the logo.
@@ -57,17 +73,25 @@
  *         - colors
  *         - fonts
  */
+export interface LogoVariationSet {
+  lightBackground?: string; // SVG optimized for light backgrounds
+  darkBackground?: string; // SVG optimized for dark backgrounds
+  monochrome?: string; // Monochrome version (black or white)
+}
+
+export interface LogoVariations {
+  withText?: LogoVariationSet; // Logo variations including text elements
+  iconOnly?: LogoVariationSet; // Icon-only variations without text elements
+}
+
 export interface LogoModel {
   id: string;
   name: string;
-  svg: string; // Main SVG logo (default full version)
+  svg: string; // Main SVG logo (full version with text)
+  iconSvg?: string; // Icon-only SVG content (without text elements)
   concept: string; // Branding story or meaning behind the logo
   colors: string[]; // Array of HEX color codes used in the logo
   fonts: string[]; // Fonts used in the logo (if any)
 
-  variations?: {
-    lightBackground?: string; // Version optimized for light backgrounds
-    darkBackground?: string; // Version optimized for dark backgrounds
-    monochrome?: string; // Simplified version in black or white
-  };
+  variations?: LogoVariations; // Enhanced variations with text/icon separation
 }

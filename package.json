@@ -29,6 +29,7 @@
     "multer": "^2.0.2",
     "openai": "^4.95.1",
     "puppeteer": "^24.17.0",
+    "svgo": "^4.0.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^11.1.0",

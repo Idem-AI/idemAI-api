@@ -7,11 +7,17 @@ export interface UploadResult {
   filePath: string;
 }
 
-export interface LogoVariationsUpload {
-  primaryLogo?: UploadResult;
+export interface LogoVariationSetUpload {
   lightBackground?: UploadResult;
   darkBackground?: UploadResult;
   monochrome?: UploadResult;
+}
+
+export interface LogoVariationsUpload {
+  primaryLogo?: UploadResult;
+  iconSvg?: UploadResult;
+  withText?: LogoVariationSetUpload;
+  iconOnly?: LogoVariationSetUpload;
 }
 
 export class StorageService {
@@ -102,10 +108,18 @@ export class StorageService {
    */
   async uploadLogoVariations(
     primaryLogo: string,
+    iconSvg: string | undefined,
     variations: {
-      lightBackground?: string;
-      darkBackground?: string;
-      monochrome?: string;
+      withText?: {
+        lightBackground?: string;
+        darkBackground?: string;
+        monochrome?: string;
+      };
+      iconOnly?: {
+        lightBackground?: string;
+        darkBackground?: string;
+        monochrome?: string;
+      };
     },
     userId: string,
     projectId: string
@@ -129,32 +143,78 @@ export class StorageService {
         "image/svg+xml"
       );
 
-      // Upload each variation if it exists
-      if (variations.lightBackground) {
-        results.lightBackground = await this.uploadFile(
-          variations.lightBackground,
-          "logo-light-background.svg",
+      // Upload icon SVG if provided
+      if (iconSvg) {
+        results.iconSvg = await this.uploadFile(
+          iconSvg,
+          "logo-icon.svg",
           folderPath,
           "image/svg+xml"
         );
       }
 
-      if (variations.darkBackground) {
-        results.darkBackground = await this.uploadFile(
-          variations.darkBackground,
-          "logo-dark-background.svg",
-          folderPath,
-          "image/svg+xml"
-        );
+      // Upload withText variations
+      if (variations.withText) {
+        results.withText = {};
+        
+        if (variations.withText.lightBackground) {
+          results.withText.lightBackground = await this.uploadFile(
+            variations.withText.lightBackground,
+            "logo-with-text-light.svg",
+            folderPath,
+            "image/svg+xml"
+          );
+        }
+
+        if (variations.withText.darkBackground) {
+          results.withText.darkBackground = await this.uploadFile(
+            variations.withText.darkBackground,
+            "logo-with-text-dark.svg",
+            folderPath,
+            "image/svg+xml"
+          );
+        }
+
+        if (variations.withText.monochrome) {
+          results.withText.monochrome = await this.uploadFile(
+            variations.withText.monochrome,
+            "logo-with-text-mono.svg",
+            folderPath,
+            "image/svg+xml"
+          );
+        }
       }
 
-      if (variations.monochrome) {
-        results.monochrome = await this.uploadFile(
-          variations.monochrome,
-          "logo-monochrome.svg",
-          folderPath,
-          "image/svg+xml"
-        );
+      // Upload iconOnly variations
+      if (variations.iconOnly) {
+        results.iconOnly = {};
+        
+        if (variations.iconOnly.lightBackground) {
+          results.iconOnly.lightBackground = await this.uploadFile(
+            variations.iconOnly.lightBackground,
+            "logo-icon-light.svg",
+            folderPath,
+            "image/svg+xml"
+          );
+        }
+
+        if (variations.iconOnly.darkBackground) {
+          results.iconOnly.darkBackground = await this.uploadFile(
+            variations.iconOnly.darkBackground,
+            "logo-icon-dark.svg",
+            folderPath,
+            "image/svg+xml"
+          );
+        }
+
+        if (variations.iconOnly.monochrome) {
+          results.iconOnly.monochrome = await this.uploadFile(
+            variations.iconOnly.monochrome,
+            "logo-icon-mono.svg",
+            folderPath,
+            "image/svg+xml"
+          );
+        }
       }
 
       logger.info(`Logo variations uploaded successfully`, {
