@@ -6,7 +6,6 @@ import {
   deleteBrandingController,
   generateLogoColorsAndTypographyController,
   generateColorsAndTypographyController,
-  generateLogosController,
   generateLogoConceptsController,
   generateLogoVariationsController,
   generateBrandingStreamingController,

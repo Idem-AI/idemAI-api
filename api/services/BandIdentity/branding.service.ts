@@ -485,7 +485,8 @@ export class BrandingService extends GenericService {
         project.analysisResultModel = AnalysisResultBuilder.createEmpty();
       }
       if (!project.analysisResultModel.branding) {
-        project.analysisResultModel.branding = BrandIdentityBuilder.createEmpty();
+        project.analysisResultModel.branding =
+          BrandIdentityBuilder.createEmpty();
       }
       if (!project.analysisResultModel.branding.generatedLogos) {
         project.analysisResultModel.branding.generatedLogos = [];

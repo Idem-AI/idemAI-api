@@ -155,7 +155,9 @@ export const generateLogoConceptsController = async (
       return;
     }
     if (!colors || !typography) {
-      logger.warn("Colors and typography are required for generateLogoConceptsController");
+      logger.warn(
+        "Colors and typography are required for generateLogoConceptsController"
+      );
       res.status(400).json({ message: "Colors and typography are required" });
       return;
     }
