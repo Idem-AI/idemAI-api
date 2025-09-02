@@ -68,7 +68,7 @@ const resourceName = "brandings";
  *         description: Internal server error.
  */
 brandingRoutes.post(
-  "/generate/:projectId",
+  `/${resourceName}/generate/:projectId`,
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
@@ -78,7 +78,7 @@ brandingRoutes.post(
 // Generate logo, colors, and typography for a project
 /**
  * @openapi
- * /colors-typography:
+ * /brandings/generate/colors-typography:
  *   post:
  *     tags:
  *       - Branding
@@ -135,9 +135,8 @@ brandingRoutes.post(
  *         description: Internal server error.
  */
 brandingRoutes.post(
-  "/colors-typography",
+  `/${resourceName}/generate/colors-typography`,
   authenticate,
-  checkPolicyAcceptance,
   checkQuota,
   generateColorsAndTypographyController
 );
@@ -145,7 +144,7 @@ brandingRoutes.post(
 // Étape 1: Generate logo concepts only (new 3-step approach)
 /**
  * @openapi
- * /logo-concepts/{projectId}:
+ * /brandings/generate/logo-concepts/{projectId}:
  *   post:
  *     tags:
  *       - Branding
@@ -197,9 +196,8 @@ brandingRoutes.post(
  *         description: Internal server error.
  */
 brandingRoutes.post(
-  "/logo-concepts/:projectId",
+  `/${resourceName}/generate/logo-concepts/:projectId`,
   authenticate,
-  checkPolicyAcceptance,
   checkQuota,
   generateLogoConceptsController
 );
@@ -207,7 +205,7 @@ brandingRoutes.post(
 // Étape 2: Generate logo variations for selected logo
 /**
  * @openapi
- * /logo-variations:
+ * /brandings/generate/logo-variations:
  *   post:
  *     tags:
  *       - Branding
@@ -254,9 +252,8 @@ brandingRoutes.post(
  *         description: Internal server error.
  */
 brandingRoutes.post(
-  "/logo-variations",
+  `/${resourceName}/generate/logo-variations`,
   authenticate,
-  checkPolicyAcceptance,
   checkQuota,
   generateLogoVariationsController
 );
