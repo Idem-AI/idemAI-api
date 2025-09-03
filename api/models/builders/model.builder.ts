@@ -1,15 +1,20 @@
 import { AnalysisResultModel } from "../analysisResult.model";
 import { ArchetypeModel } from "../archetypes.model";
 import { ArchitectureModel } from "../architecture.model";
-import { BrandIdentityModel, ColorModel, TypographyModel } from "../brand-identity.model";
+import {
+  BrandIdentityModel,
+  ColorModel,
+  TypographyModel,
+} from "../brand-identity.model";
 import { BusinessPlanModel } from "../businessPlan.model";
-import { ChatHistoryItemModel } from "../chatHistortyItem.model";
 import { DeploymentModel } from "../deployment.model";
-import { DevelopmentConfigsModel } from "../development.model";
+import {
+  DevelopmentConfigsModel,
+  LandingPageConfig,
+} from "../development.model";
 import { DiagramModel } from "../diagram.model";
 import { LandingModel } from "../landing.model";
 import { LogoModel } from "../logo.model";
-import { MessageModel } from "../message.model";
 import { ProjectModel } from "../project.model";
 import { SectionModel } from "../section.model";
 import { UserModel } from "../userModel";
@@ -21,7 +26,6 @@ import { v4 as uuidv4 } from "uuid";
  * Provides type-safe initialization with all required properties
  */
 export class ModelBuilder {
-  
   /**
    * Creates an empty AnalysisResultModel with all required properties
    */
@@ -35,7 +39,7 @@ export class ModelBuilder {
       testing: "",
       generatedDeployment: [{ name: "", content: "" }],
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
   }
 
@@ -50,7 +54,7 @@ export class ModelBuilder {
       generatedColors: [],
       typography: this.createEmptyTypography(),
       generatedTypography: [],
-      sections: []
+      sections: [],
     };
   }
 
@@ -64,7 +68,7 @@ export class ModelBuilder {
       svg: "",
       concept: "",
       colors: [],
-      fonts: []
+      fonts: [],
     };
   }
 
@@ -81,8 +85,8 @@ export class ModelBuilder {
         secondary: "#666666",
         accent: "#0066cc",
         background: "#ffffff",
-        text: "#333333"
-      }
+        text: "#333333",
+      },
     };
   }
 
@@ -95,7 +99,7 @@ export class ModelBuilder {
       name: "",
       url: "",
       primaryFont: "",
-      secondaryFont: ""
+      secondaryFont: "",
     };
   }
 
@@ -104,13 +108,30 @@ export class ModelBuilder {
    */
   static createEmptyProject(): ProjectModel {
     return {
-      id: uuidv4(),
+      project: undefined,
       name: "",
       description: "",
-      userId: "",
-      status: "active",
+      type: "web",
+      constraints: [],
+      teamSize: "",
+      scope: "",
+      targets: "",
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      userId: "",
+      selectedPhases: [],
+      analysisResultModel: this.createEmptyAnalysisResult(),
+      deployments: [],
+      activeChatMessages: [],
+      additionalInfos: {
+        email: "",
+        phone: "",
+        address: "",
+        city: "",
+        country: "",
+        zipCode: "",
+        teamMembers: [],
+      },
     };
   }
 
@@ -119,12 +140,7 @@ export class ModelBuilder {
    */
   static createEmptyDiagram(): DiagramModel {
     return {
-      id: uuidv4(),
-      name: "",
-      type: "",
-      content: "",
-      createdAt: new Date(),
-      updatedAt: new Date()
+      sections: [],
     };
   }
 
@@ -133,14 +149,14 @@ export class ModelBuilder {
    */
   static createEmptyLanding(): LandingModel {
     return {
-      id: uuidv4(),
-      title: "",
-      subtitle: "",
-      description: "",
-      features: [],
-      sections: [],
-      createdAt: new Date(),
-      updatedAt: new Date()
+      selectedOptions: {
+        stack: "",
+        seoEnabled: false,
+        contactFormEnabled: false,
+        analyticsEnabled: false,
+        i18nEnabled: false,
+        performanceOptimized: false,
+      },
     };
   }
 
@@ -149,12 +165,7 @@ export class ModelBuilder {
    */
   static createEmptyBusinessPlan(): BusinessPlanModel {
     return {
-      id: uuidv4(),
-      title: "",
-      executiveSummary: "",
       sections: [],
-      createdAt: new Date(),
-      updatedAt: new Date()
     };
   }
 
@@ -166,32 +177,11 @@ export class ModelBuilder {
       id: uuidv4(),
       name: "",
       projectId: "",
-      userId: "",
       status: "configuring",
       environment: "development",
       mode: "beginner",
       createdAt: new Date(),
-      updatedAt: new Date()
-    };
-  }
-
-  /**
-   * Creates an empty WebContainerModel with all required properties
-   */
-  static createEmptyWebContainer(): WebContainerModel {
-    return {
-      id: uuidv4(),
-      name: "",
-      projectId: "",
-      userId: "",
-      metadata: {
-        files: [],
-        fileContents: {},
-        dependencies: {},
-        scripts: {}
-      },
-      createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
   }
 
@@ -202,15 +192,17 @@ export class ModelBuilder {
     return {
       uid: "",
       email: "",
-      displayName: "",
-      photoURL: "",
+      subscription: "free",
       createdAt: new Date(),
-      updatedAt: new Date(),
-      dailyUsage: 0,
-      weeklyUsage: 0,
-      lastResetDaily: new Date().toISOString(),
-      lastResetWeekly: new Date().toISOString(),
-      quotaUpdatedAt: new Date().toISOString()
+      lastLogin: new Date(),
+      quota: {
+        dailyUsage: 0,
+        weeklyUsage: 0,
+        lastResetDaily: new Date().toISOString(),
+        lastResetWeekly: new Date().toISOString(),
+        quotaUpdatedAt: new Date(),
+      },
+      roles: [],
     };
   }
 
@@ -219,27 +211,10 @@ export class ModelBuilder {
    */
   static createEmptySection(): SectionModel {
     return {
-      id: uuidv4(),
       name: "",
-      title: "",
+      type: "",
+      data: undefined,
       summary: "",
-      data: "",
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-  }
-
-  /**
-   * Creates an empty MessageModel with all required properties
-   */
-  static createEmptyMessage(): MessageModel {
-    return {
-      id: uuidv4(),
-      content: "",
-      role: "user",
-      timestamp: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date()
     };
   }
 
@@ -248,12 +223,9 @@ export class ModelBuilder {
    */
   static createEmptyArchitecture(): ArchitectureModel {
     return {
-      id: uuidv4(),
+      content: "",
+      summary: "",
       name: "",
-      description: "",
-      components: [],
-      createdAt: new Date(),
-      updatedAt: new Date()
     };
   }
 
@@ -262,14 +234,19 @@ export class ModelBuilder {
    */
   static createEmptyArchetype(): ArchetypeModel {
     return {
-      id: uuidv4(),
+      id: "",
       name: "",
       description: "",
       provider: "aws",
-      category: "web",
+      category: "",
+      tags: [],
+      icon: "",
+      version: "",
       terraformVariables: [],
+      defaultValues: {},
+      isActive: false,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
   }
 
@@ -278,24 +255,52 @@ export class ModelBuilder {
    */
   static createEmptyDevelopmentConfigs(): DevelopmentConfigsModel {
     return {
-      framework: "",
-      dependencies: {},
-      scripts: {},
-      environment: {}
-    };
-  }
-
-  /**
-   * Creates an empty ChatHistoryItemModel with all required properties
-   */
-  static createEmptyChatHistoryItem(): ChatHistoryItemModel {
-    return {
-      id: uuidv4(),
-      message: "",
-      role: "user",
-      timestamp: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date()
+      constraints: [],
+      frontend: {
+        framework: "",
+        frameworkVersion: undefined,
+        frameworkIconUrl: undefined,
+        styling: "",
+        stateManagement: undefined,
+        features: [],
+      },
+      backend: {
+        language: undefined,
+        languageVersion: undefined,
+        languageIconUrl: undefined,
+        framework: "",
+        frameworkVersion: undefined,
+        frameworkIconUrl: undefined,
+        apiType: "",
+        apiVersion: undefined,
+        apiIconUrl: undefined,
+        orm: undefined,
+        ormVersion: undefined,
+        ormIconUrl: undefined,
+        features: [],
+      },
+      database: {
+        type: undefined,
+        provider: "",
+        version: undefined,
+        providerIconUrl: undefined,
+        orm: undefined,
+        ormVersion: undefined,
+        ormIconUrl: undefined,
+        features: [],
+      },
+      landingPageConfig: LandingPageConfig.NONE,
+      projectConfig: {
+        seoEnabled: false,
+        contactFormEnabled: false,
+        analyticsEnabled: false,
+        i18nEnabled: false,
+        performanceOptimized: false,
+        authentication: false,
+        authorization: false,
+        paymentIntegration: undefined,
+        customOptions: undefined,
+      },
     };
   }
 
@@ -329,12 +334,9 @@ export const EmptyModels = {
   Landing: () => ModelBuilder.createEmptyLanding(),
   BusinessPlan: () => ModelBuilder.createEmptyBusinessPlan(),
   Deployment: () => ModelBuilder.createEmptyDeployment(),
-  WebContainer: () => ModelBuilder.createEmptyWebContainer(),
   User: () => ModelBuilder.createEmptyUser(),
   Section: () => ModelBuilder.createEmptySection(),
-  Message: () => ModelBuilder.createEmptyMessage(),
   Architecture: () => ModelBuilder.createEmptyArchitecture(),
   Archetype: () => ModelBuilder.createEmptyArchetype(),
   DevelopmentConfigs: () => ModelBuilder.createEmptyDevelopmentConfigs(),
-  ChatHistoryItem: () => ModelBuilder.createEmptyChatHistoryItem()
 };

@@ -5,18 +5,14 @@ import { v4 as uuidv4 } from "uuid";
  * Builder for ArchitectureModel
  */
 export class ArchitectureBuilder {
-  
   /**
    * Creates an empty ArchitectureModel with all required properties
    */
   static createEmpty(): ArchitectureModel {
     return {
-      id: uuidv4(),
+      content: "",
+      summary: "",
       name: "",
-      description: "",
-      components: [],
-      createdAt: new Date(),
-      updatedAt: new Date()
     };
   }
 

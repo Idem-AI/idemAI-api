@@ -2,7 +2,6 @@ import { AnalysisResultBuilder } from "./analysisResult.builder";
 import { ArchitectureBuilder } from "./architecture.builder";
 import { BrandIdentityBuilder } from "./brandIdentity.builder";
 import { BusinessPlanBuilder } from "./businessPlan.builder";
-import { ChatHistoryItemBuilder } from "./chatHistoryItem.builder";
 import { ColorBuilder } from "./color.builder";
 import { LandingBuilder } from "./landing.builder";
 import { LogoBuilder } from "./logo.builder";
@@ -16,7 +15,6 @@ export { AnalysisResultBuilder };
 export { ArchitectureBuilder };
 export { BrandIdentityBuilder };
 export { BusinessPlanBuilder };
-export { ChatHistoryItemBuilder };
 export { ColorBuilder };
 export { LandingBuilder };
 export { LogoBuilder };
@@ -33,7 +31,6 @@ export const Builders = {
   Architecture: ArchitectureBuilder,
   BrandIdentity: BrandIdentityBuilder,
   BusinessPlan: BusinessPlanBuilder,
-  ChatHistoryItem: ChatHistoryItemBuilder,
   Color: ColorBuilder,
   Landing: LandingBuilder,
   Logo: LogoBuilder,

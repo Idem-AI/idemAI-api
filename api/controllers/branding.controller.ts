@@ -9,63 +9,6 @@ import { ISectionResult } from "../services/common/generic.service";
 const promptService = new PromptService();
 const brandingService = new BrandingService(promptService);
 
-export const generateLogoColorsAndTypographyController = async (
-  req: CustomRequest,
-  res: Response
-): Promise<void> => {
-  const project = req.body.project;
-  const userId = req.user?.uid;
-  console.log("project", project);
-  logger.info(
-    `generateLogoColorsAndTypographyController called - UserId: ${userId}, ProjectId: ${project.id}`,
-    { body: req.body }
-  );
-  try {
-    if (!userId) {
-      logger.warn(
-        "User not authenticated for generateLogoColorsAndTypographyController"
-      );
-      res.status(401).json({ message: "User not authenticated" });
-      return;
-    }
-    if (!project.id) {
-      logger.warn(
-        "Project ID is required for generateLogoColorsAndTypographyController"
-      );
-      res.status(400).json({ message: "Project ID is required" });
-      return;
-    }
-
-    const updatedProject =
-      await brandingService.generateLogoColorsAndTypography(userId, project);
-
-    if (!updatedProject) {
-      logger.warn(
-        `Failed to generate logo, colors, and typography - UserId: ${userId}, ProjectId: ${project.id}`
-      );
-      res
-        .status(500)
-        .json({ message: "Failed to generate logo, colors, and typography" });
-      return;
-    }
-
-    logger.info(
-      `Logo, colors, and typography generated successfully - UserId: ${userId}, ProjectId: ${project.id}`
-    );
-    // Return the branding from the updated project
-    userService.incrementUsage(userId, 1);
-    res.status(201).json(updatedProject);
-  } catch (error: any) {
-    logger.error(
-      `Error in generateLogoColorsAndTypographyController - UserId: ${userId}, ProjectId: ${project.id}: ${error.message}`,
-      { stack: error.stack, body: req.body, params: req.params }
-    );
-    res.status(500).json({
-      message: "Error generating logo, colors, and typography",
-      error: error.message,
-    });
-  }
-};
 
 export const generateColorsAndTypographyController = async (
   req: CustomRequest,

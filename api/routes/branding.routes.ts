@@ -12,7 +12,6 @@ import {
 } from "../controllers/branding.controller";
 import { authenticate } from "../services/auth.service"; // Updated import path
 import { checkQuota } from "../middleware/quota.middleware";
-import { checkPolicyAcceptance } from "../middleware/policyCheck.middleware";
 
 export const brandingRoutes = Router();
 
@@ -70,7 +69,6 @@ const resourceName = "brandings";
 brandingRoutes.post(
   `/${resourceName}/generate/:projectId`,
   authenticate,
-  checkPolicyAcceptance,
   checkQuota,
   generateBrandingStreamingController
 );

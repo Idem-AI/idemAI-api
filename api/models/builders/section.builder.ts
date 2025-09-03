@@ -5,19 +5,15 @@ import { v4 as uuidv4 } from "uuid";
  * Builder for SectionModel
  */
 export class SectionBuilder {
-  
   /**
    * Creates an empty SectionModel with all required properties
    */
   static createEmpty(): SectionModel {
     return {
-      id: uuidv4(),
       name: "",
-      title: "",
+      type: "",
+      data: undefined,
       summary: "",
-      data: "",
-      createdAt: new Date(),
-      updatedAt: new Date()
     };
   }
 
