@@ -22,7 +22,7 @@ const resourceName = "brandings";
 // Generate a new branding for a project
 /**
  * @openapi
- * /brandings/generate/{projectId}:
+ * /project/brandings/generate/{projectId}:
  *   post:
  *     tags:
  *       - Branding
@@ -66,7 +66,7 @@ const resourceName = "brandings";
  *       '500':
  *         description: Internal server error.
  */
-brandingRoutes.post(
+brandingRoutes.get(
   `/${resourceName}/generate/:projectId`,
   authenticate,
   checkQuota,
@@ -76,7 +76,7 @@ brandingRoutes.post(
 // Generate logo, colors, and typography for a project
 /**
  * @openapi
- * /brandings/generate/colors-typography:
+ * /project/brandings/generate/colors-typography:
  *   post:
  *     tags:
  *       - Branding

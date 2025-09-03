@@ -339,6 +339,7 @@ class UserService {
 
       // Check if user has quota data
       if (
+        !user.quota ||
         user.quota.dailyUsage === undefined ||
         user.quota.weeklyUsage === undefined ||
         !user.quota.lastResetDaily ||
