@@ -10,7 +10,7 @@ const router = Router();
 
 /**
  * @openapi
- * /api/projects/{projectId}/finalize:
+ * /project/finalize/{projectId}:
  *   post:
  *     summary: Finalise un projet en acceptant les politiques
  *     description: Enregistre l'acceptation des politiques de confidentialité, conditions d'utilisation, politique beta et marketing (optionnel)
@@ -65,14 +65,14 @@ const router = Router();
  *         description: Erreur serveur
  */
 router.post(
-  "/projects/:projectId/finalize",
+  "/project/finalize/:projectId",
   authenticate,
   finalizeProjectController
 );
 
 /**
  * @openapi
- * /api/projects/{projectId}/policy-status:
+ * /api/project/{projectId}/policy-status:
  *   get:
  *     summary: Vérifie le statut d'acceptation des politiques
  *     description: Retourne si l'utilisateur a accepté les politiques pour ce projet
@@ -106,7 +106,7 @@ router.post(
  *         description: Erreur serveur
  */
 router.get(
-  "/projects/:projectId/policy-status",
+  "/project/:projectId/policy-status",
   authenticate,
   checkPolicyStatusController
 );

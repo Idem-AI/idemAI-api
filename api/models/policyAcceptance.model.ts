@@ -66,6 +66,33 @@ export interface FinalizeProjectRequest {
 }
 
 /**
+ * @openapi
+ * components:
+ *   schemas:
+ *     FinalizeProjectResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           description: Indique si la finalisation a réussi
+ *         message:
+ *           type: string
+ *           description: Message de confirmation
+ *         projectId:
+ *           type: string
+ *           description: ID du projet finalisé
+ *         acceptedAt:
+ *           type: string
+ *           format: date-time
+ *           description: Date et heure d'acceptation des politiques
+ *       required:
+ *         - success
+ *         - message
+ *         - projectId
+ *         - acceptedAt
+ */
+
+/**
  * Réponse de la finalisation du projet
  */
 export interface FinalizeProjectResponse {

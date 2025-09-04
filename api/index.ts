@@ -54,6 +54,7 @@ import quotaRoutes from "./routes/quota.routes";
 import cacheRoutes from "./routes/cache.routes";
 import { PdfService } from "./services/pdf.service";
 import RedisConnection from "./config/redis.config";
+import policyRoutes from "./routes/policy.routes";
 
 const app: Express = express();
 
@@ -134,6 +135,7 @@ app.use("/api/quota", quotaRoutes);
 app.use("/api/archetypes", archetypeRoutes);
 app.use("/api/github", githubRoutes);
 app.use("/api/cache", cacheRoutes);
+app.use("/api/project", policyRoutes);
 
 // Swagger setup
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
