@@ -736,7 +736,7 @@ export class BrandingService extends GenericService {
    */
   async generateLogoVariations(
     userId: string,
-    project: ProjectModel
+    projectId: string
   ): Promise<{
     withText: {
       lightBackground?: string;
@@ -750,6 +750,10 @@ export class BrandingService extends GenericService {
     };
   }> {
     // Utiliser le SVG du logo récupéré du cache
+    const project = await this.getProjectOptimized(userId, projectId);
+    if (!project) {
+      throw new Error(`Project not found with ID: ${projectId}`);
+    }
     const selectedLogoSvg = project.analysisResultModel.branding.logo.svg;
     const selectedIconSvg = project.analysisResultModel.branding.logo.iconSvg;
 

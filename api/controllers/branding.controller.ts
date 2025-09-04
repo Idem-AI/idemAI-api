@@ -133,11 +133,10 @@ export const generateLogoVariationsController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { project } = req.body;
-  const { selectedlogoId } = req.params;
+  const { projectId } = req.params;
   const userId = req.user?.uid;
   logger.info(
-    `generateLogoVariationsController called - UserId: ${userId}, ProjectId: ${project.id}`,
+    `generateLogoVariationsController called - UserId: ${userId}, ProjectId: ${projectId}`,
     { body: req.body }
   );
   try {
@@ -151,25 +150,25 @@ export const generateLogoVariationsController = async (
 
     const variations = await brandingService.generateLogoVariations(
       userId,
-      project
+      projectId
     );
 
     if (!variations) {
       logger.warn(
-        `Failed to generate logo variations - UserId: ${userId}, ProjectId: ${project.id}`
+        `Failed to generate logo variations - UserId: ${userId}, ProjectId: ${projectId}`
       );
       res.status(500).json({ message: "Failed to generate logo variations" });
       return;
     }
 
     logger.info(
-      `Successfully generated logo variations - UserId: ${userId}, ProjectId: ${project.id}`
+      `Successfully generated logo variations - UserId: ${userId}, ProjectId: ${projectId}`
     );
     userService.incrementUsage(userId, 1);
     res.status(200).json({ variations });
   } catch (error) {
     logger.error(
-      `Error in generateLogoVariationsController - UserId: ${userId}, ProjectId: ${project.id}`,
+      `Error in generateLogoVariationsController - UserId: ${userId}, ProjectId: ${projectId}`,
       {
         error: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined,
