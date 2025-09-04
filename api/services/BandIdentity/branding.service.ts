@@ -590,10 +590,48 @@ export class BrandingService extends GenericService {
       `Parallel colors and typography generation completed in ${generationTime}ms`
     );
 
+    // Mettre à jour le projet avec les couleurs et typographies générées
+    const updatedProjectData = {
+      ...createdProject,
+      analysisResultModel: {
+        ...createdProject.analysisResultModel,
+        branding: {
+          ...createdProject.analysisResultModel.branding,
+          generatedColors: colors,
+          generatedTypography: typography,
+          updatedAt: new Date(),
+        },
+      },
+    };
+
+    // Mise à jour en base de données
+    const updatedProject = await this.projectRepository.update(
+      createdProject.id!,
+      updatedProjectData,
+      `users/${userId}/projects`
+    );
+
+    if (updatedProject) {
+      logger.info(
+        `Successfully updated project with colors and typography - ProjectId: ${createdProject.id}`
+      );
+
+      // Mise à jour du cache projet
+      const projectCacheKey = `project_${userId}_${createdProject.id}`;
+      await cacheService.set(projectCacheKey, updatedProject, {
+        prefix: "project",
+        ttl: 3600,
+      });
+
+      logger.info(
+        `Project cache updated with colors and typography - ProjectId: ${createdProject.id}`
+      );
+    }
+
     return {
       colors,
       typography,
-      project: createdProject,
+      project: updatedProject || createdProject,
     };
   }
 
@@ -715,15 +753,40 @@ export class BrandingService extends GenericService {
       `Parallel AI generation completed in ${aiGenerationTime}ms for 4 logos`
     );
 
-    // Étape 7: Mise à jour du projet et cache en arrière-plan (non-bloquant)
-    this.updateProjectWithLogosAsync(
-      userId,
+    // Étape 6: Mise à jour immédiate du projet avec les logos générés
+    const updatedProjectData = {
+      ...project,
+      analysisResultModel: {
+        ...project.analysisResultModel,
+        branding: {
+          ...project.analysisResultModel.branding,
+          generatedLogos: optimizedLogos,
+          updatedAt: new Date(),
+        },
+      },
+    };
+
+    // Mise à jour en base de données
+    const updatedProject = await this.projectRepository.update(
       projectId,
-      project,
-      optimizedLogos
-    ).catch((error) =>
-      logger.error(`Background project update failed:`, error)
+      updatedProjectData,
+      `users/${userId}/projects`
     );
+
+    if (updatedProject) {
+      logger.info(
+        `Successfully updated project with logos - ProjectId: ${projectId}, LogoCount: ${optimizedLogos.length}`
+      );
+
+      // Mise à jour du cache projet
+      const projectCacheKey = `project_${userId}_${projectId}`;
+      await cacheService.set(projectCacheKey, updatedProject, {
+        prefix: "project",
+        ttl: 3600,
+      });
+
+      logger.info(`Project cache updated with logos - ProjectId: ${projectId}`);
+    }
 
     const totalTime = Date.now() - startTime;
     logger.info(
@@ -832,10 +895,52 @@ export class BrandingService extends GenericService {
       monochrome: optimizedVariations.monochrome,
     };
 
-    return {
+    const finalVariations = {
       withText: variationsWithText.withText,
       iconOnly: iconVariations,
     };
+
+    // Mettre à jour le projet avec les variations de logo générées
+    const updatedProjectData = {
+      ...project,
+      analysisResultModel: {
+        ...project.analysisResultModel,
+        branding: {
+          ...project.analysisResultModel.branding,
+          logo: {
+            ...project.analysisResultModel.branding.logo,
+            variations: finalVariations,
+          },
+          updatedAt: new Date(),
+        },
+      },
+    };
+
+    // Mise à jour en base de données
+    const updatedProject = await this.projectRepository.update(
+      projectId,
+      updatedProjectData,
+      `users/${userId}/projects`
+    );
+
+    if (updatedProject) {
+      logger.info(
+        `Successfully updated project with logo variations - ProjectId: ${projectId}`
+      );
+
+      // Mise à jour du cache projet
+      const projectCacheKey = `project_${userId}_${projectId}`;
+      await cacheService.set(projectCacheKey, updatedProject, {
+        prefix: "project",
+        ttl: 3600,
+      });
+
+      logger.info(
+        `Project cache updated with logo variations - ProjectId: ${projectId}`
+      );
+    }
+
+    return finalVariations;
   }
 
   async generateLogoColorsAndTypography(
