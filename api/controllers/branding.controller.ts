@@ -9,7 +9,6 @@ import { ISectionResult } from "../services/common/generic.service";
 const promptService = new PromptService();
 const brandingService = new BrandingService(promptService);
 
-
 export const generateColorsAndTypographyController = async (
   req: CustomRequest,
   res: Response
@@ -79,8 +78,6 @@ export const generateLogoConceptsController = async (
   res: Response
 ): Promise<void> => {
   const { projectId } = req.params;
-  const colors = req.body.colors;
-  const typography = req.body.typography;
   const userId = req.user?.uid;
   logger.info(
     `generateLogoConceptsController called - UserId: ${userId}, ProjectId: ${projectId}`,
@@ -97,20 +94,8 @@ export const generateLogoConceptsController = async (
       res.status(400).json({ message: "Project ID is required" });
       return;
     }
-    if (!colors || !typography) {
-      logger.warn(
-        "Colors and typography are required for generateLogoConceptsController"
-      );
-      res.status(400).json({ message: "Colors and typography are required" });
-      return;
-    }
 
-    const logos = await brandingService.generateLogoConcepts(
-      userId,
-      projectId,
-      colors,
-      typography
-    );
+    const logos = await brandingService.generateLogoConcepts(userId, projectId);
 
     if (!logos) {
       logger.warn(
@@ -166,8 +151,7 @@ export const generateLogoVariationsController = async (
 
     const variations = await brandingService.generateLogoVariations(
       userId,
-      project,
-      selectedlogoId
+      project
     );
 
     if (!variations) {

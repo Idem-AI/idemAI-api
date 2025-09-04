@@ -52,7 +52,7 @@ export class BrandingService extends GenericService {
     projectId: string
   ): Promise<ProjectModel | null> {
     const projectCacheKey = `project_${userId}_${projectId}`;
-    
+
     // Tentative de récupération depuis le cache
     let project = await cacheService.get<ProjectModel>(projectCacheKey, {
       prefix: "project",
@@ -64,7 +64,9 @@ export class BrandingService extends GenericService {
     }
 
     // Fallback vers la base de données
-    logger.info(`Project cache miss, fetching from database - ProjectId: ${projectId}`);
+    logger.info(
+      `Project cache miss, fetching from database - ProjectId: ${projectId}`
+    );
     project = await this.projectRepository.findById(
       projectId,
       `users/${userId}/projects`
@@ -72,10 +74,12 @@ export class BrandingService extends GenericService {
 
     if (project) {
       // Cache asynchrone (non-bloquant)
-      cacheService.set(projectCacheKey, project, {
-        prefix: "project",
-        ttl: 3600,
-      }).catch(error => logger.error(`Error caching project:`, error));
+      cacheService
+        .set(projectCacheKey, project, {
+          prefix: "project",
+          ttl: 3600,
+        })
+        .catch((error) => logger.error(`Error caching project:`, error));
     }
 
     return project;
@@ -90,9 +94,13 @@ export class BrandingService extends GenericService {
     typography: TypographyModel
   ): string {
     // Prompt condensé avec informations essentielles uniquement
-    const colorInfo = `Primary: ${colors.colors?.primary || 'N/A'}, Secondary: ${colors.colors?.secondary || 'N/A'}`;
-    const fontInfo = `Primary: ${typography.primaryFont || 'N/A'}, Secondary: ${typography.secondaryFont || 'N/A'}`;
-    
+    const colorInfo = `Primary: ${
+      colors.colors?.primary || "N/A"
+    }, Secondary: ${colors.colors?.secondary || "N/A"}`;
+    const fontInfo = `Primary: ${typography.primaryFont || "N/A"}, Secondary: ${
+      typography.secondaryFont || "N/A"
+    }`;
+
     return `${projectDescription}\n\nColors: ${colorInfo}\nTypography: ${fontInfo}\n\n${LOGO_GENERATION_PROMPT}`;
   }
 
@@ -128,7 +136,8 @@ export class BrandingService extends GenericService {
         project.analysisResultModel = AnalysisResultBuilder.createEmpty();
       }
       if (!project.analysisResultModel.branding) {
-        project.analysisResultModel.branding = BrandIdentityBuilder.createEmpty();
+        project.analysisResultModel.branding =
+          BrandIdentityBuilder.createEmpty();
       }
 
       project.analysisResultModel.branding.generatedLogos = logos;
@@ -149,15 +158,19 @@ export class BrandingService extends GenericService {
         });
 
         // Cache individuel des logos en parallèle
-        const cachingPromises = logos.map(logo => 
-          cacheService.set(`logo_concept_${userId}_${logo.id}`, logo, {
-            prefix: "logo",
-            ttl: 3600,
-          }).catch(error => logger.error(`Error caching logo ${logo.id}:`, error))
+        const cachingPromises = logos.map((logo) =>
+          cacheService
+            .set(`logo_concept_${userId}_${logo.id}`, logo, {
+              prefix: "logo",
+              ttl: 3600,
+            })
+            .catch((error) =>
+              logger.error(`Error caching logo ${logo.id}:`, error)
+            )
         );
-        
+
         await Promise.allSettled(cachingPromises);
-        
+
         logger.info(
           `Background project update completed - ProjectId: ${projectId}, LogoCount: ${logos.length}`
         );
@@ -524,18 +537,88 @@ export class BrandingService extends GenericService {
   }
 
   /**
-   * Étape 1: Génère 4 concepts de logos principaux (sans variations) - Version optimisée
+   * Génère un seul concept de logo - Méthode privée pour génération parallèle
+   */
+  private async generateSingleLogoConcept(
+    projectDescription: string,
+    colors: ColorModel,
+    typography: TypographyModel,
+    project: ProjectModel,
+    conceptIndex: number
+  ): Promise<LogoModel> {
+    logger.info(`Generating single logo concept ${conceptIndex + 1}`);
+
+    // Préparation du prompt optimisé pour un seul logo
+    const optimizedPrompt = this.buildOptimizedLogoPrompt(
+      projectDescription,
+      colors,
+      typography
+    );
+
+    // Génération AI avec prompt optimisé pour un seul logo
+    const steps: IPromptStep[] = [
+      {
+        promptConstant: optimizedPrompt,
+        stepName: `Logo Concept ${conceptIndex + 1}`,
+        modelParser: (content) => {
+          try {
+            // Parse le JSON d'un seul logo au lieu d'un array
+            const parsedLogo = JSON.parse(content);
+
+            // Assurer un ID unique pour chaque concept
+            if (!parsedLogo.id) {
+              parsedLogo.id = `concept${String(conceptIndex + 1).padStart(
+                2,
+                "0"
+              )}`;
+            }
+
+            return {
+              name: `Logo Concept ${conceptIndex + 1}`,
+              type: "logo",
+              data: content,
+              summary: `Logo concept ${conceptIndex + 1} generated`,
+              parsedData: parsedLogo, // Un seul logo, pas un array
+            };
+          } catch (error) {
+            logger.error(
+              `Error parsing logo concept ${conceptIndex + 1}:`,
+              error
+            );
+            throw new Error(`Failed to parse logo concept ${conceptIndex + 1}`);
+          }
+        },
+        hasDependencies: false,
+      },
+    ];
+
+    const sectionResults = await this.processSteps(steps, project);
+    const logoResult = sectionResults[0];
+    const parsedLogoContent = logoResult.parsedData;
+
+    // Optimisation SVG du logo unique
+    const optimizedLogos = SvgOptimizerService.optimizeLogos([
+      parsedLogoContent,
+    ]);
+    const optimizedLogo = optimizedLogos[0];
+
+    logger.info(
+      `Single logo concept ${conceptIndex + 1} generated and optimized`
+    );
+    return optimizedLogo;
+  }
+
+  /**
+   * Étape 1: Génère 4 concepts de logos principaux en parallèle - Version optimisée
    */
   async generateLogoConcepts(
     userId: string,
-    projectId: string,
-    colors: ColorModel,
-    typography: TypographyModel
+    projectId: string
   ): Promise<{
     logos: LogoModel[];
   }> {
     logger.info(
-      `Generating logo concepts for userId: ${userId}, projectId: ${projectId}`
+      `Generating 4 logo concepts in parallel for userId: ${userId}, projectId: ${projectId}`
     );
 
     // Étape 1: Récupération optimisée du projet avec fallback gracieux
@@ -551,8 +634,8 @@ export class BrandingService extends GenericService {
         JSON.stringify({
           projectName: project.name,
           projectDescription: project.description,
-          colors: colors,
-          typography: typography,
+          colors: project.analysisResultModel.branding.colors,
+          typography: project.analysisResultModel.branding.typography,
           prompt: LOGO_GENERATION_PROMPT.substring(0, 100), // Partial prompt for cache key
         })
       )
@@ -576,65 +659,71 @@ export class BrandingService extends GenericService {
       logger.info(
         `Logo concepts cache hit for projectId: ${projectId} - returning ${cachedLogos.length} cached logos`
       );
-      
+
       // Mise à jour asynchrone du projet en arrière-plan (non-bloquant)
-      this.updateProjectWithLogosAsync(userId, projectId, project, cachedLogos)
-        .catch(error => logger.error(`Background project update failed:`, error));
-      
+      this.updateProjectWithLogosAsync(
+        userId,
+        projectId,
+        project,
+        cachedLogos
+      ).catch((error) =>
+        logger.error(`Background project update failed:`, error)
+      );
+
       return { logos: cachedLogos };
     }
 
     logger.info(
-      `Logo concepts cache miss, generating new content for projectId: ${projectId}`
+      `Logo concepts cache miss, generating 4 new concepts in parallel for projectId: ${projectId}`
     );
 
     // Étape 4: Préparation du prompt optimisé
     const projectDescription = this.extractProjectDescription(project);
-    const optimizedPrompt = this.buildOptimizedLogoPrompt(
-      projectDescription,
-      colors,
-      typography
+
+    // Étape 5: Génération AI parallèle des 4 logos
+    const startTime = Date.now();
+
+    // Créer 4 promesses pour générer les logos en parallèle
+    const logoPromises = Array.from({ length: 4 }, (_, index) =>
+      this.generateSingleLogoConcept(
+        projectDescription,
+        project.analysisResultModel.branding.colors,
+        project.analysisResultModel.branding.typography,
+        project,
+        index
+      )
     );
 
-    // Étape 5: Génération AI avec prompt optimisé
-    const steps: IPromptStep[] = [
-      {
-        promptConstant: optimizedPrompt,
-        stepName: "Logo Concepts Generation",
-        modelParser: (content) =>
-          this.parseSection(content, "Logo Concepts Generation", project.id!),
-        hasDependencies: false,
-      },
-    ];
+    // Attendre que tous les logos soient générés en parallèle
+    const optimizedLogos = await Promise.all(logoPromises);
 
-    const startTime = Date.now();
-    const sectionResults = await this.processSteps(steps, project);
     const aiGenerationTime = Date.now() - startTime;
-    logger.info(`AI generation completed in ${aiGenerationTime}ms`);
+    logger.info(
+      `Parallel AI generation completed in ${aiGenerationTime}ms for 4 logos`
+    );
 
-    const logoResult = sectionResults[0];
-    const parsedLogoContent = logoResult.parsedData;
-
-    // Étape 6: Optimisation SVG en parallèle (non-bloquant)
-    const optimizationStart = Date.now();
-    const optimizedLogos = await this.optimizeLogosParallel(parsedLogoContent);
-    const optimizationTime = Date.now() - optimizationStart;
-    logger.info(`SVG optimization completed in ${optimizationTime}ms`);
-
-    // Étape 7: Cache AI immédiat (avant mise à jour DB)
+    // Étape 6: Cache AI immédiat (avant mise à jour DB)
     await cacheService.set(aiCacheKey, optimizedLogos, {
       prefix: "ai",
       ttl: 7200, // 2 heures
     });
-    logger.info(`Logo concepts cached for future requests - projectId: ${projectId}`);
+    logger.info(
+      `Logo concepts cached for future requests - projectId: ${projectId}`
+    );
 
-    // Étape 8: Mise à jour du projet et cache en arrière-plan (non-bloquant)
-    this.updateProjectWithLogosAsync(userId, projectId, project, optimizedLogos)
-      .catch(error => logger.error(`Background project update failed:`, error));
+    // Étape 7: Mise à jour du projet et cache en arrière-plan (non-bloquant)
+    this.updateProjectWithLogosAsync(
+      userId,
+      projectId,
+      project,
+      optimizedLogos
+    ).catch((error) =>
+      logger.error(`Background project update failed:`, error)
+    );
 
     const totalTime = Date.now() - startTime;
     logger.info(
-      `Logo generation completed in ${totalTime}ms (AI: ${aiGenerationTime}ms, Optimization: ${optimizationTime}ms)`
+      `Parallel logo generation completed in ${totalTime}ms for 4 concepts`
     );
 
     return {
@@ -647,8 +736,7 @@ export class BrandingService extends GenericService {
    */
   async generateLogoVariations(
     userId: string,
-    project: ProjectModel,
-    logoId: string
+    project: ProjectModel
   ): Promise<{
     withText: {
       lightBackground?: string;
@@ -661,26 +749,9 @@ export class BrandingService extends GenericService {
       monochrome?: string;
     };
   }> {
-    logger.info(
-      `Generating logo variations for userId: ${userId}, projectId: ${project.id}, logoId: ${logoId}`
-    );
-    const logoCacheKey = `logo_concept_${userId}_${logoId}`;
-    const cachedLogo = await cacheService.get<LogoModel>(logoCacheKey, {
-      prefix: "logo",
-    });
-
-    if (!cachedLogo) {
-      logger.error(
-        `Logo not found in cache with ID: ${logoId} for userId: ${userId}`
-      );
-      throw new Error(`Logo concept not found in cache with ID: ${logoId}`);
-    }
-
-    logger.info(`Retrieved logo from cache: ${logoId} for userId: ${userId}`);
-
     // Utiliser le SVG du logo récupéré du cache
-    const selectedLogoSvg = cachedLogo.svg;
-    const selectedIconSvg = cachedLogo.iconSvg;
+    const selectedLogoSvg = project.analysisResultModel.branding.logo.svg;
+    const selectedIconSvg = project.analysisResultModel.branding.logo.iconSvg;
 
     // L'icône est maintenant directement fournie par l'IA, plus besoin d'extraction
     const iconResult = {
@@ -751,17 +822,6 @@ export class BrandingService extends GenericService {
       darkBackground: optimizedVariations.darkBackground,
       monochrome: optimizedVariations.monochrome,
     };
-
-    // Étape 5: Supprimer le logo du cache après génération des variations
-    try {
-      await cacheService.delete(logoCacheKey, { prefix: "logo" });
-      logger.info(
-        `Deleted logo concept from cache: ${logoId} for userId: ${userId}`
-      );
-    } catch (error) {
-      logger.error(`Error deleting logo from cache: ${logoId}`, error);
-      // Continue without failing - cache cleanup is not critical
-    }
 
     return {
       withText: variationsWithText.withText,
