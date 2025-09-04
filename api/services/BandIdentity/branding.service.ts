@@ -29,7 +29,8 @@ import {
   ISectionResult,
 } from "../common/generic.service";
 import { LogoModel } from "../../models/logo.model";
-import { COLORS_TYPOGRAPHY_GENERATION_PROMPT } from "./prompts/singleGenerations/colors-typography-generation.prompt";
+import { COLORS_GENERATION_PROMPT } from "./prompts/singleGenerations/colors-generation.prompt";
+import { TYPOGRAPHY_GENERATION_PROMPT } from "./prompts/singleGenerations/typography-generation.prompt";
 import { PdfService } from "../pdf.service";
 import { cacheService } from "../cache.service";
 import crypto from "crypto";
@@ -458,6 +459,84 @@ export class BrandingService extends GenericService {
     }
   }
 
+  /**
+   * Génère un seul ensemble de couleurs - Méthode privée pour génération parallèle
+   */
+  private async generateSingleColors(
+    projectDescription: string,
+    project: ProjectModel
+  ): Promise<ColorModel[]> {
+    logger.info(`Generating colors`);
+
+    const steps: IPromptStep[] = [
+      {
+        promptConstant: projectDescription + COLORS_GENERATION_PROMPT,
+        stepName: "Colors Generation",
+        modelParser: (content) => {
+          try {
+            const parsedColors = JSON.parse(content);
+            return {
+              name: "Colors Generation",
+              type: "colors",
+              data: content,
+              summary: "Colors generated",
+              parsedData: parsedColors.colors,
+            };
+          } catch (error) {
+            logger.error(`Error parsing colors:`, error);
+            throw new Error(`Failed to parse colors`);
+          }
+        },
+        hasDependencies: false,
+      },
+    ];
+
+    const sectionResults = await this.processSteps(steps, project);
+    const colorsResult = sectionResults[0];
+
+    logger.info(`Colors generated successfully`);
+    return colorsResult.parsedData;
+  }
+
+  /**
+   * Génère un seul ensemble de typographies - Méthode privée pour génération parallèle
+   */
+  private async generateSingleTypography(
+    projectDescription: string,
+    project: ProjectModel
+  ): Promise<TypographyModel[]> {
+    logger.info(`Generating typography`);
+
+    const steps: IPromptStep[] = [
+      {
+        promptConstant: projectDescription + TYPOGRAPHY_GENERATION_PROMPT,
+        stepName: "Typography Generation",
+        modelParser: (content) => {
+          try {
+            const parsedTypography = JSON.parse(content);
+            return {
+              name: "Typography Generation",
+              type: "typography",
+              data: content,
+              summary: "Typography generated",
+              parsedData: parsedTypography.typography,
+            };
+          } catch (error) {
+            logger.error(`Error parsing typography:`, error);
+            throw new Error(`Failed to parse typography`);
+          }
+        },
+        hasDependencies: false,
+      },
+    ];
+
+    const sectionResults = await this.processSteps(steps, project);
+    const typographyResult = sectionResults[0];
+
+    logger.info(`Typography generated successfully`);
+    return typographyResult.parsedData;
+  }
+
   async generateColorsAndTypography(
     userId: string,
     project: ProjectModel
@@ -466,7 +545,9 @@ export class BrandingService extends GenericService {
     typography: TypographyModel[];
     project: ProjectModel;
   }> {
-    logger.info(`Generating colors and typography for userId: ${userId}`);
+    logger.info(
+      `Generating colors and typography in parallel for userId: ${userId}`
+    );
 
     // Créer le projet
     const createdProject = await projectService.createUserProject(
@@ -495,26 +576,23 @@ export class BrandingService extends GenericService {
 
     const projectDescription = this.extractProjectDescription(project);
 
-    const steps: IPromptStep[] = [
-      {
-        promptConstant:
-          projectDescription + COLORS_TYPOGRAPHY_GENERATION_PROMPT,
-        stepName: "Colors and Typography Generation",
-        modelParser: (content) =>
-          this.parseSection(
-            content,
-            "Colors and Typography Generation",
-            project.id!
-          ),
-        hasDependencies: false,
-      },
-    ];
-    const sectionResults = await this.processSteps(steps, project);
-    const colorsTypographyResult = sectionResults[0];
+    // Génération parallèle des couleurs et typographies
+    const startTime = Date.now();
+
+    // Créer 2 promesses pour générer couleurs et typographies en parallèle
+    const [colors, typography] = await Promise.all([
+      this.generateSingleColors(projectDescription, createdProject),
+      this.generateSingleTypography(projectDescription, createdProject),
+    ]);
+
+    const generationTime = Date.now() - startTime;
+    logger.info(
+      `Parallel colors and typography generation completed in ${generationTime}ms`
+    );
 
     return {
-      colors: colorsTypographyResult.parsedData.colors,
-      typography: colorsTypographyResult.parsedData.typography,
+      colors,
+      typography,
       project: createdProject,
     };
   }
@@ -662,7 +740,8 @@ export class BrandingService extends GenericService {
    */
   async generateLogoVariations(
     userId: string,
-    projectId: string
+    projectId: string,
+    selectedLogo: LogoModel
   ): Promise<{
     withText: {
       lightBackground?: string;
@@ -680,8 +759,8 @@ export class BrandingService extends GenericService {
     if (!project) {
       throw new Error(`Project not found with ID: ${projectId}`);
     }
-    const selectedLogoSvg = project.analysisResultModel.branding.logo.svg;
-    const selectedIconSvg = project.analysisResultModel.branding.logo.iconSvg;
+    const selectedLogoSvg = selectedLogo.svg;
+    const selectedIconSvg = selectedLogo.iconSvg;
 
     // L'icône est maintenant directement fournie par l'IA, plus besoin d'extraction
     const iconResult = {
@@ -777,39 +856,45 @@ export class BrandingService extends GenericService {
 
     const projectDescription = this.extractProjectDescription(project);
 
-    const steps: IPromptStep[] = [
-      {
-        promptConstant:
-          projectDescription + COLORS_TYPOGRAPHY_GENERATION_PROMPT,
-        stepName: "Colors and Typography Generation",
-        modelParser: (content) =>
-          this.parseSection(
-            content,
-            "Colors and Typography Generation",
-            project.id!
-          ),
-        hasDependencies: false,
-      },
-      {
-        promptConstant: projectDescription + LOGO_GENERATION_PROMPT,
-        stepName: "Logo Concepts Generation",
-        modelParser: (content) =>
-          this.parseSection(content, "Logo Concepts Generation", project.id!),
-        hasDependencies: false,
-      },
-    ];
-    const sectionResults = await this.processSteps(steps, project);
-    const colorsTypographyResult = sectionResults[0];
-    const logoResult = sectionResults[1];
-    const parsedLogoContent = logoResult.parsedData;
+    // Génération parallèle des couleurs, typographies et logos
+    const startTime = Date.now();
 
-    // Étape 3: Optimiser les logos générés
+    // Créer 3 promesses pour générer couleurs, typographies et logos en parallèle
+    const [colors, typography, logoResult] = await Promise.all([
+      this.generateSingleColors(projectDescription, project),
+      this.generateSingleTypography(projectDescription, project),
+      this.processSteps(
+        [
+          {
+            promptConstant: projectDescription + LOGO_GENERATION_PROMPT,
+            stepName: "Logo Concepts Generation",
+            modelParser: (content) =>
+              this.parseSection(
+                content,
+                "Logo Concepts Generation",
+                project.id!
+              ),
+            hasDependencies: false,
+          },
+        ],
+        project
+      ),
+    ]);
+
+    const generationTime = Date.now() - startTime;
+    logger.info(
+      `Parallel colors, typography and logos generation completed in ${generationTime}ms`
+    );
+
+    const parsedLogoContent = logoResult[0].parsedData;
+
+    // Optimiser les logos générés
     const optimizedLogos = SvgOptimizerService.optimizeLogos(parsedLogoContent);
 
     return {
       logos: optimizedLogos,
-      colors: colorsTypographyResult.parsedData.colors,
-      typography: colorsTypographyResult.parsedData.typography,
+      colors: colors,
+      typography: typography,
     };
   }
 
