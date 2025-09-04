@@ -105,23 +105,6 @@ export class BrandingService extends GenericService {
   }
 
   /**
-   * Optimisation SVG en parallèle pour améliorer les performances
-   */
-  private async optimizeLogosParallel(logoData: any[]): Promise<LogoModel[]> {
-    if (!logoData || logoData.length === 0) {
-      return [];
-    }
-
-    // Utiliser la méthode optimizeLogos existante qui est déjà optimisée
-    try {
-      return SvgOptimizerService.optimizeLogos(logoData);
-    } catch (error) {
-      logger.error(`Error optimizing logos:`, error);
-      return logoData; // Fallback vers les logos non-optimisés
-    }
-  }
-
-  /**
    * Mise à jour asynchrone du projet avec les logos (non-bloquant)
    */
   private async updateProjectWithLogosAsync(
@@ -613,7 +596,9 @@ export class BrandingService extends GenericService {
    */
   async generateLogoConcepts(
     userId: string,
-    projectId: string
+    projectId: string,
+    selectedColors: ColorModel,
+    selectedTypography: TypographyModel
   ): Promise<{
     logos: LogoModel[];
   }> {
@@ -627,56 +612,6 @@ export class BrandingService extends GenericService {
       throw new Error(`Project not found with ID: ${projectId}`);
     }
 
-    // Étape 2: Génération de clé de cache basée sur le contenu pour l'IA
-    const contentHash = crypto
-      .createHash("sha256")
-      .update(
-        JSON.stringify({
-          projectName: project.name,
-          projectDescription: project.description,
-          colors: project.analysisResultModel.branding.colors,
-          typography: project.analysisResultModel.branding.typography,
-          prompt: LOGO_GENERATION_PROMPT.substring(0, 100), // Partial prompt for cache key
-        })
-      )
-      .digest("hex")
-      .substring(0, 16);
-
-    const aiCacheKey = cacheService.generateAIKey(
-      "logo-concepts",
-      userId,
-      projectId,
-      contentHash
-    );
-
-    // Étape 3: Vérifier le cache AI d'abord (gain potentiel de 10-15s)
-    const cachedLogos = await cacheService.get<LogoModel[]>(aiCacheKey, {
-      prefix: "ai",
-      ttl: 7200, // 2 heures
-    });
-
-    if (cachedLogos && cachedLogos.length > 0) {
-      logger.info(
-        `Logo concepts cache hit for projectId: ${projectId} - returning ${cachedLogos.length} cached logos`
-      );
-
-      // Mise à jour asynchrone du projet en arrière-plan (non-bloquant)
-      this.updateProjectWithLogosAsync(
-        userId,
-        projectId,
-        project,
-        cachedLogos
-      ).catch((error) =>
-        logger.error(`Background project update failed:`, error)
-      );
-
-      return { logos: cachedLogos };
-    }
-
-    logger.info(
-      `Logo concepts cache miss, generating 4 new concepts in parallel for projectId: ${projectId}`
-    );
-
     // Étape 4: Préparation du prompt optimisé
     const projectDescription = this.extractProjectDescription(project);
 
@@ -687,8 +622,8 @@ export class BrandingService extends GenericService {
     const logoPromises = Array.from({ length: 4 }, (_, index) =>
       this.generateSingleLogoConcept(
         projectDescription,
-        project.analysisResultModel.branding.colors,
-        project.analysisResultModel.branding.typography,
+        selectedColors,
+        selectedTypography,
         project,
         index
       )
@@ -700,15 +635,6 @@ export class BrandingService extends GenericService {
     const aiGenerationTime = Date.now() - startTime;
     logger.info(
       `Parallel AI generation completed in ${aiGenerationTime}ms for 4 logos`
-    );
-
-    // Étape 6: Cache AI immédiat (avant mise à jour DB)
-    await cacheService.set(aiCacheKey, optimizedLogos, {
-      prefix: "ai",
-      ttl: 7200, // 2 heures
-    });
-    logger.info(
-      `Logo concepts cached for future requests - projectId: ${projectId}`
     );
 
     // Étape 7: Mise à jour du projet et cache en arrière-plan (non-bloquant)

@@ -78,6 +78,7 @@ export const generateLogoConceptsController = async (
   res: Response
 ): Promise<void> => {
   const { projectId } = req.params;
+  const { selectedColors , selectedTypography} = req.body;
   const userId = req.user?.uid;
   logger.info(
     `generateLogoConceptsController called - UserId: ${userId}, ProjectId: ${projectId}`,
@@ -95,7 +96,7 @@ export const generateLogoConceptsController = async (
       return;
     }
 
-    const logos = await brandingService.generateLogoConcepts(userId, projectId);
+    const logos = await brandingService.generateLogoConcepts(userId, projectId, selectedColors, selectedTypography);
 
     if (!logos) {
       logger.warn(
