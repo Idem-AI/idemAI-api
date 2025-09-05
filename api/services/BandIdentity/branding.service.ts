@@ -689,6 +689,8 @@ export class BrandingService extends GenericService {
         ...project.analysisResultModel,
         branding: {
           ...project.analysisResultModel.branding,
+          colors: selectedColors,
+          typography: selectedTypography,
           generatedLogos: optimizedLogos,
           updatedAt: new Date(),
         },
@@ -771,13 +773,7 @@ export class BrandingService extends GenericService {
         modelParser: (content) => {
           try {
             const parsed = JSON.parse(content);
-            return {
-              name: "Logo Variations Generation",
-              type: "variations",
-              data: content,
-              summary: "Logo variations generated",
-              parsedData: parsed.variations,
-            };
+            return parsed.variations;
           } catch (error) {
             logger.error("Error parsing logo variations:", error);
             throw new Error("Failed to parse logo variations");
@@ -836,14 +832,14 @@ export class BrandingService extends GenericService {
         ...project.analysisResultModel,
         branding: {
           ...project.analysisResultModel.branding,
-          logo: {
-            ...project.analysisResultModel.branding.logo,
-            variations: finalVariations,
-          },
+          logo: selectedLogo,
           updatedAt: new Date(),
         },
       },
     };
+
+    updatedProjectData.analysisResultModel.branding.logo.variations =
+      finalVariations;
 
     // Mise à jour en base de données
     const updatedProject = await this.projectRepository.update(
@@ -853,6 +849,10 @@ export class BrandingService extends GenericService {
     );
 
     if (updatedProject) {
+      console.log(
+        "fiinal logo",
+        updatedProject.analysisResultModel.branding.logo
+      );
       logger.info(
         `Successfully updated project with logo variations - ProjectId: ${projectId}`
       );
