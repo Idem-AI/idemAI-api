@@ -10,7 +10,7 @@ const router = Router();
 
 /**
  * @openapi
- * /finalize/{projectId}:
+ * /project/finalize/{projectId}:
  *   post:
  *     summary: Finalise un projet en acceptant les politiques
  *     description: Enregistre l'acceptation des politiques de confidentialité, conditions d'utilisation, politique beta et marketing (optionnel)

@@ -1,9 +1,8 @@
 import logger from "../config/logger";
-import {
-  FinalizeProjectRequest,
-} from "../models/policyAcceptance.model";
+import { FinalizeProjectRequest } from "../models/policyAcceptance.model";
 import { ProjectModel, ProjectPolicyAcceptance } from "../models/project.model";
 import { projectService } from "./project.service";
+import { storageService } from "./storage.service";
 
 export class PolicyAcceptanceService {
   constructor() {
@@ -59,10 +58,102 @@ export class PolicyAcceptanceService {
       userAgent,
     };
 
-    // Mettre à jour le projet via ProjectService
-    await projectService.editUserProject(userId, projectId, {
+    // Préparer les données de mise à jour du projet
+    let projectUpdateData: Partial<ProjectModel> = {
       policyAcceptance,
-    });
+    };
+
+    // Vérifier et uploader les variations de logo si elles existent
+    const logoVariations =
+      project.analysisResultModel?.branding?.logo?.variations;
+    const primaryLogo = project.analysisResultModel?.branding?.logo?.svg;
+
+    if (
+      logoVariations &&
+      (logoVariations.iconOnly?.lightBackground ||
+        logoVariations.iconOnly?.darkBackground ||
+        logoVariations.iconOnly?.monochrome ||
+        logoVariations.withText?.lightBackground ||
+        logoVariations.withText?.darkBackground ||
+        logoVariations.withText?.monochrome ||
+        primaryLogo)
+    ) {
+      logger.info(`Uploading logo variations to Firebase Storage`, {
+        userId,
+        projectId,
+        variations: Object.keys(logoVariations),
+      });
+
+      try {
+        // Upload logo variations to Firebase Storage
+        const iconSvg = project.analysisResultModel?.branding?.logo?.iconSvg;
+        const uploadResults = await storageService.uploadLogoVariations(
+          primaryLogo,
+          iconSvg,
+          logoVariations,
+          userId,
+          projectId
+        );
+
+        // Replace SVG content with download URLs
+        const updatedVariations = {
+          withText: {
+            lightBackground:
+              uploadResults.withText?.lightBackground?.downloadURL,
+            darkBackground: uploadResults.withText?.darkBackground?.downloadURL,
+            monochrome: uploadResults.withText?.monochrome?.downloadURL,
+          },
+          iconOnly: {
+            lightBackground:
+              uploadResults.iconOnly?.lightBackground?.downloadURL,
+            darkBackground: uploadResults.iconOnly?.darkBackground?.downloadURL,
+            monochrome: uploadResults.iconOnly?.monochrome?.downloadURL,
+          },
+        };
+
+        // Update the project data with the URLs
+        projectUpdateData = {
+          ...projectUpdateData,
+          analysisResultModel: {
+            ...project.analysisResultModel,
+            branding: {
+              ...project.analysisResultModel?.branding,
+              logo: {
+                ...project.analysisResultModel?.branding?.logo,
+                svg: uploadResults.primaryLogo!.downloadURL,
+                iconSvg: uploadResults.iconSvg?.downloadURL,
+                variations: updatedVariations,
+              },
+            },
+          },
+        };
+
+        logger.info(`Logo variations uploaded and URLs updated successfully`, {
+          userId,
+          projectId,
+          primaryLogoUrl: uploadResults.primaryLogo?.downloadURL,
+          iconSvgUrl: uploadResults.iconSvg?.downloadURL,
+        });
+      } catch (error: any) {
+        logger.error(
+          `Error uploading logo variations during project finalization`,
+          {
+            userId,
+            projectId,
+            error: error.message,
+            stack: error.stack,
+          }
+        );
+        // Continue with project finalization even if logo upload fails
+        logger.warn(`Continuing project finalization without logo upload`, {
+          userId,
+          projectId,
+        });
+      }
+    }
+
+    // Mettre à jour le projet via ProjectService
+    await projectService.editUserProject(userId, projectId, projectUpdateData);
 
     // Récupérer le projet mis à jour
     const savedProject = await projectService.getUserProjectById(
