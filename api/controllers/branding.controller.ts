@@ -5,7 +5,7 @@ import { CustomRequest } from "../interfaces/express.interface";
 import logger from "../config/logger";
 import { userService } from "../services/user.service";
 import { ISectionResult } from "../services/common/generic.service";
-// Create instances of the services
+
 const promptService = new PromptService();
 const brandingService = new BrandingService(promptService);
 

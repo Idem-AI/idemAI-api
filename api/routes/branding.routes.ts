@@ -250,7 +250,7 @@ brandingRoutes.post(
  *         description: Internal server error.
  */
 brandingRoutes.post(
-  `/${resourceName}/generate/logo-variations`,
+  `/${resourceName}/generate/logo-variations/:projectId`,
   authenticate,
   checkQuota,
   generateLogoVariationsController

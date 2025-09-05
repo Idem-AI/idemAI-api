@@ -105,66 +105,6 @@ export class BrandingService extends GenericService {
     return `${projectDescription}\n\nColors: ${colorInfo}\nTypography: ${fontInfo}\n\n${LOGO_GENERATION_PROMPT}`;
   }
 
-  /**
-   * Mise à jour asynchrone du projet avec les logos (non-bloquant)
-   */
-  private async updateProjectWithLogosAsync(
-    userId: string,
-    projectId: string,
-    project: ProjectModel,
-    logos: LogoModel[]
-  ): Promise<void> {
-    try {
-      // Préparation des données du projet
-      if (!project.analysisResultModel) {
-        project.analysisResultModel = AnalysisResultBuilder.createEmpty();
-      }
-      if (!project.analysisResultModel.branding) {
-        project.analysisResultModel.branding =
-          BrandIdentityBuilder.createEmpty();
-      }
-
-      project.analysisResultModel.branding.generatedLogos = logos;
-
-      // Mise à jour en base de données
-      const updatedProject = await this.projectRepository.update(
-        project.id!,
-        project,
-        `users/${userId}/projects`
-      );
-
-      if (updatedProject) {
-        // Mise à jour du cache projet
-        const projectCacheKey = `project_${userId}_${projectId}`;
-        await cacheService.set(projectCacheKey, updatedProject, {
-          prefix: "project",
-          ttl: 3600,
-        });
-
-        // Cache individuel des logos en parallèle
-        const cachingPromises = logos.map((logo) =>
-          cacheService
-            .set(`logo_concept_${userId}_${logo.id}`, logo, {
-              prefix: "logo",
-              ttl: 3600,
-            })
-            .catch((error) =>
-              logger.error(`Error caching logo ${logo.id}:`, error)
-            )
-        );
-
-        await Promise.allSettled(cachingPromises);
-
-        logger.info(
-          `Background project update completed - ProjectId: ${projectId}, LogoCount: ${logos.length}`
-        );
-      }
-    } catch (error) {
-      logger.error(`Error in background project update:`, error);
-      throw error;
-    }
-  }
-
   async generateBrandingWithStreaming(
     userId: string,
     projectId: string,
@@ -475,13 +415,7 @@ export class BrandingService extends GenericService {
         modelParser: (content) => {
           try {
             const parsedColors = JSON.parse(content);
-            return {
-              name: "Colors Generation",
-              type: "colors",
-              data: content,
-              summary: "Colors generated",
-              parsedData: parsedColors.colors,
-            };
+            return parsedColors.colors;
           } catch (error) {
             logger.error(`Error parsing colors:`, error);
             throw new Error(`Failed to parse colors`);
@@ -492,10 +426,10 @@ export class BrandingService extends GenericService {
     ];
 
     const sectionResults = await this.processSteps(steps, project);
-    const colorsResult = sectionResults[0];
+    const colorsResult: ISectionResult = sectionResults[0];
 
     logger.info(`Colors generated successfully`);
-    return colorsResult.parsedData;
+    return colorsResult.parsedData as ColorModel[];
   }
 
   /**
@@ -514,13 +448,7 @@ export class BrandingService extends GenericService {
         modelParser: (content) => {
           try {
             const parsedTypography = JSON.parse(content);
-            return {
-              name: "Typography Generation",
-              type: "typography",
-              data: content,
-              summary: "Typography generated",
-              parsedData: parsedTypography.typography,
-            };
+            return parsedTypography.typography;
           } catch (error) {
             logger.error(`Error parsing typography:`, error);
             throw new Error(`Failed to parse typography`);
@@ -534,7 +462,7 @@ export class BrandingService extends GenericService {
     const typographyResult = sectionResults[0];
 
     logger.info(`Typography generated successfully`);
-    return typographyResult.parsedData;
+    return typographyResult.parsedData as TypographyModel[];
   }
 
   async generateColorsAndTypography(
@@ -550,6 +478,13 @@ export class BrandingService extends GenericService {
     );
 
     // Créer le projet
+    project = {
+      ...project,
+      analysisResultModel: {
+        ...project.analysisResultModel,
+        branding: BrandIdentityBuilder.createEmpty(),
+      },
+    };
     const createdProject = await projectService.createUserProject(
       userId,
       project
@@ -672,13 +607,7 @@ export class BrandingService extends GenericService {
               )}`;
             }
 
-            return {
-              name: `Logo Concept ${conceptIndex + 1}`,
-              type: "logo",
-              data: content,
-              summary: `Logo concept ${conceptIndex + 1} generated`,
-              parsedData: parsedLogo, // Un seul logo, pas un array
-            };
+            return parsedLogo;
           } catch (error) {
             logger.error(
               `Error parsing logo concept ${conceptIndex + 1}:`,
