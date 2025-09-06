@@ -1,6 +1,6 @@
 import logger from "../../config/logger";
 import { ProjectModel } from "../../models/project.model";
-import { PromptService } from "../prompt.service";
+import { LLMProvider, PromptService } from "../prompt.service";
 
 import {
   BrandIdentityModel,
@@ -425,7 +425,16 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project);
+    const sectionResults = await this.processSteps(steps, project, {
+      provider: LLMProvider.GEMINI,
+      modelName: "gemini-2.0-flash",
+      llmOptions: {
+        maxOutputTokens: 5000,
+        temperature: 0.7,
+        topP: 0.9,
+        topK: 40,
+      },
+    });
     const colorsResult: ISectionResult = sectionResults[0];
 
     logger.info(`Colors generated successfully`);
@@ -458,7 +467,16 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project);
+    const sectionResults = await this.processSteps(steps, project, {
+      provider: LLMProvider.GEMINI,
+      modelName: "gemini-2.0-flash",
+      llmOptions: {
+        maxOutputTokens: 5000,
+        temperature: 0.7,
+        topP: 0.9,
+        topK: 40,
+      },
+    });
     const typographyResult = sectionResults[0];
 
     logger.info(`Typography generated successfully`);
