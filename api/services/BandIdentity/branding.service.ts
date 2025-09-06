@@ -780,6 +780,229 @@ export class BrandingService extends GenericService {
   }
 
   /**
+   * Version SSE: Génère 4 concepts de logos avec streaming en temps réel
+   */
+  async generateLogoConceptsWithStreaming(
+    userId: string,
+    projectId: string,
+    callback: (result: ISectionResult) => Promise<void>
+  ): Promise<{
+    logos: LogoModel[];
+  }> {
+    logger.info(
+      `Starting SSE logo concepts generation for userId: ${userId}, projectId: ${projectId}`
+    );
+
+    // Récupération du projet
+    const project = await this.getProjectOptimized(userId, projectId);
+    if (!project) {
+      throw new Error(`Project not found with ID: ${projectId}`);
+    }
+
+    const projectDescription = this.extractProjectDescription(project);
+
+    // Generate cache key for logo concepts
+    const contentHash = crypto
+      .createHash("sha256")
+      .update(
+        JSON.stringify({
+          projectDescription,
+          colors: project.analysisResultModel.branding.colors,
+          typography: project.analysisResultModel.branding.typography,
+        })
+      )
+      .digest("hex")
+      .substring(0, 16);
+
+    const cacheKey = cacheService.generateAIKey(
+      "logo_concepts",
+      userId,
+      projectId,
+      contentHash
+    );
+
+    // Check cache first
+    const cachedResult = await cacheService.get<{ logos: LogoModel[] }>(cacheKey, {
+      prefix: "ai",
+      ttl: 7200, // 2 hours
+    });
+
+    if (cachedResult) {
+      logger.info(`Logo concepts cache hit for projectId: ${projectId}`);
+      // Send cached result via callback
+      await callback({
+        name: "Logo Generation Completed",
+        type: "completed",
+        data: JSON.stringify(cachedResult),
+        summary: `Génération terminée (cache): ${cachedResult.logos.length} concepts récupérés`,
+        parsedData: cachedResult.logos,
+      });
+      return cachedResult;
+    }
+
+    logger.info(
+      `Logo concepts cache miss, generating new content for projectId: ${projectId}`
+    );
+
+    try {
+      // Define logo generation steps - 4 parallel steps
+      const steps: IPromptStep[] = [
+        {
+          promptConstant: LOGO_GENERATION_PROMPT + projectDescription,
+          stepName: "Logo Concept 1",
+          hasDependencies: false, // Parallel execution
+        },
+        {
+          promptConstant: LOGO_GENERATION_PROMPT + projectDescription,
+          stepName: "Logo Concept 2", 
+          hasDependencies: false, // Parallel execution
+        },
+        {
+          promptConstant: LOGO_GENERATION_PROMPT + projectDescription,
+          stepName: "Logo Concept 3",
+          hasDependencies: false, // Parallel execution
+        },
+        {
+          promptConstant: LOGO_GENERATION_PROMPT + projectDescription,
+          stepName: "Logo Concept 4",
+          hasDependencies: false, // Parallel execution
+        },
+      ];
+
+      // Initialize empty logos array to collect results as they come in
+      let logos: LogoModel[] = [];
+
+      // Process steps with streaming
+      await this.processStepsWithStreaming(
+        steps,
+        project,
+        async (result: ISectionResult) => {
+          logger.info(`Received streamed result for step: ${result.name}`);
+
+          // Skip progress and completion events - handle only actual step results
+          if (
+            result.data === "steps_in_progress" ||
+            result.data === "all_steps_completed"
+          ) {
+            await callback(result);
+            return;
+          }
+
+          // Parse logo result
+          try {
+            const logoData = JSON.parse(result.data);
+            const logo: LogoModel = {
+              ...logoData,
+              id: `concept${logos.length + 1}`,
+            };
+
+            // Add to logos array
+            logos.push(logo);
+
+            // Send progress update via callback
+            await callback({
+              name: result.name,
+              type: result.type,
+              data: result.data,
+              summary: `${result.name} généré: ${logo.name}`,
+              parsedData: logo,
+            });
+
+            logger.info(
+              `Logo concept ${logos.length} generated - ProjectId: ${projectId}`
+            );
+
+          } catch (error) {
+            logger.error(`Error parsing logo result for ${result.name}: ${error}`);
+            
+            // Send error via callback
+            await callback({
+              name: result.name,
+              type: "error",
+              data: `Erreur lors du parsing du ${result.name}`,
+              summary: `Échec du parsing pour ${result.name}`,
+            });
+          }
+        },
+        undefined, // promptConfig
+        "logo_generation", // promptType
+        userId
+      );
+
+      const validLogos = logos.filter(Boolean);
+
+      // Update project with generated logos
+      const updatedProjectData = {
+        ...project,
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          branding: {
+            ...project.analysisResultModel.branding,
+            generatedLogos: validLogos,
+            updatedAt: new Date(),
+          },
+        },
+      };
+
+      const updatedProject = await this.projectRepository.update(
+        projectId,
+        updatedProjectData,
+        `users/${userId}/projects`
+      );
+
+      if (updatedProject) {
+        // Update project cache
+        const projectCacheKey = `project_${userId}_${projectId}`;
+        await cacheService.set(projectCacheKey, updatedProject, {
+          prefix: "project",
+          ttl: 3600,
+        });
+
+        // Cache the logo results
+        const logoResult = { logos: validLogos };
+        await cacheService.set(cacheKey, logoResult, {
+          prefix: "ai",
+          ttl: 7200,
+        });
+
+        logger.info(
+          `Project updated with ${validLogos.length} logos - ProjectId: ${projectId}`
+        );
+      }
+
+      // Send final completion event
+      await callback({
+        name: "Logo Generation Completed",
+        type: "completed",
+        data: JSON.stringify({ logos: validLogos, logoCount: validLogos.length }),
+        summary: `Génération terminée: ${validLogos.length} concepts créés`,
+        parsedData: validLogos,
+      });
+
+      logger.info(
+        `SSE logo concepts generation completed for userId: ${userId}, projectId: ${projectId}, logoCount: ${validLogos.length}`
+      );
+
+      return {
+        logos: validLogos,
+      };
+
+    } catch (error) {
+      logger.error(`Error in SSE logo generation: ${error}`);
+
+      // Send error event via callback
+      await callback({
+        name: "Logo Generation Error",
+        type: "error",
+        data: `Erreur lors de la génération des logos: ${error}`,
+        summary: "Échec de la génération des concepts de logos",
+      });
+
+      throw error;
+    }
+  }
+
+  /**
    * Étape 2: Génère les variations d'un logo sélectionné
    */
   async generateLogoVariations(
