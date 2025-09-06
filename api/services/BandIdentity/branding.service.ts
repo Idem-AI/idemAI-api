@@ -624,10 +624,48 @@ export class BrandingService extends GenericService {
     const logoResult = sectionResults[0];
     const parsedLogoContent = logoResult.parsedData;
 
+    // Combiner l'icône et le texte en un logo complet
+    const completeLogo = this.combineLogo(parsedLogoContent);
+
     logger.info(
-      `Single logo concept ${conceptIndex + 1} generated and optimized`
+      `Single logo concept ${conceptIndex + 1} generated and combined`
     );
-    return parsedLogoContent;
+    return completeLogo;
+  }
+
+  /**
+   * Combine l'icône et le texte générés séparément en un logo complet
+   */
+  private combineLogo(logoData: any): LogoModel {
+    const { iconSvg, textSvg, ...otherProps } = logoData;
+
+    // Extraire le contenu des SVG (sans les balises svg)
+    const iconContent = this.extractSvgContent(iconSvg);
+    const textContent = this.extractSvgContent(textSvg);
+
+    // Créer le SVG complet combiné
+    const combinedSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40">
+      <g id="logo-icon" transform="translate(0, 0)">
+        ${iconContent}
+      </g>
+      <g id="logo-text" transform="translate(50, 0)">
+        ${textContent}
+      </g>
+    </svg>`;
+
+    return {
+      ...otherProps,
+      svg: combinedSvg,
+      iconSvg: iconSvg, // Garder l'icône séparée
+    };
+  }
+
+  /**
+   * Extrait le contenu interne d'un SVG (sans les balises svg)
+   */
+  private extractSvgContent(svgString: string): string {
+    const match = svgString.match(/<svg[^>]*>([\s\S]*?)<\/svg>/);
+    return match ? match[1] : svgString;
   }
 
   /**
