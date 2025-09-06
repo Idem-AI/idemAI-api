@@ -9,8 +9,7 @@ import {
 } from "../../models/brand-identity.model";
 import { LOGO_GENERATION_PROMPT } from "./prompts/singleGenerations/00_logo-generation-section.prompt";
 import { LOGO_VARIATIONS_GENERATION_PROMPT } from "./prompts/singleGenerations/01_logo-variations-generation.prompt";
-import { SvgOptimizerService } from "./svgOptimizer.service";
-import { SvgIconExtractorService } from "./svgIconExtractor.service";
+
 import { BRAND_HEADER_SECTION_PROMPT } from "./prompts/00_brand-header-section.prompt";
 import { LOGO_SYSTEM_SECTION_PROMPT } from "./prompts/01_logo-system-section.prompt";
 import { COLOR_PALETTE_SECTION_PROMPT } from "./prompts/02_color-palette-section.prompt";
@@ -35,6 +34,7 @@ import { PdfService } from "../pdf.service";
 import { cacheService } from "../cache.service";
 import crypto from "crypto";
 import { projectService } from "../project.service";
+import { SvgIconExtractorService } from "./svgIconExtractor.service";
 
 export class BrandingService extends GenericService {
   private pdfService: PdfService;
@@ -624,16 +624,10 @@ export class BrandingService extends GenericService {
     const logoResult = sectionResults[0];
     const parsedLogoContent = logoResult.parsedData;
 
-    // Optimisation SVG du logo unique
-    const optimizedLogos = SvgOptimizerService.optimizeLogos([
-      parsedLogoContent,
-    ]);
-    const optimizedLogo = optimizedLogos[0];
-
     logger.info(
       `Single logo concept ${conceptIndex + 1} generated and optimized`
     );
-    return optimizedLogo;
+    return parsedLogoContent;
   }
 
   /**
@@ -787,37 +781,19 @@ export class BrandingService extends GenericService {
     const variationsResult = sectionResults[0];
     const variations = variationsResult.parsedData;
 
-    // Étape 3: Optimiser les variations SVG
-    const optimizedVariations: any = {};
-    if (variations.lightBackground) {
-      optimizedVariations.lightBackground = SvgOptimizerService.optimizeSvg(
-        variations.lightBackground
-      );
-    }
-    if (variations.darkBackground) {
-      optimizedVariations.darkBackground = SvgOptimizerService.optimizeSvg(
-        variations.darkBackground
-      );
-    }
-    if (variations.monochrome) {
-      optimizedVariations.monochrome = SvgOptimizerService.optimizeSvg(
-        variations.monochrome
-      );
-    }
-
     // Étape 4: Générer les variations avec et sans texte
     const variationsWithText =
       SvgIconExtractorService.generateVariationsWithText(
         selectedLogoSvg,
-        optimizedVariations
+        variations
       );
 
     // Les variations générées par l'IA sont déjà des icônes uniquement
     // Plus besoin d'extraction supplémentaire
     const iconVariations = {
-      lightBackground: optimizedVariations.lightBackground,
-      darkBackground: optimizedVariations.darkBackground,
-      monochrome: optimizedVariations.monochrome,
+      lightBackground: variations.lightBackground,
+      darkBackground: variations.darkBackground,
+      monochrome: variations.monochrome,
     };
 
     const finalVariations = {
@@ -922,11 +898,8 @@ export class BrandingService extends GenericService {
 
     const parsedLogoContent = logoResult[0].parsedData;
 
-    // Optimiser les logos générés
-    const optimizedLogos = SvgOptimizerService.optimizeLogos(parsedLogoContent);
-
     return {
-      logos: optimizedLogos,
+      logos: parsedLogoContent,
       colors: colors,
       typography: typography,
     };
