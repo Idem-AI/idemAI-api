@@ -16,24 +16,25 @@ Generate 1 premium tech logo concept as compact JSON structure. Return JSON only
   },
   "text": {
     "elements": [
-      {"type": "text", "x": 40, "y": 25, "text": "BRAND", "fontSize": 16, "fill": "#HEX1", "fontFamily": "FontName"}
+      {"type": "text", "x": 0, "y": 16, "text": "BRAND", "fontSize": 16, "fill": "#HEX1", "fontFamily": "FontName"}
     ],
-    "size": {"w": 80, "h": 40}
+    "size": {"w": 80, "h": 20}
   },
   "layout": {
     "textPosition": "right",
-    "spacing": 8
+    "spacing": 6
   }
 }
 
-Rules:
-- Generate geometric shapes (circle, rect, path, polygon) with coordinates
-- Maximum 8 shapes for icon, 4 elements for text
-- Use project colors/fonts from context
-- Modern, geometric, premium style
-- Coordinates relative to viewBox size
-- Layout: textPosition "right" (horizontal) or "bottom" (vertical)
-- Spacing: 2-4 pixels between icon and text (VERY tight spacing required)
-- Choose layout based on text length: short text → "right", long text → "bottom"
+CRITICAL Layout Rules:
+- ALWAYS analyze text vs icon dimensions to choose optimal layout
+- If text width > icon width: use "bottom" layout (text below icon)
+- If text width ≤ icon width: use "right" layout (text beside icon)
+- Text coordinates should be relative to text container (starting at 0,0)
+- Icon coordinates should be relative to icon container (starting at 0,0)
+- Calculate realistic text dimensions: estimate ~10px per character for width
+- Text height should match fontSize + small padding (fontSize * 1.2)
+- Spacing: 4-8 pixels between icon and text for clear separation
+- Ensure text never overlaps with icon by proper size calculation
 - Single line JSON, no explanations
 `;

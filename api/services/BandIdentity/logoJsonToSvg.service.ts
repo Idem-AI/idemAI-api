@@ -91,30 +91,32 @@ export class LogoJsonToSvgService {
   }
 
   /**
-   * Generate combined SVG (icon + text) with intelligent layout positioning
+   * Generate combined SVG (icon + text) with intelligent layout positioning and validation
    */
   private generateCombinedSvg(logoJson: LogoJsonStructure): string {
     const layout = logoJson.layout;
+    
+    // Validate and potentially correct the layout choice
+    const validatedLayout = this.validateAndCorrectLayout(logoJson);
+    
     const iconElements = this.generateShapeElements(logoJson.icon.shapes);
+    const spacing = Math.max(4, Math.min(layout.spacing, 8)); // Force 4-8px spacing
 
     let textElements: string;
     let totalWidth: number;
     let totalHeight: number;
 
-    // Force minimal spacing for tight logo composition
-    const minimalSpacing = Math.min(layout.spacing, 4); // Maximum 4px spacing
-    
-    if (layout.textPosition === "bottom") {
-      // Vertical layout: text below icon with minimal gap
+    if (validatedLayout.textPosition === "bottom") {
+      // Vertical layout: text below icon
       totalWidth = Math.max(logoJson.icon.size.w, logoJson.text.size.w);
-      totalHeight = logoJson.icon.size.h + minimalSpacing + logoJson.text.size.h;
+      totalHeight = logoJson.icon.size.h + spacing + logoJson.text.size.h;
 
       // Center text horizontally if narrower than icon
       const textOffsetX =
         logoJson.text.size.w < logoJson.icon.size.w
           ? (logoJson.icon.size.w - logoJson.text.size.w) / 2
           : 0;
-      const textOffsetY = logoJson.icon.size.h + minimalSpacing;
+      const textOffsetY = logoJson.icon.size.h + spacing;
 
       textElements = this.generateTextElements(
         logoJson.text.elements,
@@ -122,12 +124,12 @@ export class LogoJsonToSvgService {
         textOffsetY
       );
     } else {
-      // Horizontal layout: text to the right of icon with minimal gap
-      totalWidth = logoJson.icon.size.w + minimalSpacing + logoJson.text.size.w;
+      // Horizontal layout: text to the right of icon
+      totalWidth = logoJson.icon.size.w + spacing + logoJson.text.size.w;
       totalHeight = Math.max(logoJson.icon.size.h, logoJson.text.size.h);
 
       // Center text vertically if shorter than icon
-      const textOffsetX = logoJson.icon.size.w + minimalSpacing;
+      const textOffsetX = logoJson.icon.size.w + spacing;
       const textOffsetY =
         logoJson.text.size.h < logoJson.icon.size.h
           ? (logoJson.icon.size.h - logoJson.text.size.h) / 2
@@ -141,6 +143,45 @@ export class LogoJsonToSvgService {
     }
 
     return this.wrapInSvg(iconElements + textElements, totalWidth, totalHeight);
+  }
+
+  /**
+   * Validate layout choice and correct if necessary to prevent text overlap
+   */
+  private validateAndCorrectLayout(logoJson: LogoJsonStructure): { textPosition: 'right' | 'bottom'; spacing: number } {
+    const iconWidth = logoJson.icon.size.w;
+    const iconHeight = logoJson.icon.size.h;
+    const textWidth = logoJson.text.size.w;
+    const textHeight = logoJson.text.size.h;
+    
+    // Calculate aspect ratios
+    const iconRatio = iconWidth / iconHeight;
+    const textRatio = textWidth / textHeight;
+    
+    // Determine optimal layout based on dimensions
+    let optimalPosition: 'right' | 'bottom';
+    
+    if (textWidth > iconWidth * 1.2) {
+      // Text is significantly wider than icon -> use bottom layout
+      optimalPosition = 'bottom';
+      logger.info(`Layout corrected to 'bottom': text width (${textWidth}) > icon width (${iconWidth})`);
+    } else if (textHeight > iconHeight * 0.8) {
+      // Text is relatively tall compared to icon -> use bottom layout
+      optimalPosition = 'bottom';
+      logger.info(`Layout corrected to 'bottom': text height (${textHeight}) > 80% of icon height (${iconHeight})`);
+    } else if (iconRatio < 0.7) {
+      // Icon is very tall -> use right layout
+      optimalPosition = 'right';
+      logger.info(`Layout set to 'right': icon is tall (ratio: ${iconRatio})`);
+    } else {
+      // Default to AI's choice if dimensions are reasonable
+      optimalPosition = logoJson.layout.textPosition;
+    }
+    
+    return {
+      textPosition: optimalPosition,
+      spacing: logoJson.layout.spacing
+    };
   }
 
   /**

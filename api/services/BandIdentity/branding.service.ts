@@ -656,7 +656,7 @@ export class BrandingService extends GenericService {
 
     const sectionResults = await this.processSteps(steps, project, {
       provider: LLMProvider.GEMINI,
-      modelName: "gemini-2.0-flash",
+      modelName: "gemini-2.5-flash",
       llmOptions: {
         maxOutputTokens: 1400,
         temperature: 0.7,
