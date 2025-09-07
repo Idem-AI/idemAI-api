@@ -9,7 +9,6 @@ import {
   generateLogoVariationsController,
   generateBrandingStreamingController,
   generateBrandingPdfController,
-  generateLogoConceptsStreamingController,
 } from "../controllers/branding.controller";
 import { authenticate } from "../services/auth.service"; // Updated import path
 import { checkQuota } from "../middleware/quota.middleware";
@@ -194,132 +193,17 @@ brandingRoutes.post(
  *       '500':
  *         description: Internal server error.
  */
-brandingRoutes.get(
+brandingRoutes.post(
   `/${resourceName}/generate/logo-concepts/:projectId`,
   authenticate,
   checkQuota,
   generateLogoConceptsController
 );
 
-// Étape 1 SSE: Generate logo concepts with streaming (new SSE endpoint)
-/**
- * @openapi
- * /brandings/generate/logo-concepts-streaming/{projectId}:
- *   post:
- *     tags:
- *       - Branding
- *     summary: Generate 4 logo concepts with real-time streaming (SSE)
- *     description: Generates 4 main logo concepts in parallel with Server-Sent Events for real-time progress updates
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: projectId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the project.
- *     requestBody:
- *       description: Selected colors and typography for logo generation.
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - selectedColors
- *               - selectedTypography
- *             properties:
- *               selectedColors:
- *                 type: object
- *                 description: Selected color palette for the logos.
- *               selectedTypography:
- *                 type: object
- *                 description: Selected typography settings for the logos.
- *     responses:
- *       '200':
- *         description: Server-Sent Events stream for logo generation progress
- *         content:
- *           text/event-stream:
- *             schema:
- *               type: string
- *               description: SSE stream with logo generation events
- *             examples:
- *               progress:
- *                 summary: Progress event example
- *                 value: |
- *                   data: {"type":"started","stepName":"Logo Concept 1","data":"Génération du concept 1 en cours...","summary":"Démarrage de la génération du Logo Concept 1","timestamp":"2024-01-01T12:00:00.000Z"}
- *
- *               completion:
- *                 summary: Completion event example
- *                 value: |
- *                   data: {"type":"completed","stepName":"Logo Concept 1","data":"{\"name\":\"Modern Tech Logo\",\"svg\":\"...\"}","summary":"Logo Concept 1 généré: Modern Tech Logo","timestamp":"2024-01-01T12:00:05.000Z","parsedData":{...}}
- *         headers:
- *           Content-Type:
- *             description: SSE content type
- *             schema:
- *               type: string
- *               example: 'text/event-stream'
- *           Cache-Control:
- *             description: No cache directive
- *             schema:
- *               type: string
- *               example: 'no-cache'
- *           Connection:
- *             description: Keep connection alive
- *             schema:
- *               type: string
- *               example: 'keep-alive'
- *       '400':
- *         description: Bad request - Missing required parameters
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Selected colors and typography are required"
- *       '401':
- *         description: Unauthorized - User not authenticated
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "User not authenticated"
- *       '404':
- *         description: Project not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Project not found with ID: {projectId}"
- *       '500':
- *         description: Internal server error during generation
- *         content:
- *           text/event-stream:
- *             schema:
- *               type: string
- *               example: |
- *                 data: {"type":"error","stepName":"Logo Generation Error","data":"Erreur lors de la génération: ...","summary":"Échec de la génération des concepts de logos","timestamp":"2024-01-01T12:00:00.000Z"}
- */
-brandingRoutes.get(
-  `/${resourceName}/generate/logos-stream/:projectId`,
-  authenticate,
-  checkQuota,
-  generateLogoConceptsStreamingController
-);
-
 // Étape 2: Generate logo variations for selected logo
 /**
  * @openapi
- * /brandings/generate/logo-variations/{projectId}:
+ * /brandings/generate/logo-variations:
  *   post:
  *     tags:
  *       - Branding
@@ -371,6 +255,8 @@ brandingRoutes.post(
   checkQuota,
   generateLogoVariationsController
 );
+
+
 
 // Get all brandings for a specific project
 /**
