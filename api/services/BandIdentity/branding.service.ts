@@ -654,7 +654,16 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project);
+    const sectionResults = await this.processSteps(steps, project, {
+      provider: LLMProvider.GEMINI,
+      modelName: "gemini-2.0-flash",
+      llmOptions: {
+        maxOutputTokens: 1400,
+        temperature: 0.7,
+        topP: 0.9,
+        topK: 40,
+      },
+    });
     const logoResult = sectionResults[0];
     const logoJsonStructure: LogoJsonStructure = logoResult.parsedData;
 
@@ -729,14 +738,6 @@ export class BrandingService extends GenericService {
     });
 
     return optimized;
-  }
-
-  /**
-   * Extrait le contenu interne d'un SVG (sans les balises svg)
-   */
-  private extractSvgContent(svgString: string): string {
-    const match = svgString.match(/<svg[^>]*>([\s\S]*?)<\/svg>/);
-    return match ? match[1] : svgString;
   }
 
   /**

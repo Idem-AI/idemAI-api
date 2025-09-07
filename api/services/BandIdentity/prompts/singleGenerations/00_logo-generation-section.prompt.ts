@@ -16,9 +16,13 @@ Generate 1 premium tech logo concept as compact JSON structure. Return JSON only
   },
   "text": {
     "elements": [
-      {"type": "text", "x": 50, "y": 25, "text": "BRAND", "fontSize": 16, "fill": "#HEX1", "fontFamily": "FontName"}
+      {"type": "text", "x": 40, "y": 25, "text": "BRAND", "fontSize": 16, "fill": "#HEX1", "fontFamily": "FontName"}
     ],
     "size": {"w": 80, "h": 40}
+  },
+  "layout": {
+    "textPosition": "right",
+    "spacing": 8
   }
 }
 
@@ -28,5 +32,8 @@ Rules:
 - Use project colors/fonts from context
 - Modern, geometric, premium style
 - Coordinates relative to viewBox size
+- Layout: textPosition "right" (horizontal) or "bottom" (vertical)
+- Spacing: 2-4 pixels between icon and text (VERY tight spacing required)
+- Choose layout based on text length: short text → "right", long text → "bottom"
 - Single line JSON, no explanations
 `;

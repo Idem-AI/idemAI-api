@@ -72,6 +72,10 @@ export interface LogoJsonStructure {
   fonts: string[];
   icon: LogoIconStructure;
   text: LogoTextStructure;
+  layout: {
+    textPosition: 'right' | 'bottom'; // Text position relative to icon
+    spacing: number; // Spacing between icon and text in pixels
+  };
 }
 
 export interface LogoVariationStructure {
