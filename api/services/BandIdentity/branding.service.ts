@@ -35,14 +35,22 @@ import { cacheService } from "../cache.service";
 import crypto from "crypto";
 import { projectService } from "../project.service";
 import { SvgIconExtractorService } from "./svgIconExtractor.service";
+import { LogoJsonToSvgService } from "./logoJsonToSvg.service";
+import { SvgOptimizerService } from "./svgOptimizer.service";
+import {
+  LogoJsonStructure,
+  LogoVariationsJson,
+} from "./interfaces/logoJson.interface";
 
 export class BrandingService extends GenericService {
   private pdfService: PdfService;
+  private logoJsonToSvgService: LogoJsonToSvgService;
 
   constructor(promptService: PromptService) {
     super(promptService);
     this.pdfService = new PdfService();
-    logger.info("BrandingService initialized");
+    this.logoJsonToSvgService = new LogoJsonToSvgService();
+    logger.info("BrandingService initialized with optimized logo generation");
   }
 
   /**
@@ -589,7 +597,8 @@ export class BrandingService extends GenericService {
   }
 
   /**
-   * Génère un seul concept de logo - Méthode privée pour génération parallèle
+   * Generate single logo concept using optimized JSON-to-SVG approach
+   * Implements token-saving strategy with compact JSON generation
    */
   private async generateSingleLogoConcept(
     projectDescription: string,
@@ -598,40 +607,47 @@ export class BrandingService extends GenericService {
     project: ProjectModel,
     conceptIndex: number
   ): Promise<LogoModel> {
-    logger.info(`Generating single logo concept ${conceptIndex + 1}`);
+    logger.info(
+      `Generating optimized logo concept ${
+        conceptIndex + 1
+      } using JSON-to-SVG conversion`
+    );
 
-    // Préparation du prompt optimisé pour un seul logo
+    // Build optimized prompt for compact JSON generation
     const optimizedPrompt = this.buildOptimizedLogoPrompt(
       projectDescription,
       colors,
       typography
     );
 
-    // Génération AI avec prompt optimisé pour un seul logo
+    // AI generation with max_output_tokens limit for efficiency
     const steps: IPromptStep[] = [
       {
         promptConstant: optimizedPrompt,
         stepName: `Logo Concept ${conceptIndex + 1}`,
+        maxOutputTokens: 1400,
         modelParser: (content) => {
           try {
-            // Parse le JSON d'un seul logo au lieu d'un array
-            const parsedLogo = JSON.parse(content);
+            // Parse compact JSON logo structure
+            const logoJson: LogoJsonStructure = JSON.parse(content);
 
-            // Assurer un ID unique pour chaque concept
-            if (!parsedLogo.id) {
-              parsedLogo.id = `concept${String(conceptIndex + 1).padStart(
+            // Ensure unique ID for each concept
+            if (!logoJson.id) {
+              logoJson.id = `concept${String(conceptIndex + 1).padStart(
                 2,
                 "0"
               )}`;
             }
 
-            return parsedLogo;
+            return logoJson;
           } catch (error) {
             logger.error(
-              `Error parsing logo concept ${conceptIndex + 1}:`,
+              `Error parsing logo JSON concept ${conceptIndex + 1}:`,
               error
             );
-            throw new Error(`Failed to parse logo concept ${conceptIndex + 1}`);
+            throw new Error(
+              `Failed to parse logo JSON concept ${conceptIndex + 1}`
+            );
           }
         },
         hasDependencies: false,
@@ -640,42 +656,79 @@ export class BrandingService extends GenericService {
 
     const sectionResults = await this.processSteps(steps, project);
     const logoResult = sectionResults[0];
-    const parsedLogoContent = logoResult.parsedData;
+    const logoJsonStructure: LogoJsonStructure = logoResult.parsedData;
 
-    // Combiner l'icône et le texte en un logo complet
-    const completeLogo = this.combineLogo(parsedLogoContent);
+    // Convert JSON structure to optimized SVG LogoModel
+    const logoModel =
+      this.logoJsonToSvgService.convertJsonToLogoModel(logoJsonStructure);
+
+    // Apply SVG optimization
+    const optimizedLogo = this.optimizeLogoSvgs(logoModel);
 
     logger.info(
-      `Single logo concept ${conceptIndex + 1} generated and combined`
+      `Optimized logo concept ${conceptIndex + 1} generated with ${
+        logoJsonStructure.icon.shapes.length
+      } icon shapes and ${logoJsonStructure.text.elements.length} text elements`
     );
-    return completeLogo;
+    return optimizedLogo;
   }
 
   /**
-   * Combine l'icône et le texte générés séparément en un logo complet
+   * Optimize logo SVGs using advanced compression techniques
    */
-  private combineLogo(logoData: any): LogoModel {
-    const { iconSvg, textSvg, ...otherProps } = logoData;
+  private optimizeLogoSvgs(logoModel: LogoModel): LogoModel {
+    logger.info(`Optimizing SVGs for logo: ${logoModel.id}`);
 
-    // Extraire le contenu des SVG (sans les balises svg)
-    const iconContent = this.extractSvgContent(iconSvg);
-    const textContent = this.extractSvgContent(textSvg);
+    const optimized = { ...logoModel };
 
-    // Créer le SVG complet combiné
-    const combinedSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40">
-      <g id="logo-icon" transform="translate(0, 0)">
-        ${iconContent}
-      </g>
-      <g id="logo-text" transform="translate(50, 0)">
-        ${textContent}
-      </g>
-    </svg>`;
+    // Optimize main SVG
+    if (optimized.svg) {
+      optimized.svg = SvgOptimizerService.optimizeSvg(optimized.svg);
+    }
 
-    return {
-      ...otherProps,
-      svg: combinedSvg,
-      iconSvg: iconSvg, // Garder l'icône séparée
-    };
+    // Optimize icon SVG
+    if (optimized.iconSvg) {
+      optimized.iconSvg = SvgOptimizerService.optimizeSvg(optimized.iconSvg);
+    }
+
+    // Optimize variations if present
+    if (optimized.variations) {
+      optimized.variations = this.optimizeLogoVariations(optimized.variations);
+    }
+
+    return optimized;
+  }
+
+  /**
+   * Optimize logo variations SVGs
+   */
+  private optimizeLogoVariations(variations: any): any {
+    const optimized = { ...variations };
+
+    if (variations.withText) {
+      optimized.withText = this.optimizeVariationSet(variations.withText);
+    }
+
+    if (variations.iconOnly) {
+      optimized.iconOnly = this.optimizeVariationSet(variations.iconOnly);
+    }
+
+    return optimized;
+  }
+
+  /**
+   * Optimize a set of variations
+   */
+  private optimizeVariationSet(variationSet: any): any {
+    const optimized = { ...variationSet };
+
+    Object.keys(optimized).forEach((key) => {
+      if (typeof optimized[key] === "string") {
+        optimized[key] = SvgOptimizerService.optimizeSvg(optimized[key]);
+      }
+    });
+
+    return optimized;
   }
 
   /**
@@ -710,10 +763,10 @@ export class BrandingService extends GenericService {
     // Étape 4: Préparation du prompt optimisé
     const projectDescription = this.extractProjectDescription(project);
 
-    // Étape 5: Génération AI parallèle des 4 logos
+    // Step 5: Parallel AI generation of 4 optimized logos using JSON-to-SVG
     const startTime = Date.now();
 
-    // Créer 4 promesses pour générer les logos en parallèle
+    // Create 4 promises for parallel logo generation with token optimization
     const logoPromises = Array.from({ length: 4 }, (_, index) =>
       this.generateSingleLogoConcept(
         projectDescription,
@@ -724,12 +777,16 @@ export class BrandingService extends GenericService {
       )
     );
 
-    // Attendre que tous les logos soient générés en parallèle
+    // Wait for all logos to be generated in parallel with optimization
     const optimizedLogos = await Promise.all(logoPromises);
+
+    // Apply batch SVG optimization
+    const finalOptimizedLogos =
+      SvgOptimizerService.optimizeLogos(optimizedLogos);
 
     const aiGenerationTime = Date.now() - startTime;
     logger.info(
-      `Parallel AI generation completed in ${aiGenerationTime}ms for 4 logos`
+      `Parallel optimized AI generation completed in ${aiGenerationTime}ms for 4 logos with JSON-to-SVG conversion`
     );
 
     // Étape 6: Mise à jour immédiate du projet avec les logos générés
@@ -741,13 +798,13 @@ export class BrandingService extends GenericService {
           ...project.analysisResultModel.branding,
           colors: selectedColors,
           typography: selectedTypography,
-          generatedLogos: optimizedLogos,
+          generatedLogos: finalOptimizedLogos as LogoModel[],
           updatedAt: new Date(),
         },
       },
     };
 
-    // Mise à jour en base de données
+    // Database update with optimized logos
     const updatedProject = await this.projectRepository.update(
       projectId,
       updatedProjectData,
@@ -756,7 +813,7 @@ export class BrandingService extends GenericService {
 
     if (updatedProject) {
       logger.info(
-        `Successfully updated project with logos - ProjectId: ${projectId}, LogoCount: ${optimizedLogos.length}`
+        `Successfully updated project with optimized logos - ProjectId: ${projectId}, LogoCount: ${finalOptimizedLogos.length}`
       );
 
       // Mise à jour du cache projet
@@ -775,12 +832,13 @@ export class BrandingService extends GenericService {
     );
 
     return {
-      logos: optimizedLogos,
+      logos: finalOptimizedLogos as LogoModel[],
     };
   }
 
   /**
-   * Étape 2: Génère les variations d'un logo sélectionné
+   * Generate logo variations using optimized JSON-to-SVG layered approach
+   * Implements token-saving strategy with compact JSON generation
    */
   async generateLogoVariations(
     userId: string,
@@ -798,35 +856,39 @@ export class BrandingService extends GenericService {
       monochrome?: string;
     };
   }> {
-    // Utiliser le SVG du logo récupéré du cache
+    logger.info(
+      `Generating optimized logo variations using JSON-to-SVG conversion for logo: ${selectedLogo.id}`
+    );
+
     const project = await this.getProjectOptimized(userId, projectId);
     if (!project) {
       throw new Error(`Project not found with ID: ${projectId}`);
     }
-    const selectedLogoSvg = selectedLogo.svg;
-    const selectedIconSvg = selectedLogo.iconSvg;
 
-    // L'icône est maintenant directement fournie par l'IA, plus besoin d'extraction
-    const iconResult = {
-      fullLogo: selectedLogoSvg,
-      iconOnly: selectedIconSvg || selectedLogoSvg, // Fallback au logo complet si pas d'icône
+    // Create compact logo structure for AI input (token-efficient)
+    const logoStructure = {
+      id: selectedLogo.id,
+      name: selectedLogo.name,
+      colors: selectedLogo.colors,
+      concept: selectedLogo.concept,
     };
 
-    const prompt = `Selected logo SVG: ${JSON.stringify(
-      iconResult
+    const prompt = `Logo structure: ${JSON.stringify(
+      logoStructure
     )}\n\n${LOGO_VARIATIONS_GENERATION_PROMPT}`;
 
     const steps: IPromptStep[] = [
       {
         promptConstant: prompt,
         stepName: "Logo Variations Generation",
+        maxOutputTokens: 600, // Limit tokens for compact JSON variations
         modelParser: (content) => {
           try {
-            const parsed = JSON.parse(content);
-            return parsed.variations;
+            const variationsJson: LogoVariationsJson = JSON.parse(content);
+            return variationsJson;
           } catch (error) {
-            logger.error("Error parsing logo variations:", error);
-            throw new Error("Failed to parse logo variations");
+            logger.error("Error parsing logo variations JSON:", error);
+            throw new Error("Failed to parse logo variations JSON");
           }
         },
         hasDependencies: false,
@@ -835,45 +897,35 @@ export class BrandingService extends GenericService {
 
     const sectionResults = await this.processSteps(steps, project);
     const variationsResult = sectionResults[0];
-    const variations = variationsResult.parsedData;
+    const variationsJson: LogoVariationsJson = variationsResult.parsedData;
 
-    // Étape 4: Générer les variations avec et sans texte
-    const variationsWithText =
-      SvgIconExtractorService.generateVariationsWithText(
-        selectedLogoSvg,
-        variations
-      );
+    // Convert JSON variations to optimized SVGs
+    const svgVariations =
+      this.logoJsonToSvgService.convertVariationsJsonToSvg(variationsJson);
 
-    // Les variations générées par l'IA sont déjà des icônes uniquement
-    // Plus besoin d'extraction supplémentaire
-    const iconVariations = {
-      lightBackground: variations.lightBackground,
-      darkBackground: variations.darkBackground,
-      monochrome: variations.monochrome,
+    // Apply advanced SVG optimization
+    const optimizedVariations = {
+      withText: this.optimizeVariationSet(svgVariations.withText),
+      iconOnly: this.optimizeVariationSet(svgVariations.iconOnly),
     };
 
-    const finalVariations = {
-      withText: variationsWithText.withText,
-      iconOnly: iconVariations,
-    };
-
-    // Mettre à jour le projet avec les variations de logo générées
+    // Update project with optimized variations
     const updatedProjectData = {
       ...project,
       analysisResultModel: {
         ...project.analysisResultModel,
         branding: {
           ...project.analysisResultModel.branding,
-          logo: selectedLogo,
+          logo: {
+            ...selectedLogo,
+            variations: optimizedVariations,
+          },
           updatedAt: new Date(),
         },
       },
     };
 
-    updatedProjectData.analysisResultModel.branding.logo.variations =
-      finalVariations;
-
-    // Mise à jour en base de données
+    // Database update
     const updatedProject = await this.projectRepository.update(
       projectId,
       updatedProjectData,
@@ -881,84 +933,48 @@ export class BrandingService extends GenericService {
     );
 
     if (updatedProject) {
-      console.log(
-        "fiinal logo",
-        updatedProject.analysisResultModel.branding.logo
-      );
       logger.info(
-        `Successfully updated project with logo variations - ProjectId: ${projectId}`
+        `Successfully updated project with optimized logo variations - ProjectId: ${projectId}, LogoId: ${selectedLogo.id}`
       );
 
-      // Mise à jour du cache projet
+      // Update project cache
       const projectCacheKey = `project_${userId}_${projectId}`;
       await cacheService.set(projectCacheKey, updatedProject, {
         prefix: "project",
         ttl: 3600,
       });
 
+      // Cache AI variations with 2h TTL
+      const variationsCacheKey = cacheService.generateAIKey(
+        "logo_variations",
+        userId,
+        projectId,
+        crypto
+          .createHash("sha256")
+          .update(JSON.stringify(selectedLogo))
+          .digest("hex")
+          .substring(0, 16)
+      );
+      await cacheService.set(variationsCacheKey, optimizedVariations, {
+        prefix: "ai",
+        ttl: 7200,
+      });
+
       logger.info(
-        `Project cache updated with logo variations - ProjectId: ${projectId}`
+        `Optimized logo variations cached - ProjectId: ${projectId}, Shapes: ${Object.keys(
+          variationsJson.variations
+        )
+          .map(
+            (k) =>
+              variationsJson.variations[
+                k as keyof typeof variationsJson.variations
+              ].shapes.length
+          )
+          .join("/")}`
       );
     }
 
-    return finalVariations;
-  }
-
-  async generateLogoColorsAndTypography(
-    userId: string,
-    project: ProjectModel
-  ): Promise<{
-    logos: LogoModel[];
-    colors: ColorModel[];
-    typography: TypographyModel[];
-  }> {
-    logger.info(
-      `Generating logo colors and typography for userId: ${userId}, projectId: ${project.id}`
-    );
-
-    if (!project.id) {
-      throw new Error(`Project not found with ID: ${project.id}`);
-    }
-
-    const projectDescription = this.extractProjectDescription(project);
-
-    // Génération parallèle des couleurs, typographies et logos
-    const startTime = Date.now();
-
-    // Créer 3 promesses pour générer couleurs, typographies et logos en parallèle
-    const [colors, typography, logoResult] = await Promise.all([
-      this.generateSingleColors(projectDescription, project),
-      this.generateSingleTypography(projectDescription, project),
-      this.processSteps(
-        [
-          {
-            promptConstant: projectDescription + LOGO_GENERATION_PROMPT,
-            stepName: "Logo Concepts Generation",
-            modelParser: (content) =>
-              this.parseSection(
-                content,
-                "Logo Concepts Generation",
-                project.id!
-              ),
-            hasDependencies: false,
-          },
-        ],
-        project
-      ),
-    ]);
-
-    const generationTime = Date.now() - startTime;
-    logger.info(
-      `Parallel colors, typography and logos generation completed in ${generationTime}ms`
-    );
-
-    const parsedLogoContent = logoResult[0].parsedData;
-
-    return {
-      logos: parsedLogoContent,
-      colors: colors,
-      typography: typography,
-    };
+    return optimizedVariations;
   }
 
   async getBrandingsByProjectId(

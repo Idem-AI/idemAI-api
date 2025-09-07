@@ -26,6 +26,8 @@ export interface IPromptStep {
   // If true, either all steps or those in requiresSteps will be included
   // If not provided, defaults to true (backward compatibility)
   hasDependencies?: boolean;
+  // Maximum output tokens for LLM generation (optimization feature)
+  maxOutputTokens?: number;
 }
 
 // Define interface for section result
