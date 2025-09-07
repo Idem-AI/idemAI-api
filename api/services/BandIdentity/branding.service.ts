@@ -785,30 +785,38 @@ export class BrandingService extends GenericService {
   async generateLogoConceptsWithStreaming(
     userId: string,
     projectId: string,
-    callback: (result: ISectionResult) => Promise<void>
+    streamCallback?: (sectionResult: ISectionResult) => Promise<void>
   ): Promise<{
     logos: LogoModel[];
   }> {
     logger.info(
-      `Starting SSE logo concepts generation for userId: ${userId}, projectId: ${projectId}`
+      `Generating logo concepts with streaming for userId: ${userId}, projectId: ${projectId}`
     );
 
-    // Récupération du projet
-    const project = await this.getProjectOptimized(userId, projectId);
+    // Get project
+    const project = await this.getProject(projectId, userId);
     if (!project) {
-      throw new Error(`Project not found with ID: ${projectId}`);
+      return { logos: [] };
     }
 
-    const projectDescription = this.extractProjectDescription(project);
+    // Generate cache key based on project content
+    const projectDescription =
+      this.extractProjectDescription(project) +
+      "\n\nHere is the project branding colors: " +
+      JSON.stringify(project.analysisResultModel.branding.colors) +
+      "\n\nHere is the project branding typography: " +
+      JSON.stringify(project.analysisResultModel.branding.typography) +
+      "\n\nHere is the project branding logo: " +
+      JSON.stringify(project.analysisResultModel.branding.logo);
 
-    // Generate cache key for logo concepts
     const contentHash = crypto
       .createHash("sha256")
       .update(
         JSON.stringify({
+          name: project.name,
+          description: project.description,
+          branding: project.analysisResultModel?.branding,
           projectDescription,
-          colors: project.analysisResultModel.branding.colors,
-          typography: project.analysisResultModel.branding.typography,
         })
       )
       .digest("hex")
@@ -822,21 +830,16 @@ export class BrandingService extends GenericService {
     );
 
     // Check cache first
-    const cachedResult = await cacheService.get<{ logos: LogoModel[] }>(cacheKey, {
-      prefix: "ai",
-      ttl: 7200, // 2 hours
-    });
+    const cachedResult = await cacheService.get<{ logos: LogoModel[] }>(
+      cacheKey,
+      {
+        prefix: "ai",
+        ttl: 7200, // 2 hours
+      }
+    );
 
     if (cachedResult) {
       logger.info(`Logo concepts cache hit for projectId: ${projectId}`);
-      // Send cached result via callback
-      await callback({
-        name: "Logo Generation Completed",
-        type: "completed",
-        data: JSON.stringify(cachedResult),
-        summary: `Génération terminée (cache): ${cachedResult.logos.length} concepts récupérés`,
-        parsedData: cachedResult.logos,
-      });
       return cachedResult;
     }
 
@@ -854,7 +857,7 @@ export class BrandingService extends GenericService {
         },
         {
           promptConstant: LOGO_GENERATION_PROMPT + projectDescription,
-          stepName: "Logo Concept 2", 
+          stepName: "Logo Concept 2",
           hasDependencies: false, // Parallel execution
         },
         {
@@ -872,133 +875,193 @@ export class BrandingService extends GenericService {
       // Initialize empty logos array to collect results as they come in
       let logos: LogoModel[] = [];
 
-      // Process steps with streaming
-      await this.processStepsWithStreaming(
-        steps,
-        project,
-        async (result: ISectionResult) => {
-          logger.info(`Received streamed result for step: ${result.name}`);
+      // Process steps one by one with streaming if callback provided
+      if (streamCallback) {
+        await this.processStepsWithStreaming(
+          steps,
+          project,
+          async (result: ISectionResult) => {
+            logger.info(`Received streamed result for step: ${result.name}`);
 
-          // Skip progress and completion events - handle only actual step results
-          if (
-            result.data === "steps_in_progress" ||
-            result.data === "all_steps_completed"
-          ) {
-            await callback(result);
-            return;
-          }
+            // Skip progress and completion events - handle only actual step results
+            if (
+              result.data === "steps_in_progress" ||
+              result.data === "all_steps_completed"
+            ) {
+              await streamCallback(result);
+              return;
+            }
 
-          // Parse logo result
+            // Parse logo result
+            try {
+              const logoData = JSON.parse(result.data);
+              const logo: LogoModel = {
+                ...logoData,
+                id: `concept${logos.length + 1}`,
+              };
+
+              // Add to logos array
+              logos.push(logo);
+
+              // Update project immediately after each step
+              logger.info(
+                `Updating project after step: ${result.name} - projectId: ${projectId}`
+              );
+
+              // Get the current project
+              const currentProject = await this.projectRepository.findById(
+                projectId,
+                `users/${userId}/projects`
+              );
+              if (!currentProject) {
+                logger.warn(
+                  `Project not found with ID: ${projectId} for user: ${userId} during step update.`
+                );
+                throw new Error(`Project not found: ${projectId}`);
+              }
+
+              // Create the updated project with current logos
+              const updatedProjectData = {
+                ...currentProject,
+                analysisResultModel: {
+                  ...currentProject.analysisResultModel,
+                  branding: {
+                    ...currentProject.analysisResultModel.branding,
+                    generatedLogos: logos,
+                    updatedAt: new Date(),
+                  },
+                },
+              };
+
+              // Update the project in the database
+              const updatedProject = await this.projectRepository.update(
+                projectId,
+                updatedProjectData,
+                `users/${userId}/projects`
+              );
+
+              if (updatedProject) {
+                logger.info(
+                  `Successfully updated project with step: ${result.name} - projectId: ${projectId}`
+                );
+
+                // Update cache with latest project state
+                await cacheService.set(cacheKey, { logos }, {
+                  prefix: "ai",
+                  ttl: 7200, // 2 hours
+                });
+                logger.info(
+                  `Logo concepts cached after step: ${result.name} - projectId: ${projectId}`
+                );
+
+                // Only send to frontend after successful database update
+                await streamCallback({
+                  name: result.name,
+                  type: result.type,
+                  data: result.data,
+                  summary: `${result.name} généré: ${logo.name}`,
+                  parsedData: logo,
+                });
+              } else {
+                logger.error(
+                  `Failed to update project after step: ${result.name} - projectId: ${projectId}`
+                );
+                throw new Error(
+                  `Failed to update project after step: ${result.name}`
+                );
+              }
+            } catch (error) {
+              logger.error(
+                `Error parsing logo result for ${result.name}: ${error}`
+              );
+              throw error;
+            }
+          },
+          undefined, // promptConfig
+          "logo_generation", // promptType
+          userId
+        );
+
+        // Return the updated project (it should be available in cache or fetch it again)
+        const finalProject = await this.projectRepository.findById(
+          projectId,
+          `users/${userId}/projects`
+        );
+        return {
+          logos: finalProject?.analysisResultModel?.branding?.generatedLogos || [],
+        };
+      } else {
+        // Fallback to non-streaming processing
+        const stepResults = await this.processSteps(steps, project);
+        logos = stepResults.map((result) => {
           try {
             const logoData = JSON.parse(result.data);
-            const logo: LogoModel = {
+            return {
               ...logoData,
               id: `concept${logos.length + 1}`,
             };
-
-            // Add to logos array
-            logos.push(logo);
-
-            // Send progress update via callback
-            await callback({
-              name: result.name,
-              type: result.type,
-              data: result.data,
-              summary: `${result.name} généré: ${logo.name}`,
-              parsedData: logo,
-            });
-
-            logger.info(
-              `Logo concept ${logos.length} generated - ProjectId: ${projectId}`
-            );
-
           } catch (error) {
-            logger.error(`Error parsing logo result for ${result.name}: ${error}`);
-            
-            // Send error via callback
-            await callback({
-              name: result.name,
-              type: "error",
-              data: `Erreur lors du parsing du ${result.name}`,
-              summary: `Échec du parsing pour ${result.name}`,
-            });
+            logger.error(`Error parsing logo result: ${error}`);
+            return null;
           }
-        },
-        undefined, // promptConfig
-        "logo_generation", // promptType
-        userId
-      );
+        }).filter(Boolean);
 
-      const validLogos = logos.filter(Boolean);
-
-      // Update project with generated logos
-      const updatedProjectData = {
-        ...project,
-        analysisResultModel: {
-          ...project.analysisResultModel,
-          branding: {
-            ...project.analysisResultModel.branding,
-            generatedLogos: validLogos,
-            updatedAt: new Date(),
-          },
-        },
-      };
-
-      const updatedProject = await this.projectRepository.update(
-        projectId,
-        updatedProjectData,
-        `users/${userId}/projects`
-      );
-
-      if (updatedProject) {
-        // Update project cache
-        const projectCacheKey = `project_${userId}_${projectId}`;
-        await cacheService.set(projectCacheKey, updatedProject, {
-          prefix: "project",
-          ttl: 3600,
-        });
-
-        // Cache the logo results
-        const logoResult = { logos: validLogos };
-        await cacheService.set(cacheKey, logoResult, {
-          prefix: "ai",
-          ttl: 7200,
-        });
-
-        logger.info(
-          `Project updated with ${validLogos.length} logos - ProjectId: ${projectId}`
+        // Get the existing project to prepare for update
+        const oldProject = await this.projectRepository.findById(
+          projectId,
+          `users/${userId}/projects`
         );
+        if (!oldProject) {
+          logger.warn(
+            `Original project not found with ID: ${projectId} for user: ${userId} before updating with logo concepts.`
+          );
+          return { logos: [] };
+        }
+
+        // Create the new project with updated logo concepts
+        const newProject = {
+          ...oldProject,
+          analysisResultModel: {
+            ...oldProject.analysisResultModel,
+            branding: {
+              ...oldProject.analysisResultModel.branding,
+              generatedLogos: logos,
+              updatedAt: new Date(),
+            },
+          },
+        };
+
+        // Update the project in the database
+        const updatedProject = await this.projectRepository.update(
+          projectId,
+          newProject,
+          `users/${userId}/projects`
+        );
+
+        if (updatedProject) {
+          logger.info(
+            `Successfully updated project with ID: ${projectId} with logo concepts`
+          );
+
+          // Cache the result for future requests
+          await cacheService.set(cacheKey, { logos }, {
+            prefix: "ai",
+            ttl: 7200, // 2 hours
+          });
+          logger.info(`Logo concepts cached for projectId: ${projectId}`);
+        }
+        return { logos };
       }
-
-      // Send final completion event
-      await callback({
-        name: "Logo Generation Completed",
-        type: "completed",
-        data: JSON.stringify({ logos: validLogos, logoCount: validLogos.length }),
-        summary: `Génération terminée: ${validLogos.length} concepts créés`,
-        parsedData: validLogos,
-      });
-
-      logger.info(
-        `SSE logo concepts generation completed for userId: ${userId}, projectId: ${projectId}, logoCount: ${validLogos.length}`
-      );
-
-      return {
-        logos: validLogos,
-      };
-
     } catch (error) {
-      logger.error(`Error in SSE logo generation: ${error}`);
-
-      // Send error event via callback
-      await callback({
-        name: "Logo Generation Error",
-        type: "error",
-        data: `Erreur lors de la génération des logos: ${error}`,
-        summary: "Échec de la génération des concepts de logos",
-      });
-
+      logger.error(
+        `Error generating logo concepts for projectId ${projectId}:`,
+        error
+      );
       throw error;
+    } finally {
+      logger.info(
+        `Completed logo concepts generation for projectId ${projectId}`
+      );
     }
   }
 
