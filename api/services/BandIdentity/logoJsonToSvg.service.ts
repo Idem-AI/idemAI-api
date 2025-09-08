@@ -111,18 +111,24 @@ export class LogoJsonToSvgService {
       totalWidth = Math.max(logoJson.icon.size.w, logoJson.text.size.w);
       totalHeight = logoJson.icon.size.h + spacing + logoJson.text.size.h;
 
-      // Center text horizontally if narrower than icon
-      const textOffsetX =
-        logoJson.text.size.w < logoJson.icon.size.w
-          ? (logoJson.icon.size.w - logoJson.text.size.w) / 2
-          : 0;
+      // Always center text horizontally regardless of width
+      const textOffsetX = (totalWidth - logoJson.text.size.w) / 2;
       const textOffsetY = logoJson.icon.size.h + spacing;
+
+      // Also center icon horizontally if narrower than text
+      let centeredIconElements = iconElements;
+      if (logoJson.icon.size.w < logoJson.text.size.w) {
+        const iconOffsetX = (totalWidth - logoJson.icon.size.w) / 2;
+        centeredIconElements = this.adjustIconPosition(logoJson.icon.shapes, iconOffsetX, 0);
+      }
 
       textElements = this.generateTextElements(
         logoJson.text.elements,
         textOffsetX,
         textOffsetY
       );
+      
+      return this.wrapInSvg(centeredIconElements + textElements, totalWidth, totalHeight);
     } else {
       // Horizontal layout: text to the right of icon
       totalWidth = logoJson.icon.size.w + spacing + logoJson.text.size.w;
@@ -208,6 +214,55 @@ export class LogoJsonToSvgService {
    */
   private generateShapeElements(shapes: LogoShape[]): string {
     return shapes.map((shape) => this.generateShapeElement(shape)).join("");
+  }
+
+  /**
+   * Adjust icon position by adding offset to all shapes
+   */
+  private adjustIconPosition(shapes: LogoShape[], offsetX: number, offsetY: number): string {
+    const adjustedShapes = shapes.map(shape => {
+      const adjustedShape = { ...shape };
+      
+      // Adjust coordinates based on shape type
+      switch (shape.type) {
+        case 'circle':
+          adjustedShape.cx = (shape.cx || 0) + offsetX;
+          adjustedShape.cy = (shape.cy || 0) + offsetY;
+          break;
+        case 'rect':
+          adjustedShape.x = (shape.x || 0) + offsetX;
+          adjustedShape.y = (shape.y || 0) + offsetY;
+          break;
+        case 'ellipse':
+          adjustedShape.cx = (shape.cx || 0) + offsetX;
+          adjustedShape.cy = (shape.cy || 0) + offsetY;
+          break;
+        case 'line':
+          adjustedShape.x1 = (shape.x1 || 0) + offsetX;
+          adjustedShape.y1 = (shape.y1 || 0) + offsetY;
+          adjustedShape.x2 = (shape.x2 || 0) + offsetX;
+          adjustedShape.y2 = (shape.y2 || 0) + offsetY;
+          break;
+        case 'polygon':
+          // Adjust polygon points
+          if (shape.points) {
+            const points = shape.points.split(' ').map(point => {
+              const [x, y] = point.split(',').map(Number);
+              return `${x + offsetX},${y + offsetY}`;
+            });
+            adjustedShape.points = points.join(' ');
+          }
+          break;
+        case 'path':
+          // For paths, we'd need to parse and adjust the d attribute
+          // This is complex, so for now we'll leave paths unchanged
+          break;
+      }
+      
+      return adjustedShape;
+    });
+    
+    return this.generateShapeElements(adjustedShapes);
   }
 
   /**

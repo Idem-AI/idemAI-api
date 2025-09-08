@@ -1,24 +1,25 @@
 export const LOGO_GENERATION_PROMPT = `
-Generate 1 premium tech logo concept as compact JSON structure. Return JSON only:
+Generate 1 premium, ORIGINAL tech logo concept with sophisticated design. Return JSON only:
 
 {
   "id": "concept01",
-  "name": "Logo Name",
-  "concept": "Brief description",
-  "colors": ["#HEX1", "#HEX2"],
-  "fonts": ["FontName"],
+  "name": "Creative Logo Name",
+  "concept": "Innovative design description",
+  "colors": ["#HEX1", "#HEX2", "#HEX3"],
+  "fonts": ["Modern FontName"],
   "icon": {
     "shapes": [
-      {"type": "circle", "cx": 20, "cy": 20, "r": 15, "fill": "#HEX1"},
-      {"type": "rect", "x": 10, "y": 10, "w": 20, "h": 20, "fill": "#HEX2"}
+      {"type": "path", "d": "M15,5 Q25,0 35,5 Q40,15 35,25 Q25,30 15,25 Q10,15 15,5 Z", "fill": "#HEX1"},
+      {"type": "circle", "cx": 25, "cy": 15, "r": 8, "fill": "#HEX2", "opacity": 0.8},
+      {"type": "polygon", "points": "20,10 30,10 28,18 22,18", "fill": "#HEX3"}
     ],
-    "size": {"w": 40, "h": 40}
+    "size": {"w": 50, "h": 35}
   },
   "text": {
     "elements": [
-      {"type": "text", "x": 0, "y": 16, "text": "BRAND", "fontSize": 16, "fill": "#HEX1", "fontFamily": "FontName"}
+      {"type": "text", "x": 0, "y": 18, "text": "BRAND", "fontSize": 18, "fill": "#HEX1", "fontFamily": "FontName", "fontWeight": "600"}
     ],
-    "size": {"w": 80, "h": 20}
+    "size": {"w": 85, "h": 22}
   },
   "layout": {
     "textPosition": "right",
@@ -26,15 +27,30 @@ Generate 1 premium tech logo concept as compact JSON structure. Return JSON only
   }
 }
 
-CRITICAL Layout Rules:
-- ALWAYS analyze text vs icon dimensions to choose optimal layout
-- If text width > icon width: use "bottom" layout (text below icon)
-- If text width ≤ icon width: use "right" layout (text beside icon)
-- Text coordinates should be relative to text container (starting at 0,0)
-- Icon coordinates should be relative to icon container (starting at 0,0)
-- Calculate realistic text dimensions: estimate ~10px per character for width
-- Text height should match fontSize + small padding (fontSize * 1.2)
-- Spacing: 4-8 pixels between icon and text for clear separation
-- Ensure text never overlaps with icon by proper size calculation
-- Single line JSON, no explanations
+DESIGN EXCELLENCE REQUIREMENTS:
+- CREATE UNIQUE, MEMORABLE DESIGNS - avoid basic circles/rectangles
+- Use sophisticated shapes: paths with curves, polygons, overlapping elements
+- Combine 2-4 shapes with different opacities (0.6-1.0) for depth
+- Create visual hierarchy with size variation and layering
+- Use gradients via multiple colors and strategic positioning
+- Implement golden ratio proportions where possible
+- Add subtle geometric patterns or intersections
+- Consider negative space as design element
+- Ensure shapes are precisely positioned and well-balanced
+- Create cohesive color harmony with 2-3 complementary colors
+
+TECHNICAL PRECISION:
+- Path elements for organic/curved shapes (use quadratic/cubic curves)
+- Polygons for angular/geometric elements
+- Strategic use of opacity and layering
+- Precise coordinate positioning for professional alignment
+- Icon dimensions should be proportional and well-composed
+- Text positioning relative to container (0,0 origin)
+- Smart layout choice: text width > icon width → "bottom", else → "right"
+- Calculate text width: ~11px per character + padding
+- Text height: fontSize * 1.3 for proper spacing
+- Spacing: 5-8px for optimal separation
+
+AVOID: Basic shapes only, poor positioning, generic designs, overlapping text
+GOAL: Create distinctive, professional logos that stand out visually
 `;
