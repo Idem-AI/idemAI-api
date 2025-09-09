@@ -122,20 +122,20 @@ app.use(
   })
 );
 
-app.use("/api/projects", projectRoutes);
-app.use("/api/project", brandingRoutes);
-app.use("/api/project", diagramRoutes);
-app.use("/api/project", businessPlanRoutes);
-app.use("/api/project", deploymentRoutes);
-app.use("/api/project", developmentRoutes);
-app.use("/api/auth", authRoutes);
-app.use("/api/auth", userRoutes);
-app.use("/api/prompt", promptRoutes);
-app.use("/api/quota", quotaRoutes);
-app.use("/api/archetypes", archetypeRoutes);
-app.use("/api/github", githubRoutes);
-app.use("/api/cache", cacheRoutes);
-app.use("/api/project", policyRoutes);
+app.use("/projects", projectRoutes);
+app.use("/project", brandingRoutes);
+app.use("/project", diagramRoutes);
+app.use("/project", businessPlanRoutes);
+app.use("/project", deploymentRoutes);
+app.use("/project", developmentRoutes);
+app.use("/auth", authRoutes);
+app.use("/auth", userRoutes);
+app.use("/prompt", promptRoutes);
+app.use("/quota", quotaRoutes);
+app.use("/archetypes", archetypeRoutes);
+app.use("/github", githubRoutes);
+app.use("/cache", cacheRoutes);
+app.use("/project", policyRoutes);
 
 // Swagger setup
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
