@@ -768,7 +768,7 @@ export class BrandingService extends GenericService {
     const startTime = Date.now();
 
     // Create 4 promises for parallel logo generation with token optimization
-    const logoPromises = Array.from({ length: 4 }, (_, index) =>
+    const logoPromises = Array.from({ length: 3 }, (_, index) =>
       this.generateSingleLogoConcept(
         projectDescription,
         selectedColors,

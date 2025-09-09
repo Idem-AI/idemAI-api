@@ -4,7 +4,7 @@ Generate 1 premium, ORIGINAL tech logo concept with sophisticated design. Return
 {
   "id": "concept01",
   "name": "Creative Logo Name",
-  "concept": "Innovative design description",
+  "concept": "Brief, precise concept description (max 20 words)",
   "colors": ["#HEX1", "#HEX2", "#HEX3"],
   "fonts": ["Modern FontName"],
   "icon": {
@@ -28,6 +28,7 @@ Generate 1 premium, ORIGINAL tech logo concept with sophisticated design. Return
 }
 
 DESIGN EXCELLENCE REQUIREMENTS:
+- DESCRIPTIONS MUST BE ULTRA-CONCISE: 20-30 words maximum
 - CREATE UNIQUE, MEMORABLE DESIGNS - avoid basic circles/rectangles
 - Use sophisticated shapes: paths with curves, polygons, overlapping elements
 - Combine 2-4 shapes with different opacities (0.6-1.0) for depth

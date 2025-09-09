@@ -1,5 +1,5 @@
 export const TYPOGRAPHY_GENERATION_PROMPT = `
-Generate 4 typography sets. Return JSON only:
+Generate 3 typography sets. Return JSON only:
 
 {
   "typography": [

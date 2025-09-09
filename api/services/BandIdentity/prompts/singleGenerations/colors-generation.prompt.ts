@@ -1,5 +1,5 @@
 export const COLORS_GENERATION_PROMPT = `
-Generate 4 premium color palettes. Return JSON only:
+Generate 3 premium color palettes. Return JSON only:
 
 {
   "colors": [
