@@ -10,13 +10,13 @@ Generate 3 typography sets. Return JSON only:
       "primaryFont": "Exo 2",
       "secondaryFont": "Roboto"
     }
-    // ... 3 more unique sets
+    // ... 2 more unique sets
   ]
 }
 
 Rules:
 - First set: exactly "Système Premium" with Exo 2 + Roboto
-- 3 more unique Google Font pairings
+- 2 more unique Google Font pairings
 - Descriptive names and URLs
 - Single line JSON, no explanations
 `;

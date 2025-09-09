@@ -741,7 +741,7 @@ export class BrandingService extends GenericService {
   }
 
   /**
-   * Étape 1: Génère 4 concepts de logos principaux en parallèle - Version optimisée
+   * Étape 1: Génère 3 concepts de logos principaux en parallèle - Version optimisée
    */
   async generateLogoConcepts(
     userId: string,
@@ -752,7 +752,7 @@ export class BrandingService extends GenericService {
     logos: LogoModel[];
   }> {
     logger.info(
-      `Generating 4 logo concepts in parallel for userId: ${userId}, projectId: ${projectId}`
+      `Generating 3 logo concepts in parallel for userId: ${userId}, projectId: ${projectId}`
     );
 
     // Étape 1: Récupération optimisée du projet avec fallback gracieux
@@ -787,7 +787,7 @@ export class BrandingService extends GenericService {
 
     const aiGenerationTime = Date.now() - startTime;
     logger.info(
-      `Parallel optimized AI generation completed in ${aiGenerationTime}ms for 4 logos with JSON-to-SVG conversion`
+      `Parallel optimized AI generation completed in ${aiGenerationTime}ms for 3 logos with JSON-to-SVG conversion`
     );
 
     // Étape 6: Mise à jour immédiate du projet avec les logos générés
@@ -829,7 +829,7 @@ export class BrandingService extends GenericService {
 
     const totalTime = Date.now() - startTime;
     logger.info(
-      `Parallel logo generation completed in ${totalTime}ms for 4 concepts`
+      `Parallel logo generation completed in ${totalTime}ms for 3 concepts`
     );
 
     return {

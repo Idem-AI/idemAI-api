@@ -15,13 +15,13 @@ Generate 3 premium color palettes. Return JSON only:
         "text": "#191970"
       }
     }
-    // ... 3 more unique palettes
+    // ... 2 more unique palettes
   ]
 }
 
 Rules:
 - First palette: exactly "Dégradé Premium" with colors above
-- 3 more unique premium tech palettes
+- 2 more unique premium tech palettes
 - Valid hex codes, descriptive names
 - Single line JSON, no explanations
 `;
