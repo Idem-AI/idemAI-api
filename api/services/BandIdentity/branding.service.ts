@@ -671,6 +671,9 @@ export class BrandingService extends GenericService {
     const logoModel =
       this.logoJsonToSvgService.convertJsonToLogoModel(logoJsonStructure);
 
+    // Force unique ID to ensure each concept has a different ID
+    logoModel.id = `concept${String(conceptIndex + 1).padStart(2, "0")}`;
+
     // Apply SVG optimization
     const optimizedLogo = this.optimizeLogoSvgs(logoModel);
 
