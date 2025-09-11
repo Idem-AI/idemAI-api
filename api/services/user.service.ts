@@ -30,8 +30,8 @@ class UserService {
     this.quotaLimits = {
       dailyLimit: parseInt(process.env.DAILY_QUOTA_LIMIT || "50"),
       weeklyLimit: parseInt(process.env.WEEKLY_QUOTA_LIMIT || "200"),
-      betaDailyLimit: parseInt(process.env.BETA_DAILY_QUOTA_LIMIT || "5"),
-      betaWeeklyLimit: parseInt(process.env.BETA_WEEKLY_QUOTA_LIMIT || "20"),
+      betaDailyLimit: parseInt(process.env.BETA_DAILY_QUOTA_LIMIT || "20"),
+      betaWeeklyLimit: parseInt(process.env.BETA_WEEKLY_QUOTA_LIMIT || "200"),
     };
 
     logger.info(
@@ -50,8 +50,12 @@ class UserService {
       user.quota = {
         dailyUsage: 0,
         weeklyUsage: 0,
-        dailyLimit: this.quotaLimits.dailyLimit,
-        weeklyLimit: this.quotaLimits.weeklyLimit,
+        dailyLimit: this.isBeta
+          ? this.quotaLimits.betaDailyLimit
+          : this.quotaLimits.dailyLimit,
+        weeklyLimit: this.isBeta
+          ? this.quotaLimits.betaWeeklyLimit
+          : this.quotaLimits.weeklyLimit,
         lastResetDaily: new Date().toISOString().split("T")[0], // YYYY-MM-DD
         lastResetWeekly: this.getWeekStart(new Date())
           .toISOString()
