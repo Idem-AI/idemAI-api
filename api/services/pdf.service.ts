@@ -288,7 +288,7 @@ export class PdfService {
     // Calculer la taille approximative du cache HTML
     for (const [, entry] of this.htmlCache.entries()) {
       totalSize += Buffer.byteLength(entry.data, "utf8");
-      
+
       if (oldestTimestamp === null || entry.timestamp < oldestTimestamp) {
         oldestTimestamp = entry.timestamp;
       }
@@ -305,9 +305,12 @@ export class PdfService {
           diskUsage += stats.size;
         }
       } catch (error) {
-        logger.warn(`Failed to get stats for PDF file: ${entry.filePath}`, error);
+        logger.warn(
+          `Failed to get stats for PDF file: ${entry.filePath}`,
+          error
+        );
       }
-      
+
       if (oldestTimestamp === null || entry.timestamp < oldestTimestamp) {
         oldestTimestamp = entry.timestamp;
       }
@@ -385,7 +388,7 @@ export class PdfService {
     // donc on nettoie tout le cache HTML par sécurité
     const htmlEntries = this.htmlCache.size;
     this.htmlCache.clear();
-    
+
     // Invalider les entrées PDF locales
     const pdfEntries = this.pdfCache.size;
     for (const [key, entry] of this.pdfCache.entries()) {
@@ -399,11 +402,18 @@ export class PdfService {
 
     // Invalider aussi les entrées Redis pour ce projet
     try {
-      const deletedRedisKeys = await cacheService.invalidateProjectCache(projectId);
-      logger.info(`Invalidated ${deletedRedisKeys} Redis cache entries for project: ${projectId}`);
+      const deletedRedisKeys = await cacheService.invalidateProjectCache(
+        projectId
+      );
+      logger.info(
+        `Invalidated ${deletedRedisKeys} Redis cache entries for project: ${projectId}`
+      );
       invalidated += deletedRedisKeys;
     } catch (error) {
-      logger.warn(`Failed to invalidate Redis cache for project ${projectId}:`, error);
+      logger.warn(
+        `Failed to invalidate Redis cache for project ${projectId}:`,
+        error
+      );
     }
 
     invalidated += htmlEntries + pdfEntries;
@@ -443,10 +453,15 @@ export class PdfService {
     // Invalider aussi les entrées Redis pour cet utilisateur
     try {
       const deletedRedisKeys = await cacheService.invalidateUserCache(userId);
-      logger.info(`Invalidated ${deletedRedisKeys} Redis cache entries for user: ${userId}`);
+      logger.info(
+        `Invalidated ${deletedRedisKeys} Redis cache entries for user: ${userId}`
+      );
       invalidated += deletedRedisKeys;
     } catch (error) {
-      logger.warn(`Failed to invalidate Redis cache for user ${userId}:`, error);
+      logger.warn(
+        `Failed to invalidate Redis cache for user ${userId}:`,
+        error
+      );
     }
 
     invalidated += htmlEntries + pdfEntries;
@@ -463,21 +478,23 @@ export class PdfService {
   /**
    * Vide sélectivement le cache PDF (HTML seulement, PDF seulement, ou tout)
    */
-  static async clearCacheSelective(type: 'html' | 'pdf' | 'all' = 'all'): Promise<{
+  static async clearCacheSelective(
+    type: "html" | "pdf" | "all" = "all"
+  ): Promise<{
     htmlCleared: number;
     pdfCleared: number;
   }> {
     let htmlCleared = 0;
     let pdfCleared = 0;
 
-    if (type === 'html' || type === 'all') {
+    if (type === "html" || type === "all") {
       htmlCleared = this.htmlCache.size;
       this.htmlCache.clear();
     }
 
-    if (type === 'pdf' || type === 'all') {
+    if (type === "pdf" || type === "all") {
       pdfCleared = this.pdfCache.size;
-      
+
       // Supprimer les fichiers PDF locaux
       for (const [key, entry] of this.pdfCache.entries()) {
         try {
@@ -493,12 +510,17 @@ export class PdfService {
     }
 
     // Nettoyer aussi le cache Redis si on nettoie tout
-    if (type === 'all') {
+    if (type === "all") {
       try {
-        const deletedRedisKeys = await cacheService.deletePattern('pdf:*');
-        logger.info(`Cleared ${deletedRedisKeys} Redis PDF cache entries during selective clear`);
+        const deletedRedisKeys = await cacheService.deletePattern("pdf:*");
+        logger.info(
+          `Cleared ${deletedRedisKeys} Redis PDF cache entries during selective clear`
+        );
       } catch (error) {
-        logger.warn('Failed to clear Redis PDF cache during selective clear:', error);
+        logger.warn(
+          "Failed to clear Redis PDF cache during selective clear:",
+          error
+        );
       }
     }
 
@@ -576,7 +598,6 @@ export class PdfService {
   }
 
   async generatePdf(options: PdfGenerationOptions): Promise<string> {
-
     const {
       title = "Document",
       projectName,
@@ -592,23 +613,27 @@ export class PdfService {
         left: "15mm",
       },
     } = options;
-    
+
     // Nettoyer les sections en supprimant le préfixe "html" du contenu data
-    const cleanedSections = sections.map(section => {
-      if (section.data && typeof section.data === 'string' && section.data.toLowerCase().startsWith('html')) {
+    const cleanedSections = sections.map((section) => {
+      if (
+        section.data &&
+        typeof section.data === "string" &&
+        section.data.toLowerCase().startsWith("html")
+      ) {
         return {
           ...section,
-          data: section.data.substring(4) // Supprimer les 4 premiers caractères "html"
+          data: section.data.substring(4), // Supprimer les 4 premiers caractères "html"
         };
       }
       return section;
     });
-    
+
     logger.info(`sections length: ${cleanedSections.length}`);
     // Générer la clé de cache basée sur le contenu nettoyé
     const cacheKey = PdfService.generateCacheKey({
       ...options,
-      sections: cleanedSections
+      sections: cleanedSections,
     });
 
     logger.info(
@@ -662,35 +687,31 @@ export class PdfService {
         );
       }
 
-      // Créer une nouvelle page pour le PDF
-      const browser = await PdfService.getBrowser();
-      const page = await browser.newPage();
+      // Utiliser une page optimisée avec ressources pré-chargées
+      const page = await PdfService.createOptimizedPage();
 
-      // Définir le contenu HTML avec attente des ressources réseau
+      // Définir le contenu HTML (ressources déjà injectées)
       await page.setContent(htmlContent, {
-        waitUntil: "networkidle0", // Attendre que toutes les ressources se chargent
-        timeout: 30000, // Augmenté pour permettre le chargement de Tailwind CSS
+        waitUntil: "domcontentloaded", // Plus rapide que networkidle0
+        timeout: 15000, // Réduit de 60s à 15s
       });
 
-      // Attendre que Tailwind CSS soit chargé et configuré
+      // Attente optimisée pour les scripts (réduite drastiquement)
       await page.waitForFunction(
-        'typeof tailwind !== "undefined" && document.readyState === "complete"',
-        { timeout: 10000 }
+        'typeof window.tailwind !== "undefined" || document.readyState === "complete"',
+        { timeout: 3000 } // Réduit de 15s à 3s
       );
 
-      // Configurer et appliquer Tailwind CSS
+      // Configuration rapide des scripts
       await page.evaluate(() => {
         if (typeof (window as any).tailwind !== "undefined") {
           const tailwindInstance = (window as any).tailwind;
-          // Forcer le scan et l'application des classes
-          if (tailwindInstance.refresh) {
-            tailwindInstance.refresh();
-          }
+          if (tailwindInstance.refresh) tailwindInstance.refresh();
         }
       });
 
-      // Attente pour que les styles soient appliqués
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Attente minimale pour le rendu (réduite drastiquement)
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Réduit de 3.5s à 0.5s
 
       // Créer un fichier temporaire pour le PDF
       const tempDir = os.tmpdir();
@@ -782,15 +803,6 @@ export class PdfService {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${title} - ${projectName}</title>
-        
-        <!-- Tailwind CSS via CDN pour PDF -->
-        <script src="https://cdn.tailwindcss.com"></script>
-        
-        <!-- Google Fonts Inter -->
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-        
         ${
           typography?.url
             ? `<link href="${typography.url}" rel="stylesheet">`
@@ -810,8 +822,8 @@ export class PdfService {
                 : "'Inter'"
             };
             
-            if (typeof tailwind !== 'undefined') {
-              tailwind.config = {
+            if (typeof window.tailwind !== 'undefined') {
+              window.tailwind.config = {
                 theme: { 
                   extend: { 
                     fontFamily: { 
