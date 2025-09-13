@@ -111,46 +111,46 @@ export class BusinessPlanService extends GenericService {
           stepName: "Cover Page",
           hasDependencies: false,
         },
-        // {
-        //   promptConstant: `${projectDescription}\n${AGENT_COMPANY_SUMMARY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-        //   stepName: "Company Summary",
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: `${projectDescription}\n${AGENT_OPPORTUNITY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-        //   stepName: "Opportunity",
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: `${projectDescription}\n${AGENT_TARGET_AUDIENCE_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-        //   stepName: "Target Audience",
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: `${projectDescription}\n${AGENT_PRODUCTS_SERVICES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-        //   stepName: "Products & Services",
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: `${projectDescription}\n${AGENT_MARKETING_SALES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-        //   stepName: "Marketing & Sales",
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-        //   stepName: "Financial Plan",
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: `${projectDescription}\n${AGENT_GOAL_PLANNING_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-        //   stepName: "Goal Planning",
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: `${projectDescription}\n${AGENT_APPENDIX_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-        //   stepName: "Appendix",
-        //   hasDependencies: false,
-        // },
+        {
+          promptConstant: `${projectDescription}\n${AGENT_COMPANY_SUMMARY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Company Summary",
+          hasDependencies: false,
+        },
+        {
+          promptConstant: `${projectDescription}\n${AGENT_OPPORTUNITY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Opportunity",
+          hasDependencies: false,
+        },
+        {
+          promptConstant: `${projectDescription}\n${AGENT_TARGET_AUDIENCE_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Target Audience",
+          hasDependencies: false,
+        },
+        {
+          promptConstant: `${projectDescription}\n${AGENT_PRODUCTS_SERVICES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Products & Services",
+          hasDependencies: false,
+        },
+        {
+          promptConstant: `${projectDescription}\n${AGENT_MARKETING_SALES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Marketing & Sales",
+          hasDependencies: false,
+        },
+        {
+          promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Financial Plan",
+          hasDependencies: false,
+        },
+        {
+          promptConstant: `${projectDescription}\n${AGENT_GOAL_PLANNING_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Goal Planning",
+          hasDependencies: false,
+        },
+        {
+          promptConstant: `${projectDescription}\n${AGENT_APPENDIX_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
+          stepName: "Appendix",
+          hasDependencies: false,
+        },
       ];
       const promptConfig: PromptConfig = {
         provider: LLMProvider.GEMINI,

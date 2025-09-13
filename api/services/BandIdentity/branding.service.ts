@@ -597,8 +597,8 @@ export class BrandingService extends GenericService {
   }
 
   /**
-   * Generate single logo concept using optimized JSON-to-SVG approach
-   * Implements token-saving strategy with compact JSON generation
+   * Generate single logo concept using direct SVG generation
+   * AI generates complete SVG content directly for professional results
    */
   private async generateSingleLogoConcept(
     projectDescription: string,
@@ -608,45 +608,45 @@ export class BrandingService extends GenericService {
     conceptIndex: number
   ): Promise<LogoModel> {
     logger.info(
-      `Generating optimized logo concept ${
+      `Generating professional logo concept ${
         conceptIndex + 1
-      } using JSON-to-SVG conversion`
+      } with direct SVG generation`
     );
 
-    // Build optimized prompt for compact JSON generation
+    // Build optimized prompt for direct SVG generation
     const optimizedPrompt = this.buildOptimizedLogoPrompt(
       projectDescription,
       colors,
       typography
     );
 
-    // AI generation with max_output_tokens limit for efficiency
+    // AI generation with direct SVG output
     const steps: IPromptStep[] = [
       {
         promptConstant: optimizedPrompt,
         stepName: `Logo Concept ${conceptIndex + 1}`,
-        maxOutputTokens: 3000,
+        maxOutputTokens: 4000,
         modelParser: (content) => {
           try {
-            // Parse compact JSON logo structure
-            const logoJson: LogoJsonStructure = JSON.parse(content);
+            // Parse JSON response containing SVG
+            const logoData = JSON.parse(content);
 
             // Ensure unique ID for each concept
-            if (!logoJson.id) {
-              logoJson.id = `concept${String(conceptIndex + 1).padStart(
+            if (!logoData.id) {
+              logoData.id = `concept${String(conceptIndex + 1).padStart(
                 2,
                 "0"
               )}`;
             }
 
-            return logoJson;
+            return logoData;
           } catch (error) {
             logger.error(
-              `Error parsing logo JSON concept ${conceptIndex + 1}:`,
+              `Error parsing logo data concept ${conceptIndex + 1}:`,
               error
             );
             throw new Error(
-              `Failed to parse logo JSON concept ${conceptIndex + 1}`
+              `Failed to parse logo data concept ${conceptIndex + 1}`
             );
           }
         },
@@ -658,31 +658,56 @@ export class BrandingService extends GenericService {
       provider: LLMProvider.GEMINI,
       modelName: "gemini-2.5-flash",
       llmOptions: {
-        maxOutputTokens: 3000,
+        maxOutputTokens: 4000,
         temperature: 0.2,
         topP: 0.8,
         topK: 20,
       },
     });
     const logoResult = sectionResults[0];
-    const logoJsonStructure: LogoJsonStructure = logoResult.parsedData;
+    const logoData = logoResult.parsedData;
 
-    // Convert JSON structure to optimized SVG LogoModel
-    const logoModel =
-      this.logoJsonToSvgService.convertJsonToLogoModel(logoJsonStructure);
-
-    // Force unique ID to ensure each concept has a different ID
-    logoModel.id = `concept${String(conceptIndex + 1).padStart(2, "0")}`;
+    // Create LogoModel directly from SVG data
+    const logoModel: LogoModel = {
+      id: `concept${String(conceptIndex + 1).padStart(2, "0")}`,
+      name: logoData.name || `Logo Concept ${conceptIndex + 1}`,
+      concept: logoData.concept || "Professional logo design",
+      colors: logoData.colors || [],
+      fonts: logoData.fonts || [],
+      svg: logoData.svg, // Direct SVG from AI
+      iconSvg: this.extractIconFromSvg(logoData.svg), // Extract icon part
+    };
 
     // Apply SVG optimization
     const optimizedLogo = this.optimizeLogoSvgs(logoModel);
 
     logger.info(
-      `Optimized logo concept ${conceptIndex + 1} generated with ${
-        logoJsonStructure.icon.shapes.length
-      } icon shapes and ${logoJsonStructure.text.elements.length} text elements`
+      `Professional logo concept ${conceptIndex + 1} generated with direct SVG content`
     );
     return optimizedLogo;
+  }
+
+  /**
+   * Extract icon-only SVG from the complete logo SVG
+   * Removes text elements to create an icon-only version
+   */
+  private extractIconFromSvg(fullSvg: string): string {
+    try {
+      // Extract the icon group from the full SVG (using multiline regex)
+      const iconMatch = fullSvg.match(/<g id="icon"[^>]*>([\s\S]*?)<\/g>/);
+      if (iconMatch) {
+        // Create a new SVG with just the icon content
+        const iconContent = iconMatch[1];
+        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80"><g id="icon">${iconContent}</g></svg>`;
+      }
+      
+      // Fallback: return a simplified version of the full SVG
+      logger.warn("Could not extract icon from SVG, using fallback");
+      return fullSvg.replace(/<g id="text"[^>]*>[\s\S]*?<\/g>/, '');
+    } catch (error) {
+      logger.error("Error extracting icon from SVG:", error);
+      return fullSvg; // Return original if extraction fails
+    }
   }
 
   /**
