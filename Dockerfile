@@ -8,7 +8,7 @@ RUN npm install @modelcontextprotocol/sdk && npm install fs-extra
 
 
 COPY ./api ./api
-
+COPY ./public ./public
 
 RUN npm run build
 
@@ -33,6 +33,7 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/public ./public
 
 RUN npm install --omit=dev
 
