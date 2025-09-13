@@ -625,7 +625,7 @@ export class BrandingService extends GenericService {
       {
         promptConstant: optimizedPrompt,
         stepName: `Logo Concept ${conceptIndex + 1}`,
-        maxOutputTokens: 1400,
+        maxOutputTokens: 3000,
         modelParser: (content) => {
           try {
             // Parse compact JSON logo structure
@@ -658,10 +658,10 @@ export class BrandingService extends GenericService {
       provider: LLMProvider.GEMINI,
       modelName: "gemini-2.5-flash",
       llmOptions: {
-        maxOutputTokens: 1400,
-        temperature: 0.7,
-        topP: 0.9,
-        topK: 40,
+        maxOutputTokens: 3000,
+        temperature: 0.2,
+        topP: 0.8,
+        topK: 20,
       },
     });
     const logoResult = sectionResults[0];
@@ -885,7 +885,7 @@ export class BrandingService extends GenericService {
       {
         promptConstant: prompt,
         stepName: "Logo Variations Generation",
-        maxOutputTokens: 600, // Limit tokens for compact JSON variations
+        maxOutputTokens: 2000, // Increased tokens for detailed variations
         modelParser: (content) => {
           try {
             const variationsJson: LogoVariationsJson = JSON.parse(content);
