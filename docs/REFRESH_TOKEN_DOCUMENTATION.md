@@ -52,26 +52,26 @@ export interface UserModel {
 
 ## API Endpoints
 
-### POST /api/auth/sessionLogin
+### POST /auth/sessionLogin
 - **Fonction :** Connexion avec génération de session cookie et refresh token
 - **Réponse :** Session cookie + refresh token (cookie + body)
 
-### POST /api/auth/refresh
+### POST /auth/refresh
 - **Fonction :** Rafraîchit le token d'accès
 - **Input :** Refresh token (cookie ou body)
 - **Réponse :** Nouveau session cookie
 
-### POST /api/auth/logout
+### POST /auth/logout
 - **Fonction :** Déconnexion avec révocation du refresh token
 - **Auth :** Requise
 - **Action :** Supprime les cookies et révoque le token
 
-### POST /api/auth/logout-all
+### POST /auth/logout-all
 - **Fonction :** Déconnexion de tous les appareils
 - **Auth :** Requise
 - **Action :** Révoque tous les refresh tokens
 
-### GET /api/auth/refresh-tokens
+### GET /auth/refresh-tokens
 - **Fonction :** Liste les refresh tokens actifs
 - **Auth :** Requise
 - **Réponse :** Informations des tokens (sans les tokens eux-mêmes)

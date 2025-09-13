@@ -106,11 +106,11 @@ FIREBASE_PROJECT_ID=your_firebase_project_id
 
 The quota system provides the following API endpoints:
 
-- `GET /api/quota/info` - Get user's quota information
-- `GET /api/quota/check` - Check if user can make a request
-- `GET /api/quota/beta` - Get beta restrictions and limitations
-- `GET /api/quota/validate/:featureName` - Validate if a feature is available
-- `GET /api/quota/stats` - Get detailed usage statistics
+- `GET /quota/info` - Get user's quota information
+- `GET /quota/check` - Check if user can make a request
+- `GET /quota/beta` - Get beta restrictions and limitations
+- `GET /quota/validate/:featureName` - Validate if a feature is available
+- `GET /quota/stats` - Get detailed usage statistics
 
 ## Integration with Services
 

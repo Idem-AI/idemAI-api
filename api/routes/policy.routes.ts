@@ -64,15 +64,11 @@ const router = Router();
  *       500:
  *         description: Erreur serveur
  */
-router.post(
-  "/finalize/:projectId",
-  authenticate,
-  finalizeProjectController
-);
+router.post("/finalize/:projectId", authenticate, finalizeProjectController);
 
 /**
  * @openapi
- * /api/project/{projectId}/policy-status:
+ * /project/{projectId}/policy-status:
  *   get:
  *     summary: Vérifie le statut d'acceptation des politiques
  *     description: Retourne si l'utilisateur a accepté les politiques pour ce projet
@@ -113,7 +109,7 @@ router.get(
 
 /**
  * @openapi
- * /api/policy/acceptances:
+ * /policy/acceptances:
  *   get:
  *     summary: Récupère toutes les acceptations de politiques de l'utilisateur
  *     description: Retourne la liste de toutes les acceptations de politiques pour l'utilisateur connecté

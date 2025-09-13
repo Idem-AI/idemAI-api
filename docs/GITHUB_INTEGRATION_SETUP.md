@@ -15,7 +15,7 @@ This guide explains how to set up GitHub integration for pushing project files t
    - Fill in the application details:
      - Application name: `Idem API GitHub Integration`
      - Homepage URL: `https://your-domain.com`
-     - Authorization callback URL: `https://your-domain.com/api/github/auth/callback`
+     - Authorization callback URL: `https://your-domain.com/github/auth/callback`
    - Note down the `Client ID` and `Client Secret`
 
 ## Environment Variables
@@ -26,14 +26,14 @@ Add the following environment variables to your `.env` file:
 # GitHub OAuth Configuration
 GITHUB_CLIENT_ID=your_github_client_id
 GITHUB_CLIENT_SECRET=your_github_client_secret
-GITHUB_REDIRECT_URI=https://your-domain.com/api/github/auth/callback
+GITHUB_REDIRECT_URI=https://your-domain.com/github/auth/callback
 ```
 
 ## API Endpoints
 
 ### 1. Get GitHub Authorization URL
 ```http
-GET /api/github/auth/url
+GET /github/auth/url
 Authorization: Bearer <your-jwt-token>
 ```
 
@@ -48,7 +48,7 @@ Authorization: Bearer <your-jwt-token>
 
 ### 2. Handle OAuth Callback
 ```http
-GET /api/github/auth/callback?code=<auth-code>&state=<state>
+GET /github/auth/callback?code=<auth-code>&state=<state>
 ```
 
 **Response:**
@@ -66,7 +66,7 @@ GET /api/github/auth/callback?code=<auth-code>&state=<state>
 
 ### 3. Push Project to GitHub
 ```http
-POST /api/github/projects/{projectId}/push
+POST /github/projects/{projectId}/push
 Authorization: Bearer <your-jwt-token>
 Content-Type: application/json
 
@@ -97,32 +97,32 @@ Content-Type: application/json
 
 ### 4. Get User's GitHub Repositories
 ```http
-GET /api/github/repositories
+GET /github/repositories
 Authorization: Bearer <your-jwt-token>
 ```
 
 ### 5. Get GitHub User Info
 ```http
-GET /api/github/user
+GET /github/user
 Authorization: Bearer <your-jwt-token>
 ```
 
 ### 6. Disconnect GitHub Account
 ```http
-DELETE /api/github/disconnect
+DELETE /github/disconnect
 Authorization: Bearer <your-jwt-token>
 ```
 
 ## Usage Flow
 
 1. **Connect GitHub Account:**
-   - Frontend calls `/api/github/auth/url` to get authorization URL
+   - Frontend calls `/github/auth/url` to get authorization URL
    - User is redirected to GitHub for authorization
-   - GitHub redirects back to `/api/github/auth/callback`
+   - GitHub redirects back to `/github/auth/callback`
    - User's GitHub token is stored in their profile
 
 2. **Push Project Files:**
-   - Frontend calls `/api/github/projects/{projectId}/push` with project files
+   - Frontend calls `/github/projects/{projectId}/push` with project files
    - API creates/updates GitHub repository
    - Files are committed and pushed to the repository
    - Repository URL is returned and stored in project metadata
@@ -179,7 +179,7 @@ To test the integration:
 
 ```javascript
 // Get GitHub auth URL
-const authResponse = await fetch('/api/github/auth/url', {
+const authResponse = await fetch('/github/auth/url', {
   headers: { 'Authorization': `Bearer ${userToken}` }
 });
 const { authUrl } = await authResponse.json();
@@ -188,7 +188,7 @@ const { authUrl } = await authResponse.json();
 window.location.href = authUrl;
 
 // After OAuth callback, push project
-const pushResponse = await fetch(`/api/github/projects/${projectId}/push`, {
+const pushResponse = await fetch(`/github/projects/${projectId}/push`, {
   method: 'POST',
   headers: {
     'Authorization': `Bearer ${userToken}`,

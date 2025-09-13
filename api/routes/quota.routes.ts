@@ -83,7 +83,7 @@ const router = Router();
 
 /**
  * @swagger
- * /api/quota/info:
+ * /quota/info:
  *   get:
  *     summary: Get user's quota information
  *     tags: [Quota]
@@ -118,7 +118,7 @@ router.get("/info", authenticate, (req: Request, res: Response) =>
 
 /**
  * @swagger
- * /api/quota/check:
+ * /quota/check:
  *   get:
  *     summary: Check if user can make a request
  *     tags: [Quota]
@@ -161,7 +161,7 @@ router.get("/check", authenticate, (req: Request, res: Response) =>
 
 /**
  * @swagger
- * /api/quota/beta:
+ * /quota/beta:
  *   get:
  *     summary: Get beta restrictions and limitations
  *     tags: [Quota]
@@ -186,7 +186,7 @@ router.get("/beta", authenticate, (req: Request, res: Response) =>
 
 /**
  * @swagger
- * /api/quota/validate/{featureName}:
+ * /quota/validate/{featureName}:
  *   get:
  *     summary: Validate if a feature is available for the user
  *     tags: [Quota]
@@ -244,7 +244,7 @@ router.get(
 
 /**
  * @swagger
- * /api/quota/stats:
+ * /quota/stats:
  *   get:
  *     summary: Get detailed usage statistics
  *     tags: [Quota]

@@ -7,7 +7,7 @@ const githubController = new GitHubController();
 
 /**
  * @openapi
- * /api/github/auth/url:
+ * /github/auth/url:
  *   get:
  *     summary: Get GitHub OAuth authorization URL
  *     tags: [GitHub Integration]
@@ -32,11 +32,15 @@ const githubController = new GitHubController();
  *       500:
  *         description: Internal server error
  */
-router.get("/auth/url", authenticate, githubController.getAuthUrlController.bind(githubController));
+router.get(
+  "/auth/url",
+  authenticate,
+  githubController.getAuthUrlController.bind(githubController)
+);
 
 /**
  * @openapi
- * /api/github/auth/callback:
+ * /github/auth/callback:
  *   get:
  *     summary: Handle GitHub OAuth callback
  *     tags: [GitHub Integration]
@@ -64,11 +68,14 @@ router.get("/auth/url", authenticate, githubController.getAuthUrlController.bind
  *       500:
  *         description: Internal server error
  */
-router.get("/auth/callback", githubController.handleOAuthCallbackController.bind(githubController));
+router.get(
+  "/auth/callback",
+  githubController.handleOAuthCallbackController.bind(githubController)
+);
 
 /**
  * @openapi
- * /api/github/projects/{projectId}/push:
+ * /github/projects/{projectId}/push:
  *   post:
  *     summary: Push project files to GitHub repository
  *     tags: [GitHub Integration]
@@ -101,11 +108,15 @@ router.get("/auth/callback", githubController.handleOAuthCallbackController.bind
  *       500:
  *         description: Internal server error
  */
-router.post("/projects/:projectId/push", authenticate, githubController.pushProjectToGitHubController.bind(githubController));
+router.post(
+  "/projects/:projectId/push",
+  authenticate,
+  githubController.pushProjectToGitHubController.bind(githubController)
+);
 
 /**
  * @openapi
- * /api/github/repositories:
+ * /github/repositories:
  *   get:
  *     summary: Get user's GitHub repositories
  *     tags: [GitHub Integration]
@@ -132,11 +143,15 @@ router.post("/projects/:projectId/push", authenticate, githubController.pushProj
  *       500:
  *         description: Internal server error
  */
-router.get("/repositories", authenticate, githubController.getUserRepositoriesController.bind(githubController));
+router.get(
+  "/repositories",
+  authenticate,
+  githubController.getUserRepositoriesController.bind(githubController)
+);
 
 /**
  * @openapi
- * /api/github/user:
+ * /github/user:
  *   get:
  *     summary: Get GitHub user information
  *     tags: [GitHub Integration]
@@ -163,11 +178,15 @@ router.get("/repositories", authenticate, githubController.getUserRepositoriesCo
  *       500:
  *         description: Internal server error
  */
-router.get("/user", authenticate, githubController.getGitHubUserInfoController.bind(githubController));
+router.get(
+  "/user",
+  authenticate,
+  githubController.getGitHubUserInfoController.bind(githubController)
+);
 
 /**
  * @openapi
- * /api/github/disconnect:
+ * /github/disconnect:
  *   delete:
  *     summary: Disconnect GitHub account
  *     tags: [GitHub Integration]
@@ -192,6 +211,10 @@ router.get("/user", authenticate, githubController.getGitHubUserInfoController.b
  *       500:
  *         description: Internal server error
  */
-router.delete("/disconnect", authenticate, githubController.disconnectGitHubController.bind(githubController));
+router.delete(
+  "/disconnect",
+  authenticate,
+  githubController.disconnectGitHubController.bind(githubController)
+);
 
 export default router;

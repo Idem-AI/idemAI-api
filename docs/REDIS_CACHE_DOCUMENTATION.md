@@ -93,26 +93,26 @@ Intégration transparente dans `FirestoreRepository` :
 
 ```bash
 # Statistiques du cache
-GET /api/cache/stats
+GET /cache/stats
 
 # Vider le cache complet
-DELETE /api/cache/clear
+DELETE /cache/clear
 
 # Invalider le cache utilisateur
-DELETE /api/cache/user/:userId
+DELETE /cache/user/:userId
 
 # Invalider le cache projet
-DELETE /api/cache/project/:projectId
+DELETE /cache/project/:projectId
 
 # Invalider par pattern
-DELETE /api/cache/pattern
+DELETE /cache/pattern
 Body: { "pattern": "user:123:*" }
 
 # Vérifier une clé
-GET /api/cache/key?key=mykey&prefix=ai
+GET /cache/key?key=mykey&prefix=ai
 
 # Mettre à jour TTL
-PUT /api/cache/ttl
+PUT /cache/ttl
 Body: { "key": "mykey", "ttl": 3600, "prefix": "ai" }
 ```
 
@@ -255,7 +255,7 @@ Le système vérifiera automatiquement la connexion Redis au démarrage et affic
 
 2. **Cache non fonctionnel** :
    - Vérifier les logs pour les erreurs Redis
-   - Tester la connexion avec `GET /api/cache/stats`
+   - Tester la connexion avec `GET /cache/stats`
    - Vérifier la configuration des TTL
 
 3. **Performance dégradée** :

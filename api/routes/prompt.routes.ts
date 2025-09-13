@@ -4,7 +4,7 @@ import { promptController } from "../controllers/prompt.controller";
 
 export const promptRoutes = Router();
 
-// This will be mounted at /api/prompt, so the route here is just '/'
+// This will be mounted at /prompt, so the route here is just '/'
 promptRoutes.post(
   "/prompt",
   authenticate,

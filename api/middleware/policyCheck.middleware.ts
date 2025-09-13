@@ -23,35 +23,39 @@ export const checkPolicyAcceptance = async (
   try {
     if (!userId) {
       logger.warn("User not authenticated for policy check");
-      res.status(401).json({ 
+      res.status(401).json({
         message: "User not authenticated",
-        code: "AUTHENTICATION_REQUIRED"
+        code: "AUTHENTICATION_REQUIRED",
       });
       return;
     }
 
     if (!projectId) {
       logger.warn("Project ID not found for policy check");
-      res.status(400).json({ 
+      res.status(400).json({
         message: "Project ID is required",
-        code: "PROJECT_ID_REQUIRED"
+        code: "PROJECT_ID_REQUIRED",
       });
       return;
     }
 
     // Vérifier si l'utilisateur a accepté les politiques pour ce projet
-    const isPolicyAccepted = await policyAcceptanceService.isPolicyAccepted(userId, projectId);
+    const isPolicyAccepted = await policyAcceptanceService.isPolicyAccepted(
+      userId,
+      projectId
+    );
 
     if (!isPolicyAccepted) {
       logger.warn(
         `Policy not accepted - UserId: ${userId}, ProjectId: ${projectId}`
       );
       res.status(403).json({
-        message: "Project must be finalized before performing this action. Please accept the privacy policy, terms of service, and beta policy first.",
+        message:
+          "Project must be finalized before performing this action. Please accept the privacy policy, terms of service, and beta policy first.",
         code: "POLICY_ACCEPTANCE_REQUIRED",
         projectId,
         requiresFinalization: true,
-        finalizeEndpoint: `/api/projects/${projectId}/finalize`
+        finalizeEndpoint: `/projects/${projectId}/finalize`,
       });
       return;
     }
@@ -95,8 +99,11 @@ export const checkPolicyAcceptanceOptional = async (
 
   try {
     if (userId && projectId) {
-      const isPolicyAccepted = await policyAcceptanceService.isPolicyAccepted(userId, projectId);
-      
+      const isPolicyAccepted = await policyAcceptanceService.isPolicyAccepted(
+        userId,
+        projectId
+      );
+
       if (!isPolicyAccepted) {
         logger.info(
           `Policy not accepted (optional check) - UserId: ${userId}, ProjectId: ${projectId}`
@@ -104,7 +111,7 @@ export const checkPolicyAcceptanceOptional = async (
         // Ajouter une propriété à la requête pour informer le contrôleur
         req.policyWarning = {
           requiresFinalization: true,
-          finalizeEndpoint: `/api/projects/${projectId}/finalize`
+          finalizeEndpoint: `/projects/${projectId}/finalize`,
         };
       }
     }

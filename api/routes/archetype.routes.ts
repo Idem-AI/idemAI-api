@@ -15,7 +15,7 @@ const router = Router();
 
 /**
  * @swagger
- * /api/archetypes:
+ * /archetypes:
  *   post:
  *     summary: Create a new archetype
  *     tags: [Archetypes]
@@ -94,7 +94,7 @@ router.post("/", createArchetypeController);
 
 /**
  * @swagger
- * /api/archetypes:
+ * /archetypes:
  *   get:
  *     summary: Get all archetypes for the authenticated user
  *     tags: [Archetypes]
@@ -110,7 +110,7 @@ router.get("/", getArchetypesController);
 
 /**
  * @swagger
- * /api/archetypes/{archetypeId}:
+ * /archetypes/{archetypeId}:
  *   get:
  *     summary: Get archetype by ID
  *     tags: [Archetypes]
@@ -135,7 +135,7 @@ router.get("/:archetypeId", authenticate, getArchetypeByIdController);
 
 /**
  * @swagger
- * /api/archetypes/{archetypeId}:
+ * /archetypes/{archetypeId}:
  *   put:
  *     summary: Update archetype
  *     tags: [Archetypes]
@@ -194,7 +194,7 @@ router.put("/:archetypeId", authenticate, updateArchetypeController);
 
 /**
  * @swagger
- * /api/archetypes/{archetypeId}:
+ * /archetypes/{archetypeId}:
  *   delete:
  *     summary: Delete archetype
  *     tags: [Archetypes]
@@ -219,7 +219,7 @@ router.delete("/:archetypeId", authenticate, deleteArchetypeController);
 
 /**
  * @swagger
- * /api/archetypes/provider/{provider}:
+ * /archetypes/provider/{provider}:
  *   get:
  *     summary: Get archetypes by provider
  *     tags: [Archetypes]
@@ -247,7 +247,7 @@ router.get(
 
 /**
  * @swagger
- * /api/archetypes/category/{category}:
+ * /archetypes/category/{category}:
  *   get:
  *     summary: Get archetypes by category
  *     tags: [Archetypes]
@@ -274,7 +274,7 @@ router.get(
 
 /**
  * @swagger
- * /api/archetypes/{archetypeId}/terraform/tfvars:
+ * /archetypes/{archetypeId}/terraform/tfvars:
  *   post:
  *     summary: Generate Terraform tfvars for an archetype
  *     tags: [Archetypes]
