@@ -8,7 +8,9 @@ import {
   TypographyModel,
 } from "../../models/brand-identity.model";
 import { LOGO_GENERATION_PROMPT } from "./prompts/singleGenerations/00_logo-generation-section.prompt";
-import { LOGO_VARIATIONS_GENERATION_PROMPT } from "./prompts/singleGenerations/01_logo-variations-generation.prompt";
+import { LOGO_VARIATION_LIGHT_PROMPT } from "./prompts/singleGenerations/logo-variation-light.prompt";
+import { LOGO_VARIATION_DARK_PROMPT } from "./prompts/singleGenerations/logo-variation-dark.prompt";
+import { LOGO_VARIATION_MONOCHROME_PROMPT } from "./prompts/singleGenerations/logo-variation-monochrome.prompt";
 
 import { BRAND_HEADER_SECTION_PROMPT } from "./prompts/00_brand-header-section.prompt";
 import { LOGO_SYSTEM_SECTION_PROMPT } from "./prompts/01_logo-system-section.prompt";
@@ -181,21 +183,21 @@ export class BrandingService extends GenericService {
           stepName: "Brand Header",
           hasDependencies: false,
         },
-        // {
-        //   promptConstant: LOGO_SYSTEM_SECTION_PROMPT + projectDescription,
-        //   stepName: "Logo System",
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: COLOR_PALETTE_SECTION_PROMPT + projectDescription,
-        //   stepName: "Color Palette",
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: TYPOGRAPHY_SECTION_PROMPT + projectDescription,
-        //   stepName: "Typography",
-        //   hasDependencies: false,
-        // },
+        {
+          promptConstant: LOGO_SYSTEM_SECTION_PROMPT + projectDescription,
+          stepName: "Logo System",
+          hasDependencies: false,
+        },
+        {
+          promptConstant: COLOR_PALETTE_SECTION_PROMPT + projectDescription,
+          stepName: "Color Palette",
+          hasDependencies: false,
+        },
+        {
+          promptConstant: TYPOGRAPHY_SECTION_PROMPT + projectDescription,
+          stepName: "Typography",
+          hasDependencies: false,
+        },
         // {
         //   promptConstant: USAGE_GUIDELINES_SECTION_PROMPT + projectDescription,
         //   stepName: "Usage Guidelines",
@@ -206,11 +208,11 @@ export class BrandingService extends GenericService {
         //   stepName: "Visual Examples",
         //   hasDependencies: false,
         // },
-        // {
-        //   promptConstant: BRAND_FOOTER_SECTION_PROMPT + projectDescription,
-        //   stepName: "Brand Footer",
-        //   hasDependencies: false,
-        // },
+        {
+          promptConstant: BRAND_FOOTER_SECTION_PROMPT + projectDescription,
+          stepName: "Brand Footer",
+          hasDependencies: false,
+        },
       ];
 
       // Initialize empty sections array to collect results as they come in
@@ -866,8 +868,107 @@ export class BrandingService extends GenericService {
   }
 
   /**
-   * Generate logo variations using optimized JSON-to-SVG layered approach
-   * Implements token-saving strategy with compact JSON generation
+   * Generate single logo variation for light background
+   */
+  private async generateSingleLightVariation(
+    logoStructure: any,
+    project: ProjectModel
+  ): Promise<{ lightBackground?: string }> {
+    const prompt = `Logo structure: ${JSON.stringify(
+      logoStructure
+    )}\n\n${LOGO_VARIATION_LIGHT_PROMPT}`;
+
+    const steps: IPromptStep[] = [
+      {
+        promptConstant: prompt,
+        stepName: "Light Background Variation",
+        maxOutputTokens: 1000,
+        modelParser: (content) => {
+          try {
+            const parsed = JSON.parse(content);
+            return parsed.variation;
+          } catch (error) {
+            logger.error("Error parsing light variation JSON:", error);
+            throw new Error("Failed to parse light variation JSON");
+          }
+        },
+        hasDependencies: false,
+      },
+    ];
+
+    const sectionResults = await this.processSteps(steps, project);
+    return sectionResults[0].parsedData;
+  }
+
+  /**
+   * Generate single logo variation for dark background
+   */
+  private async generateSingleDarkVariation(
+    logoStructure: any,
+    project: ProjectModel
+  ): Promise<{ darkBackground?: string }> {
+    const prompt = `Logo structure: ${JSON.stringify(
+      logoStructure
+    )}\n\n${LOGO_VARIATION_DARK_PROMPT}`;
+
+    const steps: IPromptStep[] = [
+      {
+        promptConstant: prompt,
+        stepName: "Dark Background Variation",
+        maxOutputTokens: 1000,
+        modelParser: (content) => {
+          try {
+            const parsed = JSON.parse(content);
+            return parsed.variation;
+          } catch (error) {
+            logger.error("Error parsing dark variation JSON:", error);
+            throw new Error("Failed to parse dark variation JSON");
+          }
+        },
+        hasDependencies: false,
+      },
+    ];
+
+    const sectionResults = await this.processSteps(steps, project);
+    return sectionResults[0].parsedData;
+  }
+
+  /**
+   * Generate single logo variation for monochrome
+   */
+  private async generateSingleMonochromeVariation(
+    logoStructure: any,
+    project: ProjectModel
+  ): Promise<{ monochrome?: string }> {
+    const prompt = `Logo structure: ${JSON.stringify(
+      logoStructure
+    )}\n\n${LOGO_VARIATION_MONOCHROME_PROMPT}`;
+
+    const steps: IPromptStep[] = [
+      {
+        promptConstant: prompt,
+        stepName: "Monochrome Variation",
+        maxOutputTokens: 1000,
+        modelParser: (content) => {
+          try {
+            const parsed = JSON.parse(content);
+            return parsed.variation;
+          } catch (error) {
+            logger.error("Error parsing monochrome variation JSON:", error);
+            throw new Error("Failed to parse monochrome variation JSON");
+          }
+        },
+        hasDependencies: false,
+      },
+    ];
+
+    const sectionResults = await this.processSteps(steps, project);
+    return sectionResults[0].parsedData;
+  }
+
+  /**
+   * Generate logo variations using parallel execution for each variation type
+   * Implements optimized parallel generation strategy
    */
   async generateLogoVariations(
     userId: string,
@@ -886,7 +987,7 @@ export class BrandingService extends GenericService {
     };
   }> {
     logger.info(
-      `Generating optimized logo variations using JSON-to-SVG conversion for logo: ${selectedLogo.id}`
+      `Generating logo variations using parallel execution for logo: ${selectedLogo.id}`
     );
 
     const project = await this.getProjectOptimized(userId, projectId);
@@ -902,35 +1003,29 @@ export class BrandingService extends GenericService {
       concept: selectedLogo.concept,
     };
 
-    const prompt = `Logo structure: ${JSON.stringify(
-      logoStructure
-    )}\n\n${LOGO_VARIATIONS_GENERATION_PROMPT}`;
+    // Execute all three variations in parallel
+    logger.info(`Starting parallel generation of 3 logo variations`);
+    const [lightVariation, darkVariation, monochromeVariation] = await Promise.all([
+      this.generateSingleLightVariation(logoStructure, project),
+      this.generateSingleDarkVariation(logoStructure, project),
+      this.generateSingleMonochromeVariation(logoStructure, project),
+    ]);
 
-    const steps: IPromptStep[] = [
-      {
-        promptConstant: prompt,
-        stepName: "Logo Variations Generation",
-        maxOutputTokens: 2000, // Increased tokens for detailed variations
-        modelParser: (content) => {
-          try {
-            const variationsJson: LogoVariationsJson = JSON.parse(content);
-            return variationsJson;
-          } catch (error) {
-            logger.error("Error parsing logo variations JSON:", error);
-            throw new Error("Failed to parse logo variations JSON");
-          }
-        },
-        hasDependencies: false,
+    logger.info(`Successfully generated all 3 variations in parallel`);
+
+    // Create direct SVG variations (bypassing JSON-to-SVG conversion since we already have SVGs)
+    const svgVariations = {
+      withText: {
+        lightBackground: lightVariation.lightBackground,
+        darkBackground: darkVariation.darkBackground,
+        monochrome: monochromeVariation.monochrome,
       },
-    ];
-
-    const sectionResults = await this.processSteps(steps, project);
-    const variationsResult = sectionResults[0];
-    const variationsJson: LogoVariationsJson = variationsResult.parsedData;
-
-    // Convert JSON variations to optimized SVGs
-    const svgVariations =
-      this.logoJsonToSvgService.convertVariationsJsonToSvg(variationsJson);
+      iconOnly: {
+        lightBackground: lightVariation.lightBackground,
+        darkBackground: darkVariation.darkBackground,
+        monochrome: monochromeVariation.monochrome,
+      },
+    };
 
     // Apply advanced SVG optimization
     const optimizedVariations = {
@@ -990,16 +1085,9 @@ export class BrandingService extends GenericService {
       });
 
       logger.info(
-        `Optimized logo variations cached - ProjectId: ${projectId}, Shapes: ${Object.keys(
-          variationsJson.variations
-        )
-          .map(
-            (k) =>
-              variationsJson.variations[
-                k as keyof typeof variationsJson.variations
-              ].shapes.length
-          )
-          .join("/")}`
+        `Optimized logo variations cached - ProjectId: ${projectId}, Variations: ${Object.keys(
+          optimizedVariations.iconOnly
+        ).join("/")}`
       );
     }
 
