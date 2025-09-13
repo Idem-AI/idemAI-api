@@ -662,31 +662,35 @@ export class PdfService {
         );
       }
 
-      // Utiliser une page optimisée avec ressources pré-chargées
-      const page = await PdfService.createOptimizedPage();
+      // Créer une nouvelle page pour le PDF
+      const browser = await PdfService.getBrowser();
+      const page = await browser.newPage();
 
-      // Définir le contenu HTML (ressources déjà injectées)
+      // Définir le contenu HTML avec attente des ressources réseau
       await page.setContent(htmlContent, {
-        waitUntil: "domcontentloaded", // Plus rapide que networkidle0
-        timeout: 15000, // Réduit de 60s à 15s
+        waitUntil: "networkidle0", // Attendre que toutes les ressources se chargent
+        timeout: 30000, // Augmenté pour permettre le chargement de Tailwind CSS
       });
 
-      // Attente optimisée pour les scripts (réduite drastiquement)
+      // Attendre que Tailwind CSS soit chargé et configuré
       await page.waitForFunction(
-        'typeof window.tailwind !== "undefined" || document.readyState === "complete"',
-        { timeout: 3000 } // Réduit de 15s à 3s
+        'typeof tailwind !== "undefined" && document.readyState === "complete"',
+        { timeout: 10000 }
       );
 
-      // Configuration rapide des scripts
+      // Configurer et appliquer Tailwind CSS
       await page.evaluate(() => {
         if (typeof (window as any).tailwind !== "undefined") {
           const tailwindInstance = (window as any).tailwind;
-          if (tailwindInstance.refresh) tailwindInstance.refresh();
+          // Forcer le scan et l'application des classes
+          if (tailwindInstance.refresh) {
+            tailwindInstance.refresh();
+          }
         }
       });
 
-      // Attente minimale pour le rendu (réduite drastiquement)
-      await new Promise((resolve) => setTimeout(resolve, 500)); // Réduit de 3.5s à 0.5s
+      // Attente pour que les styles soient appliqués
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Créer un fichier temporaire pour le PDF
       const tempDir = os.tmpdir();
@@ -778,6 +782,15 @@ export class PdfService {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${title} - ${projectName}</title>
+        
+        <!-- Tailwind CSS via CDN pour PDF -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        
+        <!-- Google Fonts Inter -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        
         ${
           typography?.url
             ? `<link href="${typography.url}" rel="stylesheet">`
@@ -797,8 +810,8 @@ export class PdfService {
                 : "'Inter'"
             };
             
-            if (typeof window.tailwind !== 'undefined') {
-              window.tailwind.config = {
+            if (typeof tailwind !== 'undefined') {
+              tailwind.config = {
                 theme: { 
                   extend: { 
                     fontFamily: { 
