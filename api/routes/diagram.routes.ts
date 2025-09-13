@@ -68,7 +68,7 @@ const resourceName = "diagrams";
  *       '500':
  *         description: Internal server error.
  */
-diagramRoutes.post(
+diagramRoutes.get(
   `/${resourceName}/generate/:projectId`,
   authenticate,
   checkPolicyAcceptance,
