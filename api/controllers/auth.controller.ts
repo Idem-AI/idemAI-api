@@ -61,8 +61,8 @@ export const sessionLoginController = async (
       maxAge: expiresIn,
       httpOnly: true,
       // In production we must use Secure + SameSite=None for cross-site cookies
-      secure: isProduction,
-      sameSite: (isProduction ? "none" : "lax"),
+      secure: true,
+      sameSite: ("none"),
       path: "/",
     };
 
