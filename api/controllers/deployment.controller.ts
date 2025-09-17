@@ -529,7 +529,7 @@ export const generateDeploymentController = async (
     } else {
       message = `New deployment created successfully with tfvars generated`;
     }
-    userService.incrementUsage(userId, 1);
+    userService.incrementUsage(userId, 5);
 
     res.status(201).json({
       success: true,
@@ -611,7 +611,7 @@ export const ExecuteDeploymentStreamingController = async (
 ): Promise<void> => {
   const userId = req.user?.uid;
   const { deploymentId } = req.params;
-  
+
   logger.info(
     `ExecuteDeploymentStreamingController called - UserId: ${userId}, DeploymentId: ${deploymentId}`
   );
@@ -641,7 +641,7 @@ export const ExecuteDeploymentStreamingController = async (
 
     // Fonction de callback pour envoyer chaque log en temps réel
     const streamCallback = async (logData: {
-      type: 'stdout' | 'stderr' | 'info' | 'error' | 'status';
+      type: "stdout" | "stderr" | "info" | "error" | "status";
       message: string;
       timestamp: string;
       step?: string;
@@ -652,8 +652,8 @@ export const ExecuteDeploymentStreamingController = async (
           type: logData.type,
           message: logData.message,
           timestamp: logData.timestamp,
-          step: logData.step || 'deployment',
-          deploymentId: deploymentId
+          step: logData.step || "deployment",
+          deploymentId: deploymentId,
         };
 
         // Formatage du message SSE
@@ -682,19 +682,19 @@ export const ExecuteDeploymentStreamingController = async (
     logger.info(
       `Deployment execution completed - UserId: ${userId}, DeploymentId: ${deploymentId}`
     );
-    userService.incrementUsage(userId, 1);
+    userService.incrementUsage(userId, 5);
 
     // Envoyer un événement de fin de succès
     res.write(
-      `data: ${JSON.stringify({ 
-        type: "success", 
+      `data: ${JSON.stringify({
+        type: "success",
         message: "Deployment execution completed successfully",
         timestamp: new Date().toISOString(),
         deploymentId: deploymentId,
-        status: "finished"
+        status: "finished",
       })}\n\n`
     );
-    
+
     // Envoyer l'événement de fin de stream
     res.write(`data: [DONE]\n\n`);
     res.end();
@@ -706,16 +706,16 @@ export const ExecuteDeploymentStreamingController = async (
 
     // Envoyer une erreur structurée et terminer le stream
     res.write(
-      `data: ${JSON.stringify({ 
-        type: "error", 
+      `data: ${JSON.stringify({
+        type: "error",
         message: error.message,
         timestamp: new Date().toISOString(),
         deploymentId: deploymentId,
         status: "failed",
-        errorCode: error.code || "DEPLOYMENT_ERROR"
+        errorCode: error.code || "DEPLOYMENT_ERROR",
       })}\n\n`
     );
-    
+
     // Envoyer l'événement de fin de stream avec erreur
     res.write(`data: [ERROR]\n\n`);
     res.end();
@@ -796,7 +796,7 @@ export const storeSensitiveVariablesController = async (
   } catch (error: any) {
     const userId = req.user?.uid;
     const { projectId, deploymentId } = req.params;
-    
+
     logger.error(
       `Error in storeSensitiveVariablesController - UserId: ${userId}, ProjectId: ${projectId}, DeploymentId: ${deploymentId}: ${error.message}`,
       { stack: error.stack, body: req.body }

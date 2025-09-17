@@ -114,7 +114,7 @@ export const generateLogoConceptsController = async (
     logger.info(
       `Successfully generated logo concepts - UserId: ${userId}, ProjectId: ${projectId}`
     );
-    userService.incrementUsage(userId, 1);
+    userService.incrementUsage(userId, 5);
     res.status(200).json(logos);
   } catch (error) {
     logger.error(
@@ -172,7 +172,7 @@ export const generateLogoVariationsController = async (
     logger.info(
       `Successfully generated logo variations - UserId: ${userId}, ProjectId: ${projectId}`
     );
-    userService.incrementUsage(userId, 1);
+    userService.incrementUsage(userId, 5);
     res.status(200).json({ variations });
   } catch (error) {
     logger.error(
@@ -474,7 +474,7 @@ export const generateBrandingStreamingController = async (
     logger.info(
       `Branding generation completed - UserId: ${userId}, ProjectId: ${projectId}`
     );
-    userService.incrementUsage(userId, 1);
+    userService.incrementUsage(userId, 5);
 
     // Envoyer un événement de fin
     res.write(

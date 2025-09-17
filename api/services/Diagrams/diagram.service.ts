@@ -58,18 +58,18 @@ export class DiagramService extends GenericService {
           stepName: "Architecture Diagram",
           hasDependencies: false,
         },
-        // {
-        //   promptConstant: ENTITY_DIAGRAM_PROMPT,
-        //   stepName: "Entity Relationship Diagram",
-        //   requiresSteps: ["Uses Cases Diagram"],
-        //   hasDependencies: false,
-        // },
-        // {
-        //   promptConstant: SEQUENCE_DIAGRAM_PROMPT,
-        //   stepName: "Sequence Diagram",
-        //   requiresSteps: ["Uses Cases Diagram"],
-        //   hasDependencies: false,
-        // },
+        {
+          promptConstant: ENTITY_DIAGRAM_PROMPT,
+          stepName: "Entity Relationship Diagram",
+          requiresSteps: ["Uses Cases Diagram"],
+          hasDependencies: false,
+        },
+        {
+          promptConstant: SEQUENCE_DIAGRAM_PROMPT,
+          stepName: "Sequence Diagram",
+          requiresSteps: ["Uses Cases Diagram"],
+          hasDependencies: false,
+        },
       ];
 
       // Initialize empty sections array to collect results as they come in

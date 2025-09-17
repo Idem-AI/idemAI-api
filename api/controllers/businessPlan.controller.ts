@@ -347,7 +347,7 @@ export const generateBusinessPlanStreamingController = async (
     logger.info(
       `Business plan generation completed - UserId: ${userId}, ProjectId: ${projectId}`
     );
-    userService.incrementUsage(userId, 1);
+    userService.incrementUsage(userId, 5);
 
     // Envoyer un événement de fin
     res.write(

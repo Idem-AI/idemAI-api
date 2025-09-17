@@ -49,7 +49,7 @@ export const generateDiagramController = async (
         newDiagram?.id || "unknown"
       }`
     );
-    userService.incrementUsage(userId, 1);
+    userService.incrementUsage(userId, 5);
 
     res
       .status(201)
@@ -287,7 +287,7 @@ export const generateDiagramStreamingController = async (
         newDiagram?.id || "unknown"
       }`
     );
-    userService.incrementUsage(userId, 1);
+    userService.incrementUsage(userId, 5);
 
     // Envoyer un événement de fin
     res.write(
