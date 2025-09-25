@@ -43,6 +43,7 @@ LAYOUT INTELLIGENCE:
 - Adjust viewBox dimensions accordingly: horizontal=200x80, vertical=120x120
 - Ensure no overlapping between icon and text elements
 - Maintain professional spacing and visual balance
+- don't change project name. take it from the project description that is provided to you
 
 SVG STRUCTURE EXAMPLE:
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" width="200" height="80">

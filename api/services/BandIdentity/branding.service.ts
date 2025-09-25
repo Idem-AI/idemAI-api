@@ -439,10 +439,10 @@ export class BrandingService extends GenericService {
       provider: LLMProvider.GEMINI,
       modelName: "gemini-2.0-flash",
       llmOptions: {
-        maxOutputTokens: 5000,
-        temperature: 0.7,
+        maxOutputTokens: 3500,
+        temperature: 0.1,
         topP: 0.9,
-        topK: 40,
+        topK: 50,
       },
     });
     const colorsResult: ISectionResult = sectionResults[0];
@@ -627,7 +627,7 @@ export class BrandingService extends GenericService {
       {
         promptConstant: optimizedPrompt,
         stepName: `Logo Concept ${conceptIndex + 1}`,
-        maxOutputTokens: 2000,
+        maxOutputTokens: 3500,
         modelParser: (content) => {
           try {
             // Parse JSON response containing SVG
