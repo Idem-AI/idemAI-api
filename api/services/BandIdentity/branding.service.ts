@@ -627,7 +627,7 @@ export class BrandingService extends GenericService {
       {
         promptConstant: optimizedPrompt,
         stepName: `Logo Concept ${conceptIndex + 1}`,
-        maxOutputTokens: 4000,
+        maxOutputTokens: 2000,
         modelParser: (content) => {
           try {
             // Parse JSON response containing SVG
@@ -658,12 +658,12 @@ export class BrandingService extends GenericService {
 
     const sectionResults = await this.processSteps(steps, project, {
       provider: LLMProvider.GEMINI,
-      modelName: "gemini-2.5-flash",
+      modelName: "gemini-2.0-flash",
       llmOptions: {
-        maxOutputTokens: 4000,
-        temperature: 0.2,
-        topP: 0.8,
-        topK: 20,
+        maxOutputTokens: 3500,
+        temperature: 0.15,
+        topP: 0.85,
+        topK: 40,
       },
     });
     const logoResult = sectionResults[0];
@@ -1001,6 +1001,7 @@ export class BrandingService extends GenericService {
       name: selectedLogo.name,
       colors: selectedLogo.colors,
       concept: selectedLogo.concept,
+      svg: selectedLogo.iconSvg,
     };
 
     // Execute all three variations in parallel
