@@ -16,13 +16,8 @@ import { BRAND_HEADER_SECTION_PROMPT } from "./prompts/00_brand-header-section.p
 import { LOGO_SYSTEM_SECTION_PROMPT } from "./prompts/01_logo-system-section.prompt";
 import { COLOR_PALETTE_SECTION_PROMPT } from "./prompts/02_color-palette-section.prompt";
 import { TYPOGRAPHY_SECTION_PROMPT } from "./prompts/03_typography-section.prompt";
-import { USAGE_GUIDELINES_SECTION_PROMPT } from "./prompts/04_usage-guidelines-section.prompt";
 import { BRAND_FOOTER_SECTION_PROMPT } from "./prompts/07_brand-footer-section.prompt";
 import { SectionModel } from "../../models/section.model";
-import { DiagramModel } from "../../models/diagram.model";
-import { DevelopmentConfigsModel } from "../../models/development.model";
-import { LandingModel } from "../../models/landing.model";
-import { AnalysisResultBuilder } from "../../models/builders/analysisResult.builder";
 import { BrandIdentityBuilder } from "../../models/builders/brandIdentity.builder";
 import {
   GenericService,
@@ -36,17 +31,48 @@ import { PdfService } from "../pdf.service";
 import { cacheService } from "../cache.service";
 import crypto from "crypto";
 import { projectService } from "../project.service";
-import { SvgIconExtractorService } from "./svgIconExtractor.service";
 import { LogoJsonToSvgService } from "./logoJsonToSvg.service";
 import { SvgOptimizerService } from "./svgOptimizer.service";
-import {
-  LogoJsonStructure,
-  LogoVariationsJson,
-} from "./interfaces/logoJson.interface";
 
 export class BrandingService extends GenericService {
   private pdfService: PdfService;
   private logoJsonToSvgService: LogoJsonToSvgService;
+
+  // Configuration LLM pour la génération de logos et variations
+  private static readonly LOGO_LLM_CONFIG = {
+    provider: LLMProvider.GEMINI,
+    modelName: "gemini-2.0-flash",
+    llmOptions: {
+      maxOutputTokens: 2000,
+      temperature: 0.15,
+      topP: 0.85,
+      topK: 50,
+    },
+  };
+
+  // Configuration LLM pour la génération de couleurs
+  private static readonly COLORS_LLM_CONFIG = {
+    provider: LLMProvider.GEMINI,
+    modelName: "gemini-2.0-flash",
+    llmOptions: {
+      maxOutputTokens: 3500,
+      temperature: 0.1,
+      topP: 0.9,
+      topK: 50,
+    },
+  };
+
+  // Configuration LLM pour la génération de typographies
+  private static readonly TYPOGRAPHY_LLM_CONFIG = {
+    provider: LLMProvider.GEMINI,
+    modelName: "gemini-2.0-flash",
+    llmOptions: {
+      maxOutputTokens: 5000,
+      temperature: 0.7,
+      topP: 0.9,
+      topK: 40,
+    },
+  };
 
   constructor(promptService: PromptService) {
     super(promptService);
@@ -435,16 +461,7 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project, {
-      provider: LLMProvider.GEMINI,
-      modelName: "gemini-2.0-flash",
-      llmOptions: {
-        maxOutputTokens: 3500,
-        temperature: 0.1,
-        topP: 0.9,
-        topK: 50,
-      },
-    });
+    const sectionResults = await this.processSteps(steps, project, BrandingService.COLORS_LLM_CONFIG);
     const colorsResult: ISectionResult = sectionResults[0];
 
     logger.info(`Colors generated successfully`);
@@ -477,16 +494,7 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project, {
-      provider: LLMProvider.GEMINI,
-      modelName: "gemini-2.0-flash",
-      llmOptions: {
-        maxOutputTokens: 5000,
-        temperature: 0.7,
-        topP: 0.9,
-        topK: 40,
-      },
-    });
+    const sectionResults = await this.processSteps(steps, project, BrandingService.TYPOGRAPHY_LLM_CONFIG);
     const typographyResult = sectionResults[0];
 
     logger.info(`Typography generated successfully`);
@@ -656,16 +664,7 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project, {
-      provider: LLMProvider.GEMINI,
-      modelName: "gemini-2.0-flash",
-      llmOptions: {
-        maxOutputTokens: 3500,
-        temperature: 0.15,
-        topP: 0.85,
-        topK: 40,
-      },
-    });
+    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
     const logoResult = sectionResults[0];
     const logoData = logoResult.parsedData;
 
@@ -896,7 +895,7 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project);
+    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
     return sectionResults[0].parsedData;
   }
 
@@ -929,7 +928,7 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project);
+    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
     return sectionResults[0].parsedData;
   }
 
@@ -962,7 +961,7 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project);
+    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
     return sectionResults[0].parsedData;
   }
 
