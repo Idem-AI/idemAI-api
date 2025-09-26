@@ -461,7 +461,11 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project, BrandingService.COLORS_LLM_CONFIG);
+    const sectionResults = await this.processSteps(
+      steps,
+      project,
+      BrandingService.COLORS_LLM_CONFIG
+    );
     const colorsResult: ISectionResult = sectionResults[0];
 
     logger.info(`Colors generated successfully`);
@@ -494,7 +498,11 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project, BrandingService.TYPOGRAPHY_LLM_CONFIG);
+    const sectionResults = await this.processSteps(
+      steps,
+      project,
+      BrandingService.TYPOGRAPHY_LLM_CONFIG
+    );
     const typographyResult = sectionResults[0];
 
     logger.info(`Typography generated successfully`);
@@ -664,7 +672,11 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
+    const sectionResults = await this.processSteps(
+      steps,
+      project,
+      BrandingService.LOGO_LLM_CONFIG
+    );
     const logoResult = sectionResults[0];
     const logoData = logoResult.parsedData;
 
@@ -683,7 +695,9 @@ export class BrandingService extends GenericService {
     const optimizedLogo = this.optimizeLogoSvgs(logoModel);
 
     logger.info(
-      `Professional logo concept ${conceptIndex + 1} generated with direct SVG content`
+      `Professional logo concept ${
+        conceptIndex + 1
+      } generated with direct SVG content`
     );
     return optimizedLogo;
   }
@@ -701,10 +715,10 @@ export class BrandingService extends GenericService {
         const iconContent = iconMatch[1];
         return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80"><g id="icon">${iconContent}</g></svg>`;
       }
-      
+
       // Fallback: return a simplified version of the full SVG
       logger.warn("Could not extract icon from SVG, using fallback");
-      return fullSvg.replace(/<g id="text"[^>]*>[\s\S]*?<\/g>/, '');
+      return fullSvg.replace(/<g id="text"[^>]*>[\s\S]*?<\/g>/, "");
     } catch (error) {
       logger.error("Error extracting icon from SVG:", error);
       return fullSvg; // Return original if extraction fails
@@ -895,7 +909,11 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
+    const sectionResults = await this.processSteps(
+      steps,
+      project,
+      BrandingService.LOGO_LLM_CONFIG
+    );
     return sectionResults[0].parsedData;
   }
 
@@ -928,7 +946,11 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
+    const sectionResults = await this.processSteps(
+      steps,
+      project,
+      BrandingService.LOGO_LLM_CONFIG
+    );
     return sectionResults[0].parsedData;
   }
 
@@ -961,7 +983,11 @@ export class BrandingService extends GenericService {
       },
     ];
 
-    const sectionResults = await this.processSteps(steps, project, BrandingService.LOGO_LLM_CONFIG);
+    const sectionResults = await this.processSteps(
+      steps,
+      project,
+      BrandingService.LOGO_LLM_CONFIG
+    );
     return sectionResults[0].parsedData;
   }
 
@@ -1005,11 +1031,12 @@ export class BrandingService extends GenericService {
 
     // Execute all three variations in parallel
     logger.info(`Starting parallel generation of 3 logo variations`);
-    const [lightVariation, darkVariation, monochromeVariation] = await Promise.all([
-      this.generateSingleLightVariation(logoStructure, project),
-      this.generateSingleDarkVariation(logoStructure, project),
-      this.generateSingleMonochromeVariation(logoStructure, project),
-    ]);
+    const [lightVariation, darkVariation, monochromeVariation] =
+      await Promise.all([
+        this.generateSingleLightVariation(logoStructure, project),
+        this.generateSingleDarkVariation(logoStructure, project),
+        this.generateSingleMonochromeVariation(logoStructure, project),
+      ]);
 
     logger.info(`Successfully generated all 3 variations in parallel`);
 
@@ -1330,7 +1357,7 @@ export class BrandingService extends GenericService {
   async generateLogosZip(
     userId: string,
     projectId: string,
-    extension: 'svg' | 'png' | 'psd'
+    extension: "svg" | "png" | "psd"
   ): Promise<Buffer> {
     logger.info(
       `Generating logos ZIP for projectId: ${projectId}, userId: ${userId}, extension: ${extension}`
@@ -1357,7 +1384,7 @@ export class BrandingService extends GenericService {
       throw new Error(`No logo found for project ${projectId}`);
     }
 
-    const JSZip = require('jszip');
+    const JSZip = require("jszip");
     const zip = new JSZip();
 
     try {
@@ -1368,16 +1395,16 @@ export class BrandingService extends GenericService {
       // Logo principal
       if (branding.logo.svg) {
         logoFiles.push({
-          name: 'logo-main',
-          content: branding.logo.svg
+          name: "logo-main",
+          content: branding.logo.svg,
         });
       }
 
       // Logo icône seulement
       if (branding.logo.iconSvg) {
         logoFiles.push({
-          name: 'logo-icon',
-          content: branding.logo.iconSvg
+          name: "logo-icon",
+          content: branding.logo.iconSvg,
         });
       }
 
@@ -1385,20 +1412,20 @@ export class BrandingService extends GenericService {
       if (logoVariations?.withText) {
         if (logoVariations.withText.lightBackground) {
           logoFiles.push({
-            name: 'logo-with-text-light-background',
-            content: logoVariations.withText.lightBackground
+            name: "logo-with-text-light-background",
+            content: logoVariations.withText.lightBackground,
           });
         }
         if (logoVariations.withText.darkBackground) {
           logoFiles.push({
-            name: 'logo-with-text-dark-background',
-            content: logoVariations.withText.darkBackground
+            name: "logo-with-text-dark-background",
+            content: logoVariations.withText.darkBackground,
           });
         }
         if (logoVariations.withText.monochrome) {
           logoFiles.push({
-            name: 'logo-with-text-monochrome',
-            content: logoVariations.withText.monochrome
+            name: "logo-with-text-monochrome",
+            content: logoVariations.withText.monochrome,
           });
         }
       }
@@ -1407,55 +1434,64 @@ export class BrandingService extends GenericService {
       if (logoVariations?.iconOnly) {
         if (logoVariations.iconOnly.lightBackground) {
           logoFiles.push({
-            name: 'logo-icon-only-light-background',
-            content: logoVariations.iconOnly.lightBackground
+            name: "logo-icon-only-light-background",
+            content: logoVariations.iconOnly.lightBackground,
           });
         }
         if (logoVariations.iconOnly.darkBackground) {
           logoFiles.push({
-            name: 'logo-icon-only-dark-background',
-            content: logoVariations.iconOnly.darkBackground
+            name: "logo-icon-only-dark-background",
+            content: logoVariations.iconOnly.darkBackground,
           });
         }
         if (logoVariations.iconOnly.monochrome) {
           logoFiles.push({
-            name: 'logo-icon-only-monochrome',
-            content: logoVariations.iconOnly.monochrome
+            name: "logo-icon-only-monochrome",
+            content: logoVariations.iconOnly.monochrome,
           });
         }
       }
 
       if (logoFiles.length === 0) {
-        throw new Error('No logo variations found to include in ZIP');
+        throw new Error("No logo variations found to include in ZIP");
       }
 
-      logger.info(`Found ${logoFiles.length} logo variations to include in ZIP`);
+      logger.info(
+        `Found ${logoFiles.length} logo variations to include in ZIP`
+      );
 
       // Traitement selon l'extension demandée
       for (const logoFile of logoFiles) {
         const fileName = `${logoFile.name}.${extension}`;
 
-        if (extension === 'svg') {
+        if (extension === "svg") {
           // Pour SVG, ajouter directement le contenu
           zip.file(fileName, logoFile.content);
-        } else if (extension === 'png') {
+        } else if (extension === "png") {
           // Pour PNG, convertir le SVG
           const pngBuffer = await this.convertSvgToPng(logoFile.content);
           zip.file(fileName, pngBuffer);
-        } else if (extension === 'psd') {
-          // Pour PSD, créer un fichier simulé (PSD réel nécessiterait des bibliothèques spécialisées)
-          const psdContent = await this.createPsdPlaceholder(logoFile.name, logoFile.content);
-          zip.file(fileName, psdContent);
+        } else if (extension === "psd") {
+          // Pour PSD, convertir le SVG en vrai fichier PSD
+          const psdBuffer = await this.convertSvgToPsd(
+            logoFile.name,
+            logoFile.content
+          );
+          zip.file(fileName, psdBuffer);
         }
       }
 
       // Ajouter un fichier README avec les informations du projet
-      const readmeContent = this.generateReadmeContent(project, extension, logoFiles.length);
-      zip.file('README.txt', readmeContent);
+      const readmeContent = this.generateReadmeContent(
+        project,
+        extension,
+        logoFiles.length
+      );
+      zip.file("README.txt", readmeContent);
 
       // Générer le ZIP
-      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
-      
+      const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
+
       logger.info(
         `Successfully generated logos ZIP for projectId: ${projectId}, extension: ${extension}, files: ${logoFiles.length}`
       );
@@ -1475,54 +1511,349 @@ export class BrandingService extends GenericService {
    */
   private async convertSvgToPng(svgContent: string): Promise<Buffer> {
     try {
-      const sharp = require('sharp');
-      
+      const sharp = require("sharp");
+
       // Convertir le SVG en PNG avec une résolution de 512x512
       const pngBuffer = await sharp(Buffer.from(svgContent))
-        .resize(512, 512, { 
-          fit: 'contain', 
-          background: { r: 255, g: 255, b: 255, alpha: 0 } // Fond transparent
+        .resize(512, 512, {
+          fit: "contain",
+          background: { r: 255, g: 255, b: 255, alpha: 0 }, // Fond transparent
         })
         .png()
         .toBuffer();
 
       return pngBuffer;
     } catch (error) {
-      logger.error('Error converting SVG to PNG:', error);
+      logger.error("Error converting SVG to PNG:", error);
       // Fallback: retourner le contenu SVG comme texte
-      return Buffer.from(svgContent, 'utf-8');
+      return Buffer.from(svgContent, "utf-8");
     }
   }
 
   /**
-   * Crée un placeholder PSD (fichier texte avec informations)
-   * Note: Une vraie conversion PSD nécessiterait des bibliothèques spécialisées comme ag-psd
+   * Convertit un SVG en fichier PSD réel
+   * Utilise ag-psd pour créer un vrai fichier PSD avec calques
    */
-  private async createPsdPlaceholder(logoName: string, svgContent: string): Promise<Buffer> {
-    const psdInfo = `PSD Placeholder for ${logoName}
-    
-This is a placeholder file. To create actual PSD files, you would need:
-1. Adobe Photoshop or compatible software
-2. Specialized libraries like ag-psd for Node.js
-3. Or use online conversion services
+  private async convertSvgToPsd(
+    logoName: string,
+    svgContent: string
+  ): Promise<Buffer> {
+    try {
+      const { writePsd } = require("ag-psd");
+      const sharp = require("sharp");
+
+      logger.info(`Converting SVG to PSD for logo: ${logoName}`);
+
+      // Étape 1: Convertir le SVG en PNG haute résolution pour le PSD
+      const pngBuffer = await sharp(Buffer.from(svgContent))
+        .resize(2048, 2048, {
+          fit: "contain",
+          background: { r: 255, g: 255, b: 255, alpha: 0 }, // Fond transparent
+        })
+        .png()
+        .toBuffer();
+
+      // Obtenir les métadonnées de l'image
+      const metadata = await sharp(pngBuffer).metadata();
+      const width = metadata.width || 2048;
+      const height = metadata.height || 2048;
+
+      // Étape 2: Créer la structure PSD
+      const psd = {
+        width,
+        height,
+        channels: 4, // RGBA
+        bitsPerChannel: 8,
+        colorMode: 3, // RGB
+        resources: {
+          // Métadonnées du document
+          documentSpecificIds: [],
+          globalAngle: 30,
+          globalAltitude: 30,
+          printScale: {
+            style: 0,
+            x: 1,
+            y: 1,
+            scale: 1,
+          },
+          pixelAspectRatio: {
+            aspect: 1,
+          },
+          // Informations sur le logo
+          xmpMetadata: `<?xml version="1.0" encoding="UTF-8"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <rdf:Description rdf:about=""
+      xmlns:dc="http://purl.org/dc/elements/1.1/"
+      xmlns:xmp="http://ns.adobe.com/xap/1.0/">
+      <dc:title>${logoName}</dc:title>
+      <dc:description>Logo generated by Lexis API</dc:description>
+      <dc:creator>Lexis Brand Identity System</dc:creator>
+      <xmp:CreateDate>${new Date().toISOString()}</xmp:CreateDate>
+      <xmp:ModifyDate>${new Date().toISOString()}</xmp:ModifyDate>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>`,
+        },
+        children: [
+          // Calque de fond (optionnel, transparent)
+          {
+            name: "Background",
+            opacity: 255,
+            blendMode: "normal",
+            visible: true,
+            canvas: {
+              width,
+              height,
+              data: new Uint8Array(width * height * 4).fill(0), // Transparent
+            },
+          },
+          // Calque principal avec le logo
+          {
+            name: `${logoName} - Main`,
+            opacity: 255,
+            blendMode: "normal",
+            visible: true,
+            canvas: {
+              width,
+              height,
+              data: new Uint8Array(pngBuffer),
+            },
+          },
+          // Calque de texte (si le logo contient du texte)
+          ...(svgContent.includes("<text")
+            ? [
+                {
+                  name: `${logoName} - Text Layer`,
+                  opacity: 255,
+                  blendMode: "normal",
+                  visible: true,
+                  text: {
+                    text: logoName,
+                    transform: [1, 0, 0, 1, width / 2, height / 2],
+                    textData: {
+                      text: logoName,
+                      antiAlias: true,
+                      useFractionalGlyphWidths: true,
+                    },
+                    engineData: this.createTextEngineData(logoName),
+                  },
+                },
+              ]
+            : []),
+          // Calque d'effets (ombre portée, etc.)
+          {
+            name: `${logoName} - Effects`,
+            opacity: 128,
+            blendMode: "multiply",
+            visible: false,
+            effects: {
+              dropShadow: [
+                {
+                  enabled: true,
+                  blendMode: "multiply",
+                  color: { r: 0, g: 0, b: 0 },
+                  opacity: 75,
+                  angle: 135,
+                  distance: 5,
+                  spread: 0,
+                  size: 5,
+                },
+              ],
+            },
+            canvas: {
+              width,
+              height,
+              data: new Uint8Array(width * height * 4).fill(0),
+            },
+          },
+        ],
+      };
+
+      // Étape 3: Générer le buffer PSD
+      const psdBuffer = writePsd(psd);
+
+      logger.info(
+        `Successfully converted SVG to PSD for logo: ${logoName}, size: ${psdBuffer.length} bytes`
+      );
+
+      return Buffer.from(psdBuffer);
+    } catch (error) {
+      logger.error(`Error converting SVG to PSD for logo: ${logoName}`, error);
+
+      // Fallback: créer un PSD simple avec juste l'image PNG
+      return this.createSimplePsd(logoName, svgContent);
+    }
+  }
+
+  /**
+   * Crée un PSD simple en cas d'échec de la conversion complète
+   */
+  private async createSimplePsd(
+    logoName: string,
+    svgContent: string
+  ): Promise<Buffer> {
+    try {
+      const { writePsd } = require("ag-psd");
+      const sharp = require("sharp");
+
+      // Convertir en PNG simple
+      const pngBuffer = await sharp(Buffer.from(svgContent))
+        .resize(1024, 1024, {
+          fit: "contain",
+          background: { r: 255, g: 255, b: 255, alpha: 0 },
+        })
+        .png()
+        .toBuffer();
+
+      const metadata = await sharp(pngBuffer).metadata();
+      const width = metadata.width || 1024;
+      const height = metadata.height || 1024;
+
+      // PSD minimal
+      const simplePsd = {
+        width,
+        height,
+        channels: 4,
+        bitsPerChannel: 8,
+        colorMode: 3,
+        children: [
+          {
+            name: logoName,
+            opacity: 255,
+            blendMode: "normal",
+            visible: true,
+            canvas: {
+              width,
+              height,
+              data: new Uint8Array(pngBuffer),
+            },
+          },
+        ],
+      };
+
+      const psdBuffer = writePsd(simplePsd);
+      logger.info(`Created simple PSD for logo: ${logoName}`);
+
+      return Buffer.from(psdBuffer);
+    } catch (error) {
+      logger.error(`Failed to create simple PSD for logo: ${logoName}`, error);
+
+      // Dernier recours: retourner le contenu SVG comme fichier texte
+      const fallbackContent = `PSD Conversion Failed for ${logoName}
 
 Original SVG content:
 ${svgContent}
 
+Error: ${error instanceof Error ? error.message : "Unknown error"}
 Generated on: ${new Date().toISOString()}
+
+Note: Install ag-psd and sharp dependencies for PSD conversion.
 `;
-    
-    return Buffer.from(psdInfo, 'utf-8');
+
+      return Buffer.from(fallbackContent, "utf-8");
+    }
+  }
+
+  /**
+   * Crée les données de moteur de texte pour les calques de texte PSD
+   */
+  private createTextEngineData(text: string): any {
+    return {
+      EngineDict: {
+        Editor: {
+          Text: text,
+        },
+        ParagraphRun: {
+          DefaultRunData: {
+            ParagraphSheet: {
+              DefaultStyleSheet: 0,
+              Properties: {},
+            },
+            Adjustments: {
+              Axis: [1, 0, 1],
+              XY: [0, 0],
+            },
+          },
+          RunArray: [
+            {
+              ParagraphSheet: {
+                DefaultStyleSheet: 0,
+                Properties: {},
+              },
+              Adjustments: {
+                Axis: [1, 0, 1],
+                XY: [0, 0],
+              },
+              RunLength: text.length,
+            },
+          ],
+        },
+        StyleRun: {
+          DefaultRunData: {
+            StyleSheet: {
+              StyleSheetData: {
+                Font: 0,
+                FontSize: 48,
+                FauxBold: false,
+                FauxItalic: false,
+                AutoLeading: true,
+                Leading: 0,
+                HorizontalScale: 1,
+                VerticalScale: 1,
+                Tracking: 0,
+                AutoKern: true,
+                BaselineShift: 0,
+                FontCaps: 0,
+                FontBaseline: 0,
+                Strikethrough: false,
+                Underline: false,
+                Ligatures: true,
+                DLigatures: false,
+                BaselineDirection: 2,
+                Tsume: 0,
+                StyleRunAlignment: 2,
+                Language: 0,
+                NoBreak: false,
+                FillColor: {
+                  Type: 1,
+                  Values: [0, 0, 0, 1],
+                },
+              },
+            },
+          },
+          RunArray: [
+            {
+              StyleSheet: {
+                StyleSheetData: {
+                  Font: 0,
+                  FontSize: 48,
+                  FillColor: {
+                    Type: 1,
+                    Values: [0, 0, 0, 1],
+                  },
+                },
+              },
+              RunLength: text.length,
+            },
+          ],
+        },
+      },
+    };
   }
 
   /**
    * Génère le contenu du fichier README
    */
-  private generateReadmeContent(project: any, extension: string, fileCount: number): string {
+  private generateReadmeContent(
+    project: any,
+    extension: string,
+    fileCount: number
+  ): string {
     return `Logo Package - ${project.name}
     
 Project: ${project.name}
-Description: ${project.description || 'No description available'}
+Description: ${project.description || "No description available"}
 Format: ${extension.toUpperCase()}
 Files included: ${fileCount}
 Generated on: ${new Date().toISOString()}
