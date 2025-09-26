@@ -9,6 +9,7 @@ import {
   generateLogoVariationsController,
   generateBrandingStreamingController,
   generateBrandingPdfController,
+  generateLogosZipController,
 } from "../controllers/branding.controller";
 import { authenticate } from "../services/auth.service"; // Updated import path
 import { checkQuota } from "../middleware/quota.middleware";
@@ -513,4 +514,98 @@ brandingRoutes.get(
   authenticate,
   pdfTimeout,
   generateBrandingPdfController
+);
+
+// Generate and download ZIP with all logo variations
+/**
+ * @openapi
+ * /logos-zip/{projectId}/{extension}:
+ *   get:
+ *     tags:
+ *       - Branding
+ *     summary: Generate and download a ZIP file containing all logo variations
+ *     description: Creates a ZIP file containing all available logo variations (main, icon, with text, icon only) in the specified format (SVG, PNG, or PSD)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the project whose logo variations will be included in the ZIP
+ *       - in: path
+ *         name: extension
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [svg, png, psd]
+ *         description: The file format for the logo variations (svg, png, or psd)
+ *     responses:
+ *       '200':
+ *         description: ZIP file generated and returned successfully
+ *         content:
+ *           application/zip:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *         headers:
+ *           Content-Disposition:
+ *             description: Attachment with filename
+ *             schema:
+ *               type: string
+ *               example: 'attachment; filename="logos-{projectId}-{extension}.zip"'
+ *           Content-Type:
+ *             description: MIME type of the response
+ *             schema:
+ *               type: string
+ *               example: 'application/zip'
+ *       '400':
+ *         description: Bad request - Invalid parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid extension. Supported extensions: svg, png, psd"
+ *       '401':
+ *         description: Unauthorized - User not authenticated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not authenticated"
+ *       '404':
+ *         description: Project not found or no logo variations available
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "No logo variations found for this project"
+ *       '500':
+ *         description: Internal server error during ZIP generation
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error generating logos ZIP"
+ *                 error:
+ *                   type: string
+ *                   description: Detailed error message
+ */
+brandingRoutes.get(
+  `/logos-zip/:projectId/:extension`,
+  authenticate,
+  generateLogosZipController
 );

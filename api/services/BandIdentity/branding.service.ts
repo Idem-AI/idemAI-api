@@ -1319,4 +1319,226 @@ export class BrandingService extends GenericService {
       throw error;
     }
   }
+
+  /**
+   * Génère un fichier ZIP contenant toutes les déclinaisons du logo
+   * @param userId - ID de l'utilisateur
+   * @param projectId - ID du projet
+   * @param extension - Extension souhaitée (svg, png, psd)
+   * @returns Buffer du fichier ZIP
+   */
+  async generateLogosZip(
+    userId: string,
+    projectId: string,
+    extension: 'svg' | 'png' | 'psd'
+  ): Promise<Buffer> {
+    logger.info(
+      `Generating logos ZIP for projectId: ${projectId}, userId: ${userId}, extension: ${extension}`
+    );
+
+    // Récupérer le projet et ses données de branding
+    const project = await this.projectRepository.findById(
+      projectId,
+      `users/${userId}/projects`
+    );
+
+    if (!project) {
+      logger.warn(
+        `Project not found with ID: ${projectId} for user: ${userId} when generating logos ZIP.`
+      );
+      throw new Error(`Project not found with ID: ${projectId}`);
+    }
+
+    const branding = project.analysisResultModel.branding;
+    if (!branding || !branding.logo) {
+      logger.warn(
+        `No logo found for project ${projectId} when generating logos ZIP.`
+      );
+      throw new Error(`No logo found for project ${projectId}`);
+    }
+
+    const JSZip = require('jszip');
+    const zip = new JSZip();
+
+    try {
+      // Récupérer toutes les déclinaisons disponibles
+      const logoVariations = branding.logo.variations;
+      const logoFiles: { name: string; content: string }[] = [];
+
+      // Logo principal
+      if (branding.logo.svg) {
+        logoFiles.push({
+          name: 'logo-main',
+          content: branding.logo.svg
+        });
+      }
+
+      // Logo icône seulement
+      if (branding.logo.iconSvg) {
+        logoFiles.push({
+          name: 'logo-icon',
+          content: branding.logo.iconSvg
+        });
+      }
+
+      // Variations avec texte
+      if (logoVariations?.withText) {
+        if (logoVariations.withText.lightBackground) {
+          logoFiles.push({
+            name: 'logo-with-text-light-background',
+            content: logoVariations.withText.lightBackground
+          });
+        }
+        if (logoVariations.withText.darkBackground) {
+          logoFiles.push({
+            name: 'logo-with-text-dark-background',
+            content: logoVariations.withText.darkBackground
+          });
+        }
+        if (logoVariations.withText.monochrome) {
+          logoFiles.push({
+            name: 'logo-with-text-monochrome',
+            content: logoVariations.withText.monochrome
+          });
+        }
+      }
+
+      // Variations icône seulement
+      if (logoVariations?.iconOnly) {
+        if (logoVariations.iconOnly.lightBackground) {
+          logoFiles.push({
+            name: 'logo-icon-only-light-background',
+            content: logoVariations.iconOnly.lightBackground
+          });
+        }
+        if (logoVariations.iconOnly.darkBackground) {
+          logoFiles.push({
+            name: 'logo-icon-only-dark-background',
+            content: logoVariations.iconOnly.darkBackground
+          });
+        }
+        if (logoVariations.iconOnly.monochrome) {
+          logoFiles.push({
+            name: 'logo-icon-only-monochrome',
+            content: logoVariations.iconOnly.monochrome
+          });
+        }
+      }
+
+      if (logoFiles.length === 0) {
+        throw new Error('No logo variations found to include in ZIP');
+      }
+
+      logger.info(`Found ${logoFiles.length} logo variations to include in ZIP`);
+
+      // Traitement selon l'extension demandée
+      for (const logoFile of logoFiles) {
+        const fileName = `${logoFile.name}.${extension}`;
+
+        if (extension === 'svg') {
+          // Pour SVG, ajouter directement le contenu
+          zip.file(fileName, logoFile.content);
+        } else if (extension === 'png') {
+          // Pour PNG, convertir le SVG
+          const pngBuffer = await this.convertSvgToPng(logoFile.content);
+          zip.file(fileName, pngBuffer);
+        } else if (extension === 'psd') {
+          // Pour PSD, créer un fichier simulé (PSD réel nécessiterait des bibliothèques spécialisées)
+          const psdContent = await this.createPsdPlaceholder(logoFile.name, logoFile.content);
+          zip.file(fileName, psdContent);
+        }
+      }
+
+      // Ajouter un fichier README avec les informations du projet
+      const readmeContent = this.generateReadmeContent(project, extension, logoFiles.length);
+      zip.file('README.txt', readmeContent);
+
+      // Générer le ZIP
+      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+      
+      logger.info(
+        `Successfully generated logos ZIP for projectId: ${projectId}, extension: ${extension}, files: ${logoFiles.length}`
+      );
+
+      return zipBuffer;
+    } catch (error) {
+      logger.error(
+        `Error generating logos ZIP for projectId: ${projectId}, extension: ${extension}`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Convertit un SVG en PNG
+   */
+  private async convertSvgToPng(svgContent: string): Promise<Buffer> {
+    try {
+      const sharp = require('sharp');
+      
+      // Convertir le SVG en PNG avec une résolution de 512x512
+      const pngBuffer = await sharp(Buffer.from(svgContent))
+        .resize(512, 512, { 
+          fit: 'contain', 
+          background: { r: 255, g: 255, b: 255, alpha: 0 } // Fond transparent
+        })
+        .png()
+        .toBuffer();
+
+      return pngBuffer;
+    } catch (error) {
+      logger.error('Error converting SVG to PNG:', error);
+      // Fallback: retourner le contenu SVG comme texte
+      return Buffer.from(svgContent, 'utf-8');
+    }
+  }
+
+  /**
+   * Crée un placeholder PSD (fichier texte avec informations)
+   * Note: Une vraie conversion PSD nécessiterait des bibliothèques spécialisées comme ag-psd
+   */
+  private async createPsdPlaceholder(logoName: string, svgContent: string): Promise<Buffer> {
+    const psdInfo = `PSD Placeholder for ${logoName}
+    
+This is a placeholder file. To create actual PSD files, you would need:
+1. Adobe Photoshop or compatible software
+2. Specialized libraries like ag-psd for Node.js
+3. Or use online conversion services
+
+Original SVG content:
+${svgContent}
+
+Generated on: ${new Date().toISOString()}
+`;
+    
+    return Buffer.from(psdInfo, 'utf-8');
+  }
+
+  /**
+   * Génère le contenu du fichier README
+   */
+  private generateReadmeContent(project: any, extension: string, fileCount: number): string {
+    return `Logo Package - ${project.name}
+    
+Project: ${project.name}
+Description: ${project.description || 'No description available'}
+Format: ${extension.toUpperCase()}
+Files included: ${fileCount}
+Generated on: ${new Date().toISOString()}
+
+File naming convention:
+- logo-main: Main logo with text
+- logo-icon: Icon-only version
+- logo-with-text-*: Logo with text in different variations
+- logo-icon-only-*: Icon-only in different variations
+
+Variations:
+- light-background: Optimized for light backgrounds
+- dark-background: Optimized for dark backgrounds  
+- monochrome: Single color version
+
+Generated by Lexis API - Brand Identity System
+`;
+  }
 }

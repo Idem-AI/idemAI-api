@@ -562,3 +562,92 @@ export const generateBrandingPdfController = async (
     });
   }
 };
+
+/**
+ * Contrôleur pour générer et télécharger un ZIP contenant toutes les déclinaisons du logo
+ */
+export const generateLogosZipController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const { projectId, extension } = req.params;
+  const userId = req.user?.uid;
+  logger.info(
+    `generateLogosZipController called - UserId: ${userId}, ProjectId: ${projectId}, Extension: ${extension}`
+  );
+
+  try {
+    if (!userId) {
+      logger.warn("User not authenticated for generateLogosZipController");
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    if (!projectId) {
+      logger.warn("Project ID is required for generateLogosZipController");
+      res.status(400).json({ message: "Project ID is required" });
+      return;
+    }
+
+    if (!extension) {
+      logger.warn("Extension is required for generateLogosZipController");
+      res.status(400).json({ message: "Extension is required" });
+      return;
+    }
+
+    // Valider l'extension
+    const validExtensions = ['svg', 'png', 'psd'];
+    if (!validExtensions.includes(extension.toLowerCase())) {
+      logger.warn(`Invalid extension: ${extension} for generateLogosZipController`);
+      res.status(400).json({ 
+        message: "Invalid extension. Supported extensions: svg, png, psd" 
+      });
+      return;
+    }
+
+    // Générer le ZIP avec toutes les déclinaisons du logo
+    const zipBuffer = await brandingService.generateLogosZip(
+      userId,
+      projectId,
+      extension.toLowerCase() as 'svg' | 'png' | 'psd'
+    );
+
+    // Configurer les headers pour le téléchargement du ZIP
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="logos-${projectId}-${extension}.zip"`
+    );
+    res.setHeader("Content-Length", zipBuffer.length);
+
+    // Envoyer le ZIP
+    res.send(zipBuffer);
+
+    logger.info(
+      `ZIP generated and sent successfully - UserId: ${userId}, ProjectId: ${projectId}, Extension: ${extension}`
+    );
+  } catch (error: any) {
+    logger.error(
+      `Error in generateLogosZipController - UserId: ${userId}, ProjectId: ${projectId}, Extension: ${extension}: ${error.message}`,
+      { stack: error.stack }
+    );
+
+    // Gestion des erreurs spécifiques
+    if (error.message.includes('Project not found')) {
+      res.status(404).json({
+        message: "Project not found",
+        error: error.message,
+      });
+    } else if (error.message.includes('No logo found') || error.message.includes('No logo variations found')) {
+      res.status(404).json({
+        message: "No logo variations found for this project",
+        error: error.message,
+      });
+    } else {
+      res.status(500).json({
+        message: "Error generating logos ZIP",
+        error: error.message,
+      });
+    }
+  }
+};
