@@ -257,8 +257,6 @@ brandingRoutes.post(
   generateLogoVariationsController
 );
 
-
-
 // Get all brandings for a specific project
 /**
  * @openapi
@@ -605,7 +603,7 @@ brandingRoutes.get(
  *                   description: Detailed error message
  */
 brandingRoutes.get(
-  `/logos-zip/:projectId/:extension`,
+  `/${resourceName}/logos-zip/:projectId/:extension`,
   authenticate,
   generateLogosZipController
 );
