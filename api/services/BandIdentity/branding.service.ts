@@ -1498,26 +1498,59 @@ export class BrandingService extends GenericService {
         `Found ${logoFiles.length} logo variations to include in ZIP`
       );
 
-      // Traitement selon l'extension demandée
-      for (const logoFile of logoFiles) {
+      // Traitement en parallèle selon l'extension demandée
+      logger.info(
+        `Starting parallel conversion of ${
+          logoFiles.length
+        } logos to ${extension.toUpperCase()}`
+      );
+
+      const conversionPromises = logoFiles.map(async (logoFile) => {
         const fileName = `${logoFile.name}.${extension}`;
 
-        if (extension === "svg") {
-          // Pour SVG, ajouter directement le contenu
-          zip.file(fileName, logoFile.content);
-        } else if (extension === "png") {
-          // Pour PNG, convertir le SVG
-          const pngBuffer = await this.convertSvgToPng(logoFile.content);
-          zip.file(fileName, pngBuffer);
-        } else if (extension === "psd") {
-          // Pour PSD, convertir le SVG en vrai fichier PSD
-          const psdBuffer = await this.convertSvgToPsd(
-            logoFile.name,
-            logoFile.content
+        try {
+          if (extension === "svg") {
+            // Pour SVG, pas de conversion nécessaire
+            return { fileName, content: logoFile.content };
+          } else if (extension === "png") {
+            // Pour PNG, convertir le SVG
+            const pngBuffer = await this.convertSvgToPng(logoFile.content);
+            return { fileName, content: pngBuffer };
+          } else if (extension === "psd") {
+            // Pour PSD, convertir le SVG en vrai fichier PSD
+            const psdBuffer = await this.convertSvgToPsd(
+              logoFile.name,
+              logoFile.content
+            );
+            return { fileName, content: psdBuffer };
+          }
+
+          // Fallback pour extensions non supportées
+          return { fileName, content: logoFile.content };
+        } catch (error) {
+          logger.error(
+            `Error converting ${logoFile.name} to ${extension}:`,
+            error
           );
-          zip.file(fileName, psdBuffer);
+          // En cas d'erreur, retourner le contenu SVG original
+          return {
+            fileName: `${logoFile.name}.svg`,
+            content: logoFile.content,
+          };
         }
-      }
+      });
+
+      // Attendre que toutes les conversions se terminent
+      const convertedFiles = await Promise.all(conversionPromises);
+
+      logger.info(
+        `Completed parallel conversion of ${convertedFiles.length} logos`
+      );
+
+      // Ajouter tous les fichiers convertis au ZIP
+      convertedFiles.forEach(({ fileName, content }) => {
+        zip.file(fileName, content);
+      });
 
       // Ajouter un fichier README avec les informations du projet
       const readmeContent = this.generateReadmeContent(
@@ -1583,8 +1616,8 @@ export class BrandingService extends GenericService {
       const psdPath = await SvgToPsdService.convertSvgToPsd(svgContent, {
         width: 1024,
         height: 1024,
-        backgroundColor: 'transparent',
-        quality: 100
+        backgroundColor: "transparent",
+        quality: 100,
       });
 
       // Lire le fichier PSD généré
@@ -1593,12 +1626,18 @@ export class BrandingService extends GenericService {
       // Nettoyer le fichier temporaire
       await SvgToPsdService.cleanupTempFile(psdPath);
 
-      logger.info(`Successfully converted ${logoName} to PSD with ${svgContent.match(/<(path|rect|circle|ellipse|line|polyline|polygon|text|g)[^>]*>/gi)?.length || 0} potential layers`);
-      
+      logger.info(
+        `Successfully converted ${logoName} to PSD with ${
+          svgContent.match(
+            /<(path|rect|circle|ellipse|line|polyline|polygon|text|g)[^>]*>/gi
+          )?.length || 0
+        } potential layers`
+      );
+
       return psdBuffer;
     } catch (error) {
       logger.error(`Error converting SVG to PSD for ${logoName}:`, error);
-      
+
       // Fallback: créer un PNG haute qualité avec extension .psd
       logger.warn(`Falling back to PNG conversion for ${logoName}`);
       try {
@@ -1610,16 +1649,17 @@ export class BrandingService extends GenericService {
           })
           .png()
           .toBuffer();
-        
+
         return pngBuffer;
       } catch (fallbackError) {
-        logger.error(`Fallback PNG conversion also failed for ${logoName}:`, fallbackError);
+        logger.error(
+          `Fallback PNG conversion also failed for ${logoName}:`,
+          fallbackError
+        );
         return Buffer.from(svgContent, "utf-8");
       }
     }
   }
-
- 
 
   /**
    * Génère le contenu du fichier README
@@ -1637,7 +1677,9 @@ Format: ${extension.toUpperCase()}
 Files included: ${fileCount}
 Generated on: ${new Date().toISOString()}
 
-${extension.toLowerCase() === 'psd' ? `
+${
+  extension.toLowerCase() === "psd"
+    ? `
 ✅ PSD FORMAT WITH EDITABLE LAYERS:
 These are genuine PSD files with separated, editable layers created from your SVG logos.
 Each SVG element (paths, shapes, text, groups) has been converted into individual layers.
@@ -1649,7 +1691,9 @@ Features:
 - Compatible with Photoshop, GIMP, and other PSD editors
 - Preserves original SVG structure as separate layers
 
-` : ''}File naming convention:
+`
+    : ""
+}File naming convention:
 - logo-main: Main logo with text
 - logo-icon: Icon-only version
 - logo-with-text-*: Logo with text in different variations
@@ -1660,9 +1704,21 @@ Variations:
 - dark-background: Optimized for dark backgrounds  
 - monochrome: Single color version
 
-${extension.toLowerCase() === 'svg' ? 'SVG files are vector-based and can be scaled to any size without quality loss.' : ''}
-${extension.toLowerCase() === 'png' ? 'PNG files are high-quality raster images with transparent backgrounds.' : ''}
-${extension.toLowerCase() === 'psd' ? 'Files are provided as high-quality PNG format due to technical limitations.' : ''}
+${
+  extension.toLowerCase() === "svg"
+    ? "SVG files are vector-based and can be scaled to any size without quality loss."
+    : ""
+}
+${
+  extension.toLowerCase() === "png"
+    ? "PNG files are high-quality raster images with transparent backgrounds."
+    : ""
+}
+${
+  extension.toLowerCase() === "psd"
+    ? "Files are provided as high-quality PNG format due to technical limitations."
+    : ""
+}
 
 Generated by Lexis API - Brand Identity System
 `;
