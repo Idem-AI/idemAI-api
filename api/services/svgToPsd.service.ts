@@ -62,13 +62,15 @@ export interface SvgLayer {
 
 export class SvgToPsdService {
   private static browserInstance: Browser | null = null;
+  private static pagePool: Page[] = [];
+  private static readonly MAX_CONCURRENT_PAGES = 12; // Pool de pages pour traitement parallèle
 
   /**
-   * Initialise le browser Puppeteer (utilise l'instance du PdfService si disponible)
+   * Initialise le browser Puppeteer optimisé pour les conversions parallèles
    */
   private static async getBrowser(): Promise<Browser> {
     if (!this.browserInstance || !this.browserInstance.isConnected()) {
-      logger.info("Initializing Puppeteer browser for SVG to PSD conversion");
+      logger.info("Initializing optimized Puppeteer browser for parallel SVG to PSD conversion");
       this.browserInstance = await puppeteer.launch({
         headless: true,
         args: [
@@ -81,17 +83,123 @@ export class SvgToPsdService {
           "--disable-features=TranslateUI",
           "--disable-web-security",
           "--disable-features=VizDisplayCompositor",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--disable-features=ScriptStreaming",
+          "--disable-ipc-flooding-protection",
+          "--max_old_space_size=4096", // Augmenter la mémoire disponible
         ],
-        timeout: 30000,
+        timeout: 15000, // Timeout réduit pour démarrage plus rapide
+        pipe: true, // Utiliser pipe au lieu de websocket pour de meilleures performances
       });
+      
+      // Pré-créer un pool de pages pour éviter la création/destruction répétée
+      await this.initializePagePool();
     }
     return this.browserInstance;
   }
 
   /**
-   * Ferme le browser
+   * Initialise un pool de pages pour les conversions parallèles
+   */
+  private static async initializePagePool(): Promise<void> {
+    if (!this.browserInstance) return;
+    
+    logger.info(`Initializing page pool with ${this.MAX_CONCURRENT_PAGES} pages`);
+    
+    const pagePromises = Array(this.MAX_CONCURRENT_PAGES).fill(null).map(async () => {
+      const page = await this.browserInstance!.newPage();
+      
+      // Optimisations de performance par page
+      await page.setDefaultTimeout(5000); // Timeout réduit
+      await page.setDefaultNavigationTimeout(5000);
+      
+      // Désactiver les ressources inutiles
+      await page.setRequestInterception(true);
+      page.on('request', (req) => {
+        const resourceType = req.resourceType();
+        if (['stylesheet', 'font', 'image', 'media'].includes(resourceType)) {
+          req.abort();
+        } else {
+          req.continue();
+        }
+      });
+      
+      return page;
+    });
+    
+    this.pagePool = await Promise.all(pagePromises);
+    logger.info(`Page pool initialized with ${this.pagePool.length} pages`);
+  }
+
+  /**
+   * Obtient une page du pool ou en crée une nouvelle si nécessaire
+   */
+  private static async getPageFromPool(): Promise<Page> {
+    if (this.pagePool.length > 0) {
+      const page = this.pagePool.pop()!;
+      return page;
+    }
+    
+    // Si le pool est vide, créer une nouvelle page temporaire
+    const browser = await this.getBrowser();
+    const page = await browser.newPage();
+    
+    // Appliquer les mêmes optimisations
+    await page.setDefaultTimeout(5000);
+    await page.setDefaultNavigationTimeout(5000);
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      const resourceType = req.resourceType();
+      if (['stylesheet', 'font', 'image', 'media'].includes(resourceType)) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+    
+    return page;
+  }
+
+  /**
+   * Remet une page dans le pool après utilisation
+   */
+  private static async returnPageToPool(page: Page): Promise<void> {
+    try {
+      // Nettoyer la page avant de la remettre dans le pool
+      await page.goto('about:blank');
+      
+      if (this.pagePool.length < this.MAX_CONCURRENT_PAGES) {
+        this.pagePool.push(page);
+      } else {
+        // Si le pool est plein, fermer la page
+        await page.close();
+      }
+    } catch (error) {
+      // En cas d'erreur, fermer la page
+      try {
+        await page.close();
+      } catch (closeError) {
+        // Ignorer les erreurs de fermeture
+      }
+    }
+  }
+
+  /**
+   * Ferme le browser et nettoie le pool de pages
    */
   static async closeBrowser(): Promise<void> {
+    // Fermer toutes les pages du pool
+    if (this.pagePool.length > 0) {
+      logger.info(`Closing ${this.pagePool.length} pages from pool`);
+      await Promise.all(
+        this.pagePool.map(page => page.close().catch(() => {}))
+      );
+      this.pagePool = [];
+    }
+
+    // Fermer le browser
     if (this.browserInstance) {
       await this.browserInstance.close();
       this.browserInstance = null;
@@ -258,15 +366,15 @@ export class SvgToPsdService {
   }
 
   /**
-   * Convertit un élément SVG individuel en image via Puppeteer
+   * Convertit un élément SVG individuel en image via Puppeteer (optimisé pour parallélisme)
    */
   private static async renderSvgElementToCanvas(
     svgLayer: SvgLayer,
     originalSvg: string,
     options: SvgToPsdOptions
   ): Promise<Buffer> {
-    const browser = await this.getBrowser();
-    const page = await browser.newPage();
+    // Obtenir une page du pool
+    const page = await this.getPageFromPool();
 
     try {
       const width = options.width || 800;
@@ -286,50 +394,45 @@ export class SvgToPsdService {
         </svg>
       `;
 
-      // Créer une page HTML avec le SVG isolé
+      // Créer une page HTML optimisée avec le SVG isolé
       const html = `
         <!DOCTYPE html>
         <html>
         <head>
           <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
-              margin: 0;
-              padding: 0;
               background: ${options.backgroundColor || 'transparent'};
               display: flex;
               justify-content: center;
               align-items: center;
               width: ${width}px;
               height: ${height}px;
+              overflow: hidden;
             }
-            svg {
-              max-width: 100%;
-              max-height: 100%;
-            }
+            svg { max-width: 100%; max-height: 100%; }
           </style>
         </head>
-        <body>
-          ${isolatedSvg}
-        </body>
+        <body>${isolatedSvg}</body>
         </html>
       `;
 
-      await page.setViewport({ width, height });
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+      // Optimisations de performance
+      await page.setViewport({ width, height, deviceScaleFactor: 1 });
+      await page.setContent(html, { 
+        waitUntil: 'domcontentloaded', // Plus rapide que networkidle0
+        timeout: 3000 
+      });
 
-      // Attendre que le SVG soit rendu
-      await page.waitForSelector('svg', { timeout: 5000 });
+      // Attendre que le SVG soit rendu (timeout réduit)
+      await page.waitForSelector('svg', { timeout: 2000 });
 
-      // Prendre une capture d'écran
+      // Prendre une capture d'écran optimisée
       const screenshot = await page.screenshot({
         type: 'png',
         omitBackground: options.backgroundColor === 'transparent',
-        clip: {
-          x: 0,
-          y: 0,
-          width,
-          height,
-        },
+        clip: { x: 0, y: 0, width, height },
+        optimizeForSpeed: true, // Privilégier la vitesse
       });
 
       logger.info(`Rendered layer "${svgLayer.name}" to canvas`);
@@ -339,7 +442,8 @@ export class SvgToPsdService {
       logger.error(`Error rendering SVG layer "${svgLayer.name}":`, error);
       throw error;
     } finally {
-      await page.close();
+      // Remettre la page dans le pool au lieu de la fermer
+      await this.returnPageToPool(page);
     }
   }
 
@@ -349,6 +453,15 @@ export class SvgToPsdService {
   private static extractDefs(svgContent: string): string {
     const defsMatch = svgContent.match(/<defs[^>]*>([\s\S]*?)<\/defs>/i);
     return defsMatch ? defsMatch[1] : '';
+  }
+
+  /**
+   * Pré-initialise le browser et le pool de pages pour les conversions parallèles
+   */
+  static async initializeForParallelConversion(): Promise<void> {
+    logger.info("Pre-initializing browser for parallel conversions");
+    await this.getBrowser(); // Cela va initialiser le browser et le pool de pages
+    logger.info("Browser and page pool ready for parallel conversions");
   }
 
   /**
@@ -374,34 +487,54 @@ export class SvgToPsdService {
       // Créer les calques PSD
       const psdLayers: Layer[] = [];
 
-      // Traiter chaque calque SVG
-      for (let i = 0; i < svgLayers.length; i++) {
-        const svgLayer = svgLayers[i];
-        logger.info(`Processing layer ${i + 1}/${svgLayers.length}: ${svgLayer.name}`);
+      // Traiter les calques SVG en parallèle avec limitation de concurrence
+      const BATCH_SIZE = 6; // Traiter 6 calques en parallèle maximum
+      logger.info(`Processing ${svgLayers.length} layers in batches of ${BATCH_SIZE}`);
 
-        try {
-          // Rendre l'élément SVG en image
-          const imageBuffer = await this.renderSvgElementToCanvas(
-            svgLayer,
-            svgContent,
-            options
-          );
+      for (let i = 0; i < svgLayers.length; i += BATCH_SIZE) {
+        const batch = svgLayers.slice(i, i + BATCH_SIZE);
+        logger.info(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(svgLayers.length / BATCH_SIZE)} (${batch.length} layers)`);
 
-          // Créer le calque PSD
-          const canvas = await this.bufferToCanvas(imageBuffer, width, height);
-          const layer: Layer = {
-            name: svgLayer.name,
-            canvas: canvas as any, // Canvas polyfill compatible avec ag-psd
-            opacity: 255,
-            blendMode: 'normal',
-          };
+        const batchPromises = batch.map(async (svgLayer, batchIndex) => {
+          const layerIndex = i + batchIndex + 1;
+          logger.info(`Processing layer ${layerIndex}/${svgLayers.length}: ${svgLayer.name}`);
 
-          psdLayers.push(layer);
+          try {
+            // Rendre l'élément SVG en image
+            const imageBuffer = await this.renderSvgElementToCanvas(
+              svgLayer,
+              svgContent,
+              options
+            );
 
-        } catch (error) {
-          logger.warn(`Failed to process layer "${svgLayer.name}":`, error);
-          // Continuer avec les autres calques même si un échoue
-        }
+            // Créer le calque PSD
+            const canvas = await this.bufferToCanvas(imageBuffer, width, height);
+            const layer: Layer = {
+              name: svgLayer.name,
+              canvas: canvas as any, // Canvas polyfill compatible avec ag-psd
+              opacity: 255,
+              blendMode: 'normal',
+            };
+
+            return layer;
+
+          } catch (error) {
+            logger.warn(`Failed to process layer "${svgLayer.name}":`, error);
+            return null; // Retourner null pour les calques échoués
+          }
+        });
+
+        // Attendre que le batch se termine
+        const batchResults = await Promise.all(batchPromises);
+        
+        // Ajouter les calques réussis
+        batchResults.forEach(layer => {
+          if (layer) {
+            psdLayers.push(layer);
+          }
+        });
+
+        logger.info(`Completed batch ${Math.floor(i / BATCH_SIZE) + 1}, ${psdLayers.length} layers processed so far`);
       }
 
       if (psdLayers.length === 0) {

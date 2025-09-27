@@ -1505,6 +1505,12 @@ export class BrandingService extends GenericService {
         } logos to ${extension.toUpperCase()}`
       );
 
+      // Pré-initialiser le browser pour les conversions PSD si nécessaire
+      if (extension === "psd") {
+        logger.info("Pre-initializing browser for parallel PSD conversions");
+        await SvgToPsdService.initializeForParallelConversion();
+      }
+
       const conversionPromises = logoFiles.map(async (logoFile) => {
         const fileName = `${logoFile.name}.${extension}`;
 
