@@ -64,16 +64,13 @@ const port = process.env.PORT || 3001;
 app.use(cookieParser());
 
 app.use(express.json());
-const allowedOrigins = [
-  "http://localhost:4200",
-  "http://localhost:3001",
-  "http://localhost:3002",
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "https://idem.africa",
-  "https://appgen.idem.africa",
-  "https://chart.idem.africa",
-];
+
+// Parse CORS allowed origins from environment variable
+const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
+  ? process.env.CORS_ALLOWED_ORIGINS.split(",").map((origin) => origin.trim())
+  : [];
+
+console.log(`CORS allowed origins: ${allowedOrigins.join(", ")}`);
 
 app.use(
   cors({
