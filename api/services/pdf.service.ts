@@ -7,6 +7,7 @@ import logger from "../config/logger";
 import { SectionModel } from "../models/section.model";
 import { TypographyModel } from "../models/brand-identity.model";
 import { cacheService } from "./cache.service";
+import axios from "axios";
 
 export interface PdfGenerationOptions {
   title?: string;
@@ -615,7 +616,7 @@ export class PdfService {
     } = options;
 
     // Nettoyer les sections en supprimant le préfixe "html" du contenu data
-    const cleanedSections = sections.map((section) => {
+    let cleanedSections = sections.map((section) => {
       if (
         section.data &&
         typeof section.data === "string" &&
@@ -628,6 +629,9 @@ export class PdfService {
       }
       return section;
     });
+
+    // Convertir les URLs d'images en data URIs pour que Puppeteer puisse les charger
+    cleanedSections = await this.convertImageUrlsToDataUris(cleanedSections);
 
     logger.info(`sections length: ${cleanedSections.length}`);
     // Générer la clé de cache basée sur le contenu nettoyé
@@ -990,6 +994,123 @@ export class PdfService {
       logger.info(`Cleaned up temporary PDF file: ${pdfPath}`);
     } catch (error) {
       logger.warn(`Failed to cleanup temporary PDF file: ${pdfPath}`, error);
+    }
+  }
+
+  /**
+   * Convertit les URLs d'images dans les sections en data URIs
+   * pour que Puppeteer puisse les charger sans problème de CORS/authentification
+   */
+  private async convertImageUrlsToDataUris(
+    sections: SectionModel[]
+  ): Promise<SectionModel[]> {
+    logger.info("Converting image URLs to data URIs for PDF generation");
+
+    const convertedSections = await Promise.all(
+      sections.map(async (section) => {
+        if (!section.data || typeof section.data !== "string") {
+          return section;
+        }
+
+        let htmlContent = section.data;
+
+        // Regex pour trouver toutes les balises img avec src
+        const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+        const matches = [...htmlContent.matchAll(imgRegex)];
+
+        if (matches.length === 0) {
+          return section;
+        }
+
+        logger.info(
+          `Found ${matches.length} images in section: ${section.name}`
+        );
+
+        // Convertir chaque URL en data URI
+        for (const match of matches) {
+          const fullImgTag = match[0];
+          const imageUrl = match[1];
+
+          try {
+            // Vérifier si c'est déjà un data URI
+            if (imageUrl.startsWith("data:")) {
+              continue;
+            }
+
+            // Télécharger l'image
+            const dataUri = await this.downloadImageAsDataUri(imageUrl);
+
+            if (dataUri) {
+              // Remplacer l'URL par le data URI dans la balise img
+              const newImgTag = fullImgTag.replace(imageUrl, dataUri);
+              htmlContent = htmlContent.replace(fullImgTag, newImgTag);
+              logger.info(
+                `Converted image URL to data URI in section: ${section.name}`
+              );
+            }
+          } catch (error) {
+            logger.warn(
+              `Failed to convert image URL to data URI: ${imageUrl}`,
+              error
+            );
+            // Continue avec les autres images même si une échoue
+          }
+        }
+
+        return {
+          ...section,
+          data: htmlContent,
+        };
+      })
+    );
+
+    logger.info("Finished converting image URLs to data URIs");
+    return convertedSections;
+  }
+
+  /**
+   * Télécharge une image depuis une URL et la convertit en data URI
+   */
+  private async downloadImageAsDataUri(imageUrl: string): Promise<string | null> {
+    try {
+      logger.info(`Downloading image from URL: ${imageUrl.substring(0, 50)}...`);
+
+      // Télécharger l'image
+      const response = await axios.get(imageUrl, {
+        responseType: "arraybuffer",
+        timeout: 10000, // 10 secondes timeout
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; PdfService/1.0)",
+        },
+      });
+
+      // Déterminer le type MIME depuis les headers ou l'URL
+      let mimeType =
+        response.headers["content-type"] || "image/svg+xml";
+
+      // Si c'est un SVG, s'assurer que le MIME type est correct
+      if (imageUrl.toLowerCase().endsWith(".svg")) {
+        mimeType = "image/svg+xml";
+      } else if (imageUrl.toLowerCase().endsWith(".png")) {
+        mimeType = "image/png";
+      } else if (imageUrl.toLowerCase().endsWith(".jpg") || imageUrl.toLowerCase().endsWith(".jpeg")) {
+        mimeType = "image/jpeg";
+      }
+
+      // Convertir en base64
+      const base64 = Buffer.from(response.data).toString("base64");
+      const dataUri = `data:${mimeType};base64,${base64}`;
+
+      logger.info(
+        `Successfully converted image to data URI (${mimeType}, ${Math.round(
+          base64.length / 1024
+        )}KB)`
+      );
+
+      return dataUri;
+    } catch (error) {
+      logger.error(`Error downloading image from ${imageUrl}:`, error);
+      return null;
     }
   }
 }
