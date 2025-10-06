@@ -1,33 +1,44 @@
 export const LOGO_GENERATION_PROMPT = `
-Generate 1 premium, ORIGINAL logo concept with sophisticated, professional design. Create a distinctive brand identity that stands out in the market. 
+Generate 1 HIGHLY ORIGINAL, CREATIVE, and PROFESSIONAL logo concept that pushes design boundaries. Create a UNIQUE brand identity that is MEMORABLE, MODERN, and SOPHISTICATED.
+
+**DESIGN PHILOSOPHY:**
+- Think like a world-class brand designer (Pentagram, Landor, Wolff Olins level)
+- Avoid generic, predictable, or cliché designs at all costs
+- Create visual impact through innovation, not imitation
+- Balance creativity with timeless professionalism
+- Every element must serve a purpose and tell a story
 
 **LOGO TYPE REQUIREMENTS:**
-Read the USER PREFERENCES above to understand the required logo type. Generate modern, professional logos that match these specifications:
+Read the USER PREFERENCES above to understand the required logo type. Generate EXCEPTIONAL, ORIGINAL logos:
 
-- **"icon" (Icon Based)**: Create an easy-to-remember shape/icon + brand name. The icon is the focal point.
-  * Examples: Apple (apple icon + text), Nike (swoosh + text), Twitter (bird + text)
-  * Design a distinctive, memorable icon/symbol as the main visual element
-  * Include the full brand name positioned beside or below the icon
-  * The icon should be instantly recognizable and work standalone
-  * Balance: Icon is dominant, text is complementary
+- **"icon" (Icon Based)**: Create a UNIQUE, MEMORABLE icon + brand name. Push creative boundaries.
+  * AVOID: Generic circles, basic shapes, predictable symbols
+  * DO: Abstract concepts, unexpected shapes, clever visual metaphors, geometric innovation
+  * Examples of excellence: Apple (bitten apple = knowledge), Nike (motion/victory), Twitter (upward bird = growth)
+  * The icon should tell a story and be instantly recognizable
+  * Use negative space creatively, asymmetry, or unexpected compositions
+  * Modern, minimalist approach with sophisticated details
 
-- **"name" (Name Based)**: The company name WITH distinctive typography IS the logo. No separate icon.
-  * Examples: Coca-Cola (scripted text), Google (colorful letters), FedEx (text with hidden arrow)
-  * Focus entirely on typographic treatment of the brand name
-  * Use creative font styling, letter spacing, colors, and effects
-  * The text itself must be visually distinctive and memorable
-  * NO separate icon element - typography IS the design
-  * May include subtle graphic elements integrated within letters
+- **"name" (Name Based)**: REVOLUTIONARY typography that becomes iconic. The text IS art.
+  * AVOID: Basic fonts, simple text, boring layouts, generic styling
+  * DO: Custom letterforms, creative ligatures, hidden meanings, optical illusions, dynamic compositions
+  * Examples of excellence: Coca-Cola (flowing script = refreshment), FedEx (hidden arrow = speed), Google (playful colors = innovation)
+  * Transform letters into visual experiences
+  * Use: Gradients, geometric cuts, overlapping letters, 3D effects, color psychology
+  * Create visual rhythm and movement through typography
+  * May integrate subtle shapes WITHIN the letters themselves
+  * Think: How can typography alone create emotional impact?
 
-- **"initial" (Initial Based)**: Brand initials as the main design element forming a unique logo.
-  * Examples: IBM (blue striped letters), HP (circle with letters), CNN (bold letters in red box)
-  * Create a sophisticated design using ONLY the first letter(s) of the brand name
-  * The initials should be stylized, geometric, or artistically rendered
-  * May include shapes, containers, or graphic elements that enhance the initials
-  * The initials ARE the primary visual identity
-  * Highly stylized and iconic treatment of 2-3 letters maximum
+- **"initial" (Initial Based)**: ICONIC, ARTISTIC initials that become a visual symbol.
+  * AVOID: Plain letters in circles, basic monograms, simple stacking
+  * DO: Geometric abstraction, interlocking letters, negative space mastery, architectural letterforms
+  * Examples of excellence: IBM (horizontal stripes = technology), HP (circular embrace = innovation), CNN (bold red = urgency)
+  * Transform initials into abstract art while maintaining readability
+  * Use: Overlapping, rotation, reflection, geometric deconstruction
+  * Create depth through layering and dimensional effects
+  * The initials should work as both letters AND abstract symbol
 
-If a custom description is provided in USER PREFERENCES, incorporate those specific requirements into your design.
+If a custom description is provided in USER PREFERENCES, incorporate those specific requirements while maintaining EXCEPTIONAL design quality.
 
 Return JSON with complete SVG content:
 
@@ -46,86 +57,123 @@ Return JSON with complete SVG content:
   }
 }
 
-SVG GENERATION REQUIREMENTS:
+SVG GENERATION REQUIREMENTS - CREATE EXCEPTIONAL DESIGNS:
 - GENERATE COMPLETE, PROFESSIONAL SVG CODE with proper XML structure
 - Include proper xmlns="http://www.w3.org/2000/svg" declaration
-- Create sophisticated icon designs using advanced SVG elements:
-  * Complex <path> elements with Bézier curves for organic shapes
-  * Strategic <circle>, <ellipse>, <polygon> for geometric precision
-  * Advanced <g> grouping for logical organization
-  * Proper opacity and layering for depth and visual richness
-- Use professional typography with Inter font family and fallbacks
-- Include CSS styles in <defs><style> for consistent formatting
-- Create 3-5 sophisticated shapes with varying opacities (0.6-1.0)
-- Use premium color palettes with 3-4 complementary hex colors
-- Ensure scalable design that works at any size
-- Add subtle gradients or effects using SVG <defs> when appropriate
+- Use ADVANCED SVG techniques for premium results:
+  * Complex <path> with Bézier curves (Q, C commands) for fluid, organic shapes
+  * Strategic geometric primitives (<circle>, <ellipse>, <polygon>, <rect>)
+  * <clipPath> for sophisticated masking effects
+  * <linearGradient> and <radialGradient> for depth and dimension
+  * <filter> effects (blur, shadow) for subtle sophistication (use sparingly)
+  * Transform attributes (rotate, scale, skew) for dynamic compositions
+  * Negative space techniques for clever visual storytelling
+- Typography excellence:
+  * Use Inter font family with multiple weights (300, 400, 600, 700, 900)
+  * Creative letter-spacing, text-anchor, and alignment
+  * For "name" type: Transform text into art with <tspan>, custom paths, effects
+- Color mastery:
+  * Use 3-5 colors with intentional color theory (complementary, analogous, triadic)
+  * Varying opacities (0.3-1.0) for depth and layering
+  * Gradients for modern, premium feel
+  * Consider color psychology for brand emotion
+- Composition principles:
+  * Golden ratio and rule of thirds for balance
+  * Asymmetry for visual interest when appropriate
+  * Whitespace as a design element
+  * Scalability from 16px to 1000px+
 
 **SVG STRUCTURE BY LOGO TYPE:**
 
 **For "icon" type (Icon Based - Icon + Brand Name):**
 - Use viewBox="0 0 220 80" for horizontal layout with prominent icon
-- Create a distinctive, memorable ICON in the left portion (0-70px width)
+- Create a UNIQUE, CREATIVE icon in the left portion (0-70px width)
 - Include the FULL BRAND NAME as text beside the icon (starting x="78")
-- The icon should be the visual focal point, instantly recognizable
-- Icon examples: shapes, symbols, abstract forms that represent the brand
-- Ensure proper spacing between icon and text (8px minimum)
-- Font size for brand name: 22-26px
-Example:
+- Push creative boundaries: abstract concepts, unexpected shapes, clever metaphors
+- Use negative space, asymmetry, geometric innovation
+- Font size for brand name: 22-26px, weight: 600-700
+Example (CREATIVE approach):
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 80" width="220" height="80">
-  <defs><style>.text-font{font-family:'Inter',Arial,sans-serif;font-weight:600;}</style></defs>
+  <defs>
+    <style>.text-font{font-family:'Inter',Arial,sans-serif;font-weight:600;}</style>
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#HEX1;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#HEX2;stop-opacity:1"/>
+    </linearGradient>
+  </defs>
   <g id="icon">
-    <!-- Distinctive icon shapes: circles, paths, polygons representing brand -->
-    <circle cx="35" cy="40" r="28" fill="#HEX1"/>
-    <path d="M35,20 L45,40 L35,60 L25,40 Z" fill="#HEX2"/>
+    <!-- CREATIVE icon with depth and meaning -->
+    <path d="M20,15 Q35,5 50,15 L50,55 Q35,65 20,55 Z" fill="url(#iconGrad)" opacity="0.9"/>
+    <circle cx="35" cy="35" r="8" fill="#HEX3"/>
+    <path d="M28,30 L35,35 L42,30" stroke="#HEX4" stroke-width="2" fill="none"/>
   </g>
   <g id="text">
-    <text x="78" y="48" class="text-font" font-size="24" fill="#HEX1">BRAND NAME</text>
+    <text x="78" y="48" class="text-font" font-size="24" fill="#HEX1" letter-spacing="1">BRAND NAME</text>
   </g>
 </svg>
 
 **For "name" type (Name Based - Typography IS the Logo):**
 - Use viewBox="0 0 200 60" for text-focused layout
 - Create ONLY the <g id="text"> group - NO separate icon group
-- The brand name with creative typography IS the entire logo design
-- Use distinctive fonts, letter effects, colors, spacing for visual impact
-- May include decorative elements WITHIN or AROUND letters (underlines, backgrounds, letter modifications)
-- Focus on making the text itself visually unique and memorable
-- Font size: 28-36px for prominence
-Example:
+- REVOLUTIONARY typography: Transform text into visual art
+- Use creative techniques: custom letterforms, ligatures, overlapping, geometric cuts, 3D effects
+- Integrate decorative elements WITHIN letters (not as separate icons)
+- Font size: 28-40px, varying weights (300-900) for visual hierarchy
+- Think: How can typography alone create WOW factor?
+Example (CREATIVE typography):
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
   <defs>
-    <style>.brand-text{font-family:'Inter',Arial,sans-serif;font-weight:800;letter-spacing:2px;}</style>
-    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#HEX1;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#HEX2;stop-opacity:1" />
+    <style>
+      .brand-text{font-family:'Inter',Arial,sans-serif;font-weight:800;letter-spacing:3px;}
+      .brand-accent{font-family:'Inter',Arial,sans-serif;font-weight:300;}
+    </style>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#HEX1;stop-opacity:1"/>
+      <stop offset="50%" style="stop-color:#HEX2;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#HEX3;stop-opacity:1"/>
     </linearGradient>
+    <clipPath id="textClip">
+      <text x="100" y="38" class="brand-text" font-size="36" text-anchor="middle">BRAND</text>
+    </clipPath>
   </defs>
   <g id="text">
-    <!-- Optional: Background or decorative shapes integrated with text -->
-    <rect x="0" y="5" width="190" height="50" fill="#HEX3" opacity="0.1" rx="8"/>
-    <text x="100" y="42" class="brand-text" font-size="32" fill="url(#textGrad)" text-anchor="middle">BRAND</text>
+    <!-- Creative background shapes integrated with text -->
+    <rect x="10" y="8" width="180" height="44" fill="url(#textGrad)" opacity="0.15" rx="22"/>
+    <!-- Main text with gradient and effects -->
+    <text x="100" y="38" class="brand-text" font-size="36" fill="url(#textGrad)" text-anchor="middle">BRAND</text>
+    <!-- Decorative accent line under text -->
+    <path d="M40,45 Q100,42 160,45" stroke="#HEX2" stroke-width="2" fill="none" opacity="0.6"/>
   </g>
 </svg>
 
 **For "initial" type (Initial Based - Stylized Initials as Logo):**
 - Use viewBox="0 0 100 100" for square, centered layout
-- Create a sophisticated design using ONLY the initials (2-3 letters max)
-- The initials should be the PRIMARY visual element, highly stylized
-- May include geometric shapes, containers, or backgrounds that enhance initials
-- Create iconic, recognizable letterforms (like IBM's striped letters, HP's circle)
-- NO full brand name - only initials with artistic treatment
-- Font size for initials: 36-48px, bold and prominent
-Example:
+- Transform initials into ICONIC, ARTISTIC symbols
+- Use geometric abstraction, interlocking letters, negative space mastery
+- Create depth through layering, rotation, reflection, dimensional effects
+- The initials should work as both letters AND abstract visual symbol
+- Font size for initials: 36-52px, weight: 700-900
+- Think: How can letters become architecture?
+Example (CREATIVE initials):
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <defs><style>.initial-font{font-family:'Inter',Arial,sans-serif;font-weight:900;}</style></defs>
+  <defs>
+    <style>.initial-font{font-family:'Inter',Arial,sans-serif;font-weight:900;}</style>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#HEX1;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#HEX2;stop-opacity:1"/>
+    </linearGradient>
+  </defs>
   <g id="icon">
-    <!-- Container or background shape for initials -->
-    <circle cx="50" cy="50" r="45" fill="#HEX1"/>
-    <circle cx="50" cy="50" r="40" fill="none" stroke="#HEX2" stroke-width="3"/>
+    <!-- Geometric container with depth -->
+    <rect x="10" y="10" width="80" height="80" fill="url(#bgGrad)" rx="16" opacity="0.9"/>
+    <rect x="15" y="15" width="70" height="70" fill="none" stroke="#HEX3" stroke-width="2" rx="12" opacity="0.5"/>
+    <!-- Decorative geometric elements -->
+    <path d="M20,50 L50,20" stroke="#HEX4" stroke-width="1.5" opacity="0.3"/>
+    <path d="M50,80 L80,50" stroke="#HEX4" stroke-width="1.5" opacity="0.3"/>
   </g>
   <g id="text">
-    <text x="50" y="62" class="initial-font" font-size="42" fill="#HEX3" text-anchor="middle">BN</text>
+    <!-- Stylized initials with creative treatment -->
+    <text x="50" y="65" class="initial-font" font-size="44" fill="#HEX3" text-anchor="middle" letter-spacing="2">BN</text>
   </g>
 </svg>
 
@@ -148,43 +196,86 @@ CUSTOM DESCRIPTION INTEGRATION:
 - Balance user vision with professional design principles
 - Think: Apple (icon+text), Coca-Cola (pure text), IBM (styled initials)
 
-CRITICAL REQUIREMENTS - READ CAREFULLY:
+CRITICAL REQUIREMENTS - PUSH CREATIVE BOUNDARIES:
+
 1. **ICON BASED ("icon" type):**
-   - Create a memorable icon/symbol (like Apple's apple, Nike's swoosh)
+   - Create a UNIQUE, MEMORABLE icon that tells a story
+   - AVOID: Generic circles, basic triangles, predictable shapes, cliché symbols
+   - DO: Abstract concepts, unexpected geometries, clever visual metaphors, negative space magic
    - Include the FULL brand name as text beside or below the icon
-   - Icon should be recognizable even without text
-   - Balance: Icon dominant, text complementary
-   - Think: Twitter bird + "Twitter", Apple logo + "Apple"
+   - Icon should be instantly recognizable and work standalone
+   - Use gradients, layering, and sophisticated compositions
+   - Examples of excellence: Apple (knowledge), Nike (motion), Airbnb (belonging)
 
 2. **NAME BASED ("name" type):**
-   - NO separate icon element whatsoever
-   - The brand name with creative typography IS the entire logo
-   - Focus on font styling, letter spacing, colors, effects
-   - May include decorative elements integrated with letters
-   - Think: Coca-Cola script, Google colored letters, FedEx with hidden arrow
+   - NO separate icon element whatsoever - TYPOGRAPHY IS EVERYTHING
+   - AVOID: Basic fonts, simple text, boring layouts, standard styling
+   - DO: Custom letterforms, creative ligatures, geometric cuts, overlapping letters, 3D effects
+   - Transform letters into visual art and emotional experiences
+   - Use gradients, multiple weights, letter-spacing, decorative elements WITHIN text
+   - Create hidden meanings or optical illusions when possible
+   - Examples of excellence: Coca-Cola (flow), FedEx (hidden arrow), Google (playful innovation)
 
 3. **INITIAL BASED ("initial" type):**
-   - Use ONLY the first letters of the brand name (2-3 letters max)
-   - Create a sophisticated, iconic design with the initials
-   - May include shapes/containers that enhance the initials
-   - NO full brand name text - initials ARE the logo
-   - Think: IBM striped letters, HP in circle, CNN bold letters
+   - Use ONLY the initials (2-3 letters max) - NO full brand name
+   - AVOID: Plain letters in circles, basic monograms, simple stacking
+   - DO: Geometric abstraction, interlocking letters, architectural letterforms, dimensional effects
+   - Transform initials into abstract art while maintaining readability
+   - Use rotation, reflection, overlapping, negative space mastery
+   - Create depth through layering and sophisticated compositions
+   - Examples of excellence: IBM (technology stripes), HP (circular innovation), CNN (bold urgency)
 
-4. Use the provided colors and typography from the context
-5. Create unique, memorable designs that avoid clichés
-6. Ensure production-ready, valid SVG markup
-7. Generate modern, professional, scalable logos
+4. **UNIVERSAL REQUIREMENTS:**
+   - Use provided colors with intentional color theory (complementary, analogous, triadic)
+   - Apply gradients for modern, premium feel
+   - Varying opacities (0.3-1.0) for depth and sophistication
+   - Multiple font weights (300-900) for visual hierarchy
+   - Ensure scalability from 16px to 1000px+
+   - Production-ready, valid SVG markup with proper namespaces
 
-AVOID:
+5. **INNOVATION MANDATE:**
+   - Every design must be ORIGINAL and DISTINCTIVE
+   - Push boundaries while maintaining professionalism
+   - Think: "What would Pentagram or Landor create?"
+   - Avoid predictable, safe, or generic solutions
+   - Create designs that make people say "WOW!"
+
+STRICTLY AVOID:
 - Broken XML or invalid SVG syntax
 - Missing xmlns namespace declarations
 - Overlapping elements that reduce legibility
-- Poor spacing between elements
-- Generic or basic shapes without sophistication
-- **MIXING logo types** (e.g., adding icon to "name" type, or full name to "initial" type)
-- Ignoring the logo type preference specified in USER PREFERENCES
-- Creating amateur or dated designs
-- Using cliché symbols or overused concepts
+- Poor spacing or composition
+- **Generic shapes**: basic circles, simple triangles, predictable patterns
+- **Cliché symbols**: light bulbs for ideas, gears for tech, globes for global
+- **Amateur mistakes**: Comic Sans vibes, rainbow gradients, clipart aesthetics
+- **Type mixing**: Adding icons to "name" type, or full names to "initial" type
+- **Dated designs**: 90s gradients, Web 2.0 glossy effects, outdated trends
+- **Lazy solutions**: Copy-paste designs, template-looking logos, uninspired layouts
 
-GOAL: Generate production-ready SVG logos that perfectly match user preferences, are immediately usable, professionally designed, and scalable across all media formats.
+**CREATIVE INSPIRATION TECHNIQUES:**
+- Use unexpected color combinations that still feel harmonious
+- Apply the golden ratio for proportions (1.618:1)
+- Create visual tension through asymmetry, then resolve it
+- Use negative space to hide secondary meanings
+- Apply gestalt principles (proximity, similarity, closure)
+- Think in 3D even when designing in 2D
+- Use optical illusions subtly (like the FedEx arrow)
+- Apply color psychology intentionally
+- Create movement through implied lines and flow
+- Balance complexity with simplicity (sophisticated minimalism)
+
+**FINAL QUALITY CHECK:**
+Before finalizing your design, ask yourself:
+1. Is this logo TRULY original, or have I seen something similar?
+2. Does it tell a story or evoke an emotion?
+3. Would it stand out in a lineup of 100 logos?
+4. Is it memorable enough that someone could describe it from memory?
+5. Does it work at both 16px and 1000px?
+6. Does it respect the logo type requirement (icon/name/initial)?
+7. Is the SVG code clean, valid, and production-ready?
+
+If you answer "no" to any question, REDESIGN until all answers are "yes".
+
+GOAL: Generate EXCEPTIONAL, ORIGINAL, production-ready SVG logos that perfectly match user preferences, create emotional impact, are immediately usable, professionally designed at world-class level, and scalable across all media formats. Make every logo a masterpiece.
 `;
+

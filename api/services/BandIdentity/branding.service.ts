@@ -159,6 +159,67 @@ export class BrandingService extends GenericService {
   }
 
   /**
+   * Extrait les informations clés du projet pour guider la génération de logo
+   */
+  private extractProjectContext(projectDescription: string): {
+    industry: string;
+    values: string[];
+    targetAudience: string;
+    uniqueSellingPoint: string;
+  } {
+    // Analyser la description pour extraire le contexte
+    const lowerDesc = projectDescription.toLowerCase();
+    
+    // Détecter l'industrie
+    let industry = 'Technology';
+    if (lowerDesc.includes('food') || lowerDesc.includes('restaurant') || lowerDesc.includes('cuisine')) {
+      industry = 'Food & Beverage';
+    } else if (lowerDesc.includes('fashion') || lowerDesc.includes('clothing') || lowerDesc.includes('apparel')) {
+      industry = 'Fashion';
+    } else if (lowerDesc.includes('health') || lowerDesc.includes('medical') || lowerDesc.includes('wellness')) {
+      industry = 'Healthcare';
+    } else if (lowerDesc.includes('finance') || lowerDesc.includes('bank') || lowerDesc.includes('investment')) {
+      industry = 'Finance';
+    } else if (lowerDesc.includes('education') || lowerDesc.includes('learning') || lowerDesc.includes('school')) {
+      industry = 'Education';
+    } else if (lowerDesc.includes('sport') || lowerDesc.includes('fitness') || lowerDesc.includes('gym')) {
+      industry = 'Sports & Fitness';
+    } else if (lowerDesc.includes('travel') || lowerDesc.includes('tourism') || lowerDesc.includes('hotel')) {
+      industry = 'Travel & Hospitality';
+    } else if (lowerDesc.includes('eco') || lowerDesc.includes('green') || lowerDesc.includes('sustainable')) {
+      industry = 'Sustainability';
+    }
+    
+    // Extraire les valeurs
+    const values: string[] = [];
+    if (lowerDesc.includes('innovation') || lowerDesc.includes('innovative')) values.push('Innovation');
+    if (lowerDesc.includes('trust') || lowerDesc.includes('reliable')) values.push('Trust');
+    if (lowerDesc.includes('quality') || lowerDesc.includes('premium')) values.push('Quality');
+    if (lowerDesc.includes('speed') || lowerDesc.includes('fast') || lowerDesc.includes('quick')) values.push('Speed');
+    if (lowerDesc.includes('simple') || lowerDesc.includes('easy') || lowerDesc.includes('intuitive')) values.push('Simplicity');
+    if (lowerDesc.includes('creative') || lowerDesc.includes('artistic')) values.push('Creativity');
+    if (lowerDesc.includes('professional') || lowerDesc.includes('business')) values.push('Professionalism');
+    if (lowerDesc.includes('fun') || lowerDesc.includes('playful') || lowerDesc.includes('joy')) values.push('Playfulness');
+    
+    // Audience cible
+    let targetAudience = 'General Public';
+    if (lowerDesc.includes('young') || lowerDesc.includes('youth') || lowerDesc.includes('millennial')) {
+      targetAudience = 'Young Adults (18-35)';
+    } else if (lowerDesc.includes('professional') || lowerDesc.includes('business') || lowerDesc.includes('corporate')) {
+      targetAudience = 'Business Professionals';
+    } else if (lowerDesc.includes('luxury') || lowerDesc.includes('premium') || lowerDesc.includes('high-end')) {
+      targetAudience = 'Luxury Market';
+    } else if (lowerDesc.includes('family') || lowerDesc.includes('parent')) {
+      targetAudience = 'Families';
+    }
+    
+    // Point de différenciation
+    const uniqueSellingPoint = projectDescription.substring(0, 200);
+    
+    return { industry, values, targetAudience, uniqueSellingPoint };
+  }
+
+  /**
    * Construction du prompt optimisé pour la génération de logos avec préférences utilisateur
    */
   private buildOptimizedLogoPrompt(
@@ -167,17 +228,25 @@ export class BrandingService extends GenericService {
     typography: TypographyModel,
     preferences?: LogoPreferences
   ): string {
-    // Prompt condensé avec informations essentielles uniquement
-    const colorInfo = `Primary: ${
-      colors.colors?.primary || "N/A"
-    }, Secondary: ${colors.colors?.secondary || "N/A"}`;
-    const fontInfo = `Primary: ${typography.primaryFont || "N/A"}, Secondary: ${
-      typography.secondaryFont || "N/A"
-    }`;
-
-    // Extraire le nom du projet et générer les initiales
+    // Extraire le contexte du projet
+    const projectContext = this.extractProjectContext(projectDescription);
     const projectName = this.extractProjectName(projectDescription);
     const projectInitials = this.generateInitials(projectName);
+
+    // Construire un contexte riche pour guider la génération
+    let contextPrompt = `**PROJECT CONTEXT - USE THIS TO INSPIRE YOUR DESIGN:**\n`;
+    contextPrompt += `- Project Name: "${projectName}"\n`;
+    contextPrompt += `- Industry: ${projectContext.industry}\n`;
+    contextPrompt += `- Core Values: ${projectContext.values.length > 0 ? projectContext.values.join(', ') : 'Innovation, Quality, Trust'}\n`;
+    contextPrompt += `- Target Audience: ${projectContext.targetAudience}\n`;
+    contextPrompt += `- Project Description: ${projectContext.uniqueSellingPoint}\n`;
+    
+    // Informations de design
+    const colorInfo = `Primary: ${colors.colors?.primary || "N/A"}, Secondary: ${colors.colors?.secondary || "N/A"}`;
+    const fontInfo = `Primary: ${typography.primaryFont || "N/A"}, Secondary: ${typography.secondaryFont || "N/A"}`;
+    contextPrompt += `\n**DESIGN PALETTE:**\n`;
+    contextPrompt += `- Colors: ${colorInfo}\n`;
+    contextPrompt += `- Typography: ${fontInfo}\n`;
 
     // Ajouter les préférences utilisateur au contexte avec instructions détaillées
     let preferenceContext = '';
@@ -188,43 +257,47 @@ export class BrandingService extends GenericService {
         initial: 'Initial Based - Stylized initials as main element (like IBM, HP, CNN)'
       };
       
-      preferenceContext = `\n\n**USER PREFERENCES:**\n- Logo Type: ${preferences.type} - ${typeDescriptions[preferences.type]}\n`;
-      preferenceContext += `- Project Name: "${projectName}"\n`;
+      preferenceContext = `\n**USER PREFERENCES:**\n- Logo Type: ${preferences.type} - ${typeDescriptions[preferences.type]}\n`;
       
       if (preferences.type === 'initial') {
-        preferenceContext += `- Initials to use: "${projectInitials}" (extract from "${projectName}")\n`;
+        preferenceContext += `- Initials to use: "${projectInitials}" (from "${projectName}")\n`;
       }
       
       if (preferences.customDescription) {
         preferenceContext += `- Custom Design Requirements: ${preferences.customDescription}\n`;
       }
       
-      preferenceContext += `\n**CRITICAL INSTRUCTIONS FOR ${preferences.type.toUpperCase()} TYPE:**\n`;
+      preferenceContext += `\n**DESIGN DIRECTION FOR ${preferences.type.toUpperCase()} TYPE:**\n`;
+      preferenceContext += `Based on the project context (${projectContext.industry}, values: ${projectContext.values.join(', ')}), create a logo that:\n`;
       
       switch (preferences.type) {
         case 'icon':
-          preferenceContext += `- Create a distinctive icon/symbol that represents the brand\n`;
-          preferenceContext += `- Include the FULL brand name "${projectName}" as text\n`;
-          preferenceContext += `- Icon should be the focal point, text is complementary\n`;
-          preferenceContext += `- Think: Apple's apple icon with "Apple" text\n`;
+          preferenceContext += `- Creates an icon that visually represents the ${projectContext.industry} industry\n`;
+          preferenceContext += `- Embodies the values: ${projectContext.values.join(', ')}\n`;
+          preferenceContext += `- Appeals to ${projectContext.targetAudience}\n`;
+          preferenceContext += `- Includes the FULL brand name "${projectName}" as text\n`;
+          preferenceContext += `- Makes the icon memorable and instantly recognizable\n`;
           break;
         case 'name':
-          preferenceContext += `- Use ONLY the brand name "${projectName}" with creative typography\n`;
-          preferenceContext += `- NO separate icon element - the text styling IS the logo\n`;
-          preferenceContext += `- Focus on font effects, colors, letter spacing, decorative elements\n`;
-          preferenceContext += `- Think: Coca-Cola's scripted text, Google's colorful letters\n`;
+          preferenceContext += `- Uses ONLY the brand name "${projectName}" with typography that reflects ${projectContext.industry}\n`;
+          preferenceContext += `- Conveys ${projectContext.values.join(' and ')} through font styling\n`;
+          preferenceContext += `- Resonates with ${projectContext.targetAudience}\n`;
+          preferenceContext += `- NO separate icon - typography IS the complete logo\n`;
+          preferenceContext += `- Creates visual impact through creative letterforms\n`;
           break;
         case 'initial':
-          preferenceContext += `- Use ONLY the initials "${projectInitials}" as the main element\n`;
-          preferenceContext += `- Create an iconic, stylized design with these letters\n`;
-          preferenceContext += `- NO full brand name - initials ARE the entire logo\n`;
-          preferenceContext += `- May include geometric shapes or containers to enhance the initials\n`;
-          preferenceContext += `- Think: IBM's striped letters, HP in circle\n`;
+          preferenceContext += `- Uses ONLY the initials "${projectInitials}" in a way that suggests ${projectContext.industry}\n`;
+          preferenceContext += `- Stylizes the letters to communicate ${projectContext.values.join(' and ')}\n`;
+          preferenceContext += `- Creates appeal for ${projectContext.targetAudience}\n`;
+          preferenceContext += `- NO full brand name - initials ARE the complete logo\n`;
+          preferenceContext += `- Makes the initials iconic and sophisticated\n`;
           break;
       }
+      
+      preferenceContext += `\n**IMPORTANT:** Let the project's industry, values, and target audience guide your creative decisions. The logo should tell the brand's story visually.\n`;
     }
 
-    return `${projectDescription}\n\nColors: ${colorInfo}\nTypography: ${fontInfo}${preferenceContext}\n\n${LOGO_GENERATION_PROMPT}`;
+    return `${contextPrompt}${preferenceContext}\n\n${LOGO_GENERATION_PROMPT}`;
   }
 
   async generateBrandingWithStreaming(
