@@ -1,32 +1,39 @@
 import { IRepository } from './IRepository';
-import { MongoDBRepository } from './MongoDBRepository.v2';
+import { FirestoreRepository } from './FirestoreRepository';
 import { activeSGBD, SGBDType } from './database.config';
 import logger from '../config/logger';
 
-/**
- * Factory class pour obtenir l'implémentation MongoDB du repository.
- * Simplifié pour utiliser uniquement MongoDB avec Mongoose.
- */
+// Define a base type for entities that might have createdAt/updatedAt as Date
+// This ensures the factory can work with the generic constraint of IRepository
+interface BaseEntity {
+  id?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export class RepositoryFactory {
   /**
-   * Retourne une instance du repository MongoDB avec schémas typés.
-   * @template T Le type de l'entité.
-   * @returns Une instance de IRepository<T> utilisant MongoDB/Mongoose.
+   * Get a repository instance for the active SGBD
+   * @returns A repository instance
    */
-  static getRepository<
-    T extends { id?: string; createdAt?: Date; updatedAt?: Date }
-  >(): IRepository<T> {
-    logger.info(
-      `RepositoryFactory.getRepository called - using MongoDB with Mongoose`
-    );
-
+  public static getRepository<T extends BaseEntity>(): IRepository<T> {
+    logger.info(`RepositoryFactory.getRepository called, SGBD: ${activeSGBD}`);
+    
     switch (activeSGBD) {
-      case SGBDType.MONGODB:
-        logger.info('Returning MongoDBRepository instance with typed schemas');
-        return new MongoDBRepository<T>();
+      case SGBDType.FIRESTORE:
+        logger.info(`Creating FirestoreRepository`);
+        return new FirestoreRepository<T>();
+      // case SGBDType.MONGODB:
+      //   // Assuming you would have a MongoDBRepository that implements IRepository
+      //   // import { MongoDBRepository } from './MongoDBRepository'; 
+      //   // return new MongoDBRepository<T>(collectionName, userSpecificCollection);
+      // case SGBDType.POSTGRESQL:
+      //   // Assuming you would have a PostgreSQLRepository that implements IRepository
+      //   // import { PostgreSQLRepository } from './PostgreSQLRepository';
+      //   // return new PostgreSQLRepository<T>(collectionName, userSpecificCollection, someDbConnection);
       default:
         logger.error(`Unsupported SGBD type: ${activeSGBD}`);
-        throw new Error(`Unsupported SGBD type: ${activeSGBD}. Only MongoDB is supported.`);
+        throw new Error(`Unsupported SGBD type: ${activeSGBD}`);
     }
   }
 }

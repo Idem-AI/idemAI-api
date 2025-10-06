@@ -54,8 +54,6 @@ import quotaRoutes from "./routes/quota.routes";
 import cacheRoutes from "./routes/cache.routes";
 import { PdfService } from "./services/pdf.service";
 import RedisConnection from "./config/redis.config";
-import { mongoConnection } from "./config/mongodb.config";
-import { activeSGBD, SGBDType } from "./repository/database.config";
 import policyRoutes from "./routes/policy.routes";
 
 const app: Express = express();
@@ -159,17 +157,6 @@ app.use((err: Error, req: Request, res: Response /*, next: NextFunction */) => {
 
 const server = app.listen(port, async () => {
   console.log(`Server running on port ${port}`);
-  console.log(`Active SGBD: ${activeSGBD}`);
-
-  // Initialiser la base de données selon la configuration
-  if (activeSGBD === SGBDType.MONGODB) {
-    try {
-      await mongoConnection.connect();
-      console.log("MongoDB connection established successfully");
-    } catch (error) {
-      console.error("MongoDB connection error:", error);
-    }
-  }
 
   // Initialiser le PdfService au démarrage pour optimiser les performances
   try {
@@ -197,17 +184,6 @@ process.on("SIGTERM", async () => {
   console.log("SIGTERM received, shutting down gracefully...");
   await PdfService.closeBrowser();
   await RedisConnection.disconnect();
-  
-  // Fermer la connexion MongoDB si active
-  if (activeSGBD === SGBDType.MONGODB) {
-    try {
-      await mongoConnection.disconnect();
-      console.log("MongoDB disconnected successfully");
-    } catch (error) {
-      console.error("Error disconnecting MongoDB:", error);
-    }
-  }
-  
   server.close(() => {
     console.log("Server closed");
     process.exit(0);
@@ -218,17 +194,6 @@ process.on("SIGINT", async () => {
   console.log("SIGINT received, shutting down gracefully...");
   await PdfService.closeBrowser();
   await RedisConnection.disconnect();
-  
-  // Fermer la connexion MongoDB si active
-  if (activeSGBD === SGBDType.MONGODB) {
-    try {
-      await mongoConnection.disconnect();
-      console.log("MongoDB disconnected successfully");
-    } catch (error) {
-      console.error("Error disconnecting MongoDB:", error);
-    }
-  }
-  
   server.close(() => {
     console.log("Server closed");
     process.exit(0);

@@ -70,19 +70,14 @@ export const sessionLoginController = async (
     logger.info(
       `Session cookie created successfully for user ${userModel.uid}.`
     );
-    
-    // Essayer de créer l'utilisateur, s'il existe déjà, cela échouera silencieusement
-    try {
-      await userService.createUser(userModel);
-      logger.info(`New user ${userModel.uid} created successfully`);
-    } catch (error: any) {
-      // Si l'erreur est une duplication de clé (utilisateur existe déjà), c'est OK
-      if (error.message && error.message.includes('E11000')) {
-        logger.info(`User ${userModel.uid} already exists, continuing with login`);
-      } else {
-        // Si c'est une autre erreur, la relancer
-        throw error;
-      }
+    const createdUser = await userService.createUser(userModel);
+    if (!createdUser) {
+      logger.warn(`User ${userModel.uid} not created.`);
+      res.status(400).send({
+        success: false,
+        message: "User not created.",
+      });
+      return;
     }
 
     // Générer un refresh token
