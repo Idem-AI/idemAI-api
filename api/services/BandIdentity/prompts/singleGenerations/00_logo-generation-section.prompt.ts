@@ -1,42 +1,56 @@
 export const LOGO_GENERATION_PROMPT = `
-Generate 1 HIGHLY ORIGINAL, CREATIVE, and PROFESSIONAL logo concept that pushes design boundaries. Create a UNIQUE brand identity that is MEMORABLE, MODERN, and SOPHISTICATED.
+You are a WORLD-CLASS professional logo designer with 20+ years of experience. Generate 1 EXCEPTIONAL, PROFESSIONAL logo that is both CREATIVE and MEANINGFUL.
+
+**CRITICAL DESIGN PRINCIPLES - FOLLOW STRICTLY:**
+1. **COHERENCE IS MANDATORY**: Every shape, line, and element must have a clear purpose and meaning
+2. **PROFESSIONAL QUALITY**: The logo must look like it was designed by Pentagram, Landor, or Wolff Olins
+3. **VISUAL LOGIC**: All elements must work together harmoniously - NO random shapes
+4. **SIMPLICITY WITH IMPACT**: Use 2-4 well-designed shapes maximum, not 10+ random elements
+5. **MEANINGFUL DESIGN**: Each element should represent something about the brand (values, industry, mission)
+6. **TIMELESS APPEAL**: Avoid trendy effects that will look dated in 2 years
+7. **SCALABILITY**: Must work perfectly at 16px (favicon) and 1000px (billboard)
 
 **DESIGN PHILOSOPHY:**
-- Think like a world-class brand designer (Pentagram, Landor, Wolff Olins level)
-- Avoid generic, predictable, or cliché designs at all costs
-- Create visual impact through innovation, not imitation
-- Balance creativity with timeless professionalism
-- Every element must serve a purpose and tell a story
+- Think: "What would Apple's design team create?"
+- Less is more: Simplicity beats complexity
+- Every curve, angle, and space has intention
+- The design should make sense when explained
+- Avoid decorative elements that don't add meaning
 
 **LOGO TYPE REQUIREMENTS:**
 Read the USER PREFERENCES above to understand the required logo type. Generate EXCEPTIONAL, ORIGINAL logos:
 
-- **"icon" (Icon Based)**: Create a UNIQUE, MEMORABLE icon + brand name. Push creative boundaries.
-  * AVOID: Generic circles, basic shapes, predictable symbols
-  * DO: Abstract concepts, unexpected shapes, clever visual metaphors, geometric innovation
-  * Examples of excellence: Apple (bitten apple = knowledge), Nike (motion/victory), Twitter (upward bird = growth)
-  * The icon should tell a story and be instantly recognizable
-  * Use negative space creatively, asymmetry, or unexpected compositions
-  * Modern, minimalist approach with sophisticated details
+- **"icon" (Icon Based)**: Create a SIMPLE, MEANINGFUL icon + brand name.
+  * **SIMPLICITY RULE**: Use 2-3 geometric shapes maximum (circle, triangle, square, or simple paths)
+  * **MEANING RULE**: The icon must visually represent the industry or core value
+  * **COHERENCE RULE**: All shapes must connect logically and harmoniously
+  * AVOID: Random shapes, complex paths with no meaning, decorative clutter
+  * DO: Clean geometric forms, purposeful negative space, clear symbolism
+  * Examples: Apple (simple apple = knowledge), Nike (simple swoosh = motion), Airbnb (A + heart + location)
+  * Think: "Can I explain why each shape is there?"
+  * Maximum 3 colors in the icon
 
-- **"name" (Name Based)**: REVOLUTIONARY typography that becomes iconic. The text IS art.
-  * AVOID: Basic fonts, simple text, boring layouts, generic styling
-  * DO: Custom letterforms, creative ligatures, hidden meanings, optical illusions, dynamic compositions
-  * Examples of excellence: Coca-Cola (flowing script = refreshment), FedEx (hidden arrow = speed), Google (playful colors = innovation)
-  * Transform letters into visual experiences
-  * Use: Gradients, geometric cuts, overlapping letters, 3D effects, color psychology
-  * Create visual rhythm and movement through typography
-  * May integrate subtle shapes WITHIN the letters themselves
-  * Think: How can typography alone create emotional impact?
+- **"name" (Name Based)**: CLEAN, PROFESSIONAL typography with subtle creative touches.
+  * **SIMPLICITY RULE**: Focus on excellent typography, not complex effects
+  * **READABILITY RULE**: Text must be instantly readable at all sizes
+  * **COHERENCE RULE**: All typographic choices must enhance the brand message
+  * AVOID: Over-designed letters, illegible fonts, chaotic layouts, excessive effects
+  * DO: Professional fonts with character, subtle letter-spacing, clean gradients, purposeful color
+  * Examples: Coca-Cola (flowing = refreshment), Google (friendly = approachable), FedEx (clean + hidden arrow)
+  * Use Inter font family with weights 300-900
+  * May add ONE subtle decorative element if it adds meaning
+  * Think: "Is this typography professional enough for a Fortune 500 company?"
 
-- **"initial" (Initial Based)**: ICONIC, ARTISTIC initials that become a visual symbol.
-  * AVOID: Plain letters in circles, basic monograms, simple stacking
-  * DO: Geometric abstraction, interlocking letters, negative space mastery, architectural letterforms
-  * Examples of excellence: IBM (horizontal stripes = technology), HP (circular embrace = innovation), CNN (bold red = urgency)
-  * Transform initials into abstract art while maintaining readability
-  * Use: Overlapping, rotation, reflection, geometric deconstruction
-  * Create depth through layering and dimensional effects
-  * The initials should work as both letters AND abstract symbol
+- **"initial" (Initial Based)**: CLEAN, SOPHISTICATED initials with geometric precision.
+  * **SIMPLICITY RULE**: 2-3 letters in a clean, geometric container
+  * **GEOMETRY RULE**: Use perfect circles, squares, or simple geometric shapes
+  * **COHERENCE RULE**: The container and letters must work as one unified design
+  * AVOID: Complex patterns, random decorations, illegible letters, chaotic compositions
+  * DO: Clean letterforms, geometric containers (circle, square, hexagon), balanced composition
+  * Examples: IBM (clean stripes), HP (simple circle), CNN (bold rectangle)
+  * Maximum 2-3 colors total
+  * Letters should be bold (weight 700-900) and perfectly centered
+  * Think: "Would this work as a professional app icon?"
 
 If a custom description is provided in USER PREFERENCES, incorporate those specific requirements while maintaining EXCEPTIONAL design quality.
 
@@ -57,123 +71,108 @@ Return JSON with complete SVG content:
   }
 }
 
-SVG GENERATION REQUIREMENTS - CREATE EXCEPTIONAL DESIGNS:
-- GENERATE COMPLETE, PROFESSIONAL SVG CODE with proper XML structure
-- Include proper xmlns="http://www.w3.org/2000/svg" declaration
-- Use ADVANCED SVG techniques for premium results:
-  * Complex <path> with Bézier curves (Q, C commands) for fluid, organic shapes
-  * Strategic geometric primitives (<circle>, <ellipse>, <polygon>, <rect>)
-  * <clipPath> for sophisticated masking effects
-  * <linearGradient> and <radialGradient> for depth and dimension
-  * <filter> effects (blur, shadow) for subtle sophistication (use sparingly)
-  * Transform attributes (rotate, scale, skew) for dynamic compositions
-  * Negative space techniques for clever visual storytelling
-- Typography excellence:
-  * Use Inter font family with multiple weights (300, 400, 600, 700, 900)
-  * Creative letter-spacing, text-anchor, and alignment
-  * For "name" type: Transform text into art with <tspan>, custom paths, effects
-- Color mastery:
-  * Use 3-5 colors with intentional color theory (complementary, analogous, triadic)
-  * Varying opacities (0.3-1.0) for depth and layering
-  * Gradients for modern, premium feel
-  * Consider color psychology for brand emotion
-- Composition principles:
-  * Golden ratio and rule of thirds for balance
-  * Asymmetry for visual interest when appropriate
-  * Whitespace as a design element
-  * Scalability from 16px to 1000px+
+SVG GENERATION REQUIREMENTS - PROFESSIONAL QUALITY ONLY:
+
+**CRITICAL RULES - FOLLOW EXACTLY:**
+1. **SIMPLICITY**: Use 2-4 shapes maximum. Each shape must have a clear purpose.
+2. **CLEAN CODE**: Use basic SVG elements (<circle>, <rect>, <path>, <polygon>) - no complex filters
+3. **GEOMETRIC PRECISION**: All shapes should be mathematically clean (perfect circles, straight lines, clean curves)
+4. **COLOR DISCIPLINE**: Maximum 3-4 colors. Use the provided color palette.
+5. **PROFESSIONAL TYPOGRAPHY**: Inter font family only, weights 400-900
+6. **NO RANDOMNESS**: Every element must be intentional and explainable
+
+**ALLOWED SVG ELEMENTS:**
+- <circle>, <rect>, <ellipse>, <polygon> for geometric shapes
+- <path> with SIMPLE commands (M, L, Q, C) - keep paths clean and purposeful
+- <linearGradient> for subtle depth (use sparingly)
+- <text> with Inter font family
+- <g> for grouping related elements
+
+**FORBIDDEN TECHNIQUES:**
+- Complex filters (blur, shadow) - keep it clean
+- Random decorative elements
+- More than 5 total shapes in the icon
+- Illegible or overly stylized text
+- Chaotic compositions
+- Trendy effects that will look dated
+
+**COMPOSITION RULES:**
+- Perfect alignment: Elements should align to a grid
+- Balanced spacing: Use consistent padding and margins
+- Visual hierarchy: Most important element should be largest/most prominent
+- Negative space: Use intentionally, not accidentally
+- Scalability: Test mentally at 16px - would it still work?
 
 **SVG STRUCTURE BY LOGO TYPE:**
 
 **For "icon" type (Icon Based - Icon + Brand Name):**
-- Use viewBox="0 0 220 80" for horizontal layout with prominent icon
-- Create a UNIQUE, CREATIVE icon in the left portion (0-70px width)
-- Include the FULL BRAND NAME as text beside the icon (starting x="78")
-- Push creative boundaries: abstract concepts, unexpected shapes, clever metaphors
-- Use negative space, asymmetry, geometric innovation
-- Font size for brand name: 22-26px, weight: 600-700
-Example (CREATIVE approach):
+- Use viewBox="0 0 220 80" for horizontal layout
+- Create a SIMPLE, MEANINGFUL icon (2-3 shapes max) in left portion (0-70px width)
+- Include FULL BRAND NAME as clean text beside icon (starting x="78")
+- Icon must represent the industry/value clearly
+- Use clean geometric shapes with purpose
+- Font size: 22-26px, weight: 600-700
+Example (CLEAN, PROFESSIONAL):
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 80" width="220" height="80">
   <defs>
     <style>.text-font{font-family:'Inter',Arial,sans-serif;font-weight:600;}</style>
-    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#HEX1;stop-opacity:1"/>
-      <stop offset="100%" style="stop-color:#HEX2;stop-opacity:1"/>
-    </linearGradient>
   </defs>
   <g id="icon">
-    <!-- CREATIVE icon with depth and meaning -->
-    <path d="M20,15 Q35,5 50,15 L50,55 Q35,65 20,55 Z" fill="url(#iconGrad)" opacity="0.9"/>
-    <circle cx="35" cy="35" r="8" fill="#HEX3"/>
-    <path d="M28,30 L35,35 L42,30" stroke="#HEX4" stroke-width="2" fill="none"/>
+    <!-- Simple, meaningful icon - example: tech company -->
+    <circle cx="35" cy="40" r="24" fill="#HEX1"/>
+    <circle cx="35" cy="40" r="12" fill="#HEX2"/>
+    <rect x="33" y="28" width="4" height="24" fill="#HEX3"/>
   </g>
   <g id="text">
-    <text x="78" y="48" class="text-font" font-size="24" fill="#HEX1" letter-spacing="1">BRAND NAME</text>
+    <text x="78" y="48" class="text-font" font-size="24" fill="#HEX1">BRAND NAME</text>
   </g>
 </svg>
 
 **For "name" type (Name Based - Typography IS the Logo):**
 - Use viewBox="0 0 200 60" for text-focused layout
 - Create ONLY the <g id="text"> group - NO separate icon group
-- REVOLUTIONARY typography: Transform text into visual art
-- Use creative techniques: custom letterforms, ligatures, overlapping, geometric cuts, 3D effects
-- Integrate decorative elements WITHIN letters (not as separate icons)
-- Font size: 28-40px, varying weights (300-900) for visual hierarchy
-- Think: How can typography alone create WOW factor?
-Example (CREATIVE typography):
+- CLEAN, PROFESSIONAL typography with subtle character
+- Focus on readability and elegance, not complexity
+- May use ONE subtle gradient or decorative element if meaningful
+- Font size: 28-36px, weight: 600-800
+- Letter-spacing: 1-3px for modern feel
+Example (CLEAN, PROFESSIONAL):
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
   <defs>
-    <style>
-      .brand-text{font-family:'Inter',Arial,sans-serif;font-weight:800;letter-spacing:3px;}
-      .brand-accent{font-family:'Inter',Arial,sans-serif;font-weight:300;}
-    </style>
-    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <style>.brand-text{font-family:'Inter',Arial,sans-serif;font-weight:700;letter-spacing:2px;}</style>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" style="stop-color:#HEX1;stop-opacity:1"/>
-      <stop offset="50%" style="stop-color:#HEX2;stop-opacity:1"/>
-      <stop offset="100%" style="stop-color:#HEX3;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#HEX2;stop-opacity:1"/>
     </linearGradient>
-    <clipPath id="textClip">
-      <text x="100" y="38" class="brand-text" font-size="36" text-anchor="middle">BRAND</text>
-    </clipPath>
   </defs>
   <g id="text">
-    <!-- Creative background shapes integrated with text -->
-    <rect x="10" y="8" width="180" height="44" fill="url(#textGrad)" opacity="0.15" rx="22"/>
-    <!-- Main text with gradient and effects -->
-    <text x="100" y="38" class="brand-text" font-size="36" fill="url(#textGrad)" text-anchor="middle">BRAND</text>
-    <!-- Decorative accent line under text -->
-    <path d="M40,45 Q100,42 160,45" stroke="#HEX2" stroke-width="2" fill="none" opacity="0.6"/>
+    <!-- Clean typography with subtle gradient -->
+    <text x="100" y="38" class="brand-text" font-size="32" fill="url(#textGrad)" text-anchor="middle">BRAND</text>
+    <!-- Optional: ONE subtle accent if it adds meaning -->
+    <line x1="50" y1="48" x2="150" y2="48" stroke="#HEX2" stroke-width="2" opacity="0.4"/>
   </g>
 </svg>
 
 **For "initial" type (Initial Based - Stylized Initials as Logo):**
 - Use viewBox="0 0 100 100" for square, centered layout
-- Transform initials into ICONIC, ARTISTIC symbols
-- Use geometric abstraction, interlocking letters, negative space mastery
-- Create depth through layering, rotation, reflection, dimensional effects
-- The initials should work as both letters AND abstract visual symbol
-- Font size for initials: 36-52px, weight: 700-900
-- Think: How can letters become architecture?
-Example (CREATIVE initials):
+- CLEAN initials in a SIMPLE geometric container
+- Use ONE geometric shape (circle, square, or hexagon) as container
+- Initials should be bold, centered, and perfectly readable
+- Font size: 38-48px, weight: 800-900
+- Maximum 2-3 colors total
+Example (CLEAN, PROFESSIONAL):
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
   <defs>
     <style>.initial-font{font-family:'Inter',Arial,sans-serif;font-weight:900;}</style>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#HEX1;stop-opacity:1"/>
-      <stop offset="100%" style="stop-color:#HEX2;stop-opacity:1"/>
-    </linearGradient>
   </defs>
   <g id="icon">
-    <!-- Geometric container with depth -->
-    <rect x="10" y="10" width="80" height="80" fill="url(#bgGrad)" rx="16" opacity="0.9"/>
-    <rect x="15" y="15" width="70" height="70" fill="none" stroke="#HEX3" stroke-width="2" rx="12" opacity="0.5"/>
-    <!-- Decorative geometric elements -->
-    <path d="M20,50 L50,20" stroke="#HEX4" stroke-width="1.5" opacity="0.3"/>
-    <path d="M50,80 L80,50" stroke="#HEX4" stroke-width="1.5" opacity="0.3"/>
+    <!-- Simple geometric container -->
+    <circle cx="50" cy="50" r="44" fill="#HEX1"/>
+    <circle cx="50" cy="50" r="40" fill="none" stroke="#HEX2" stroke-width="2"/>
   </g>
   <g id="text">
-    <!-- Stylized initials with creative treatment -->
-    <text x="50" y="65" class="initial-font" font-size="44" fill="#HEX3" text-anchor="middle" letter-spacing="2">BN</text>
+    <!-- Bold, centered initials -->
+    <text x="50" y="62" class="initial-font" font-size="42" fill="#HEX3" text-anchor="middle">BN</text>
   </g>
 </svg>
 
@@ -196,86 +195,86 @@ CUSTOM DESCRIPTION INTEGRATION:
 - Balance user vision with professional design principles
 - Think: Apple (icon+text), Coca-Cola (pure text), IBM (styled initials)
 
-CRITICAL REQUIREMENTS - PUSH CREATIVE BOUNDARIES:
+CRITICAL REQUIREMENTS - PROFESSIONAL QUALITY MANDATORY:
 
 1. **ICON BASED ("icon" type):**
-   - Create a UNIQUE, MEMORABLE icon that tells a story
-   - AVOID: Generic circles, basic triangles, predictable shapes, cliché symbols
-   - DO: Abstract concepts, unexpected geometries, clever visual metaphors, negative space magic
-   - Include the FULL brand name as text beside or below the icon
-   - Icon should be instantly recognizable and work standalone
-   - Use gradients, layering, and sophisticated compositions
-   - Examples of excellence: Apple (knowledge), Nike (motion), Airbnb (belonging)
+   - Create a SIMPLE, MEANINGFUL icon (2-3 shapes max) that represents the industry/value
+   - MUST AVOID: Random shapes, complex paths, decorative clutter, meaningless elements
+   - MUST DO: Clean geometric forms (circles, triangles, squares, simple paths), purposeful design
+   - Include the FULL brand name as clean, readable text
+   - Icon must make sense when explained: "This shape represents X because..."
+   - Use maximum 3 colors in the icon
+   - Examples: Apple (simple apple), Nike (simple swoosh), Airbnb (simple A+heart)
 
 2. **NAME BASED ("name" type):**
-   - NO separate icon element whatsoever - TYPOGRAPHY IS EVERYTHING
-   - AVOID: Basic fonts, simple text, boring layouts, standard styling
-   - DO: Custom letterforms, creative ligatures, geometric cuts, overlapping letters, 3D effects
-   - Transform letters into visual art and emotional experiences
-   - Use gradients, multiple weights, letter-spacing, decorative elements WITHIN text
-   - Create hidden meanings or optical illusions when possible
-   - Examples of excellence: Coca-Cola (flow), FedEx (hidden arrow), Google (playful innovation)
+   - NO separate icon element - CLEAN TYPOGRAPHY ONLY
+   - MUST AVOID: Over-designed letters, illegible fonts, chaotic effects, excessive decoration
+   - MUST DO: Professional Inter font (weights 600-900), clean letter-spacing, subtle gradient
+   - Text must be instantly readable at all sizes
+   - May add ONE subtle decorative element if it adds meaning (underline, accent)
+   - Maximum 3 colors total
+   - Examples: Coca-Cola (clean script), Google (clean letters), FedEx (clean + arrow)
 
 3. **INITIAL BASED ("initial" type):**
-   - Use ONLY the initials (2-3 letters max) - NO full brand name
-   - AVOID: Plain letters in circles, basic monograms, simple stacking
-   - DO: Geometric abstraction, interlocking letters, architectural letterforms, dimensional effects
-   - Transform initials into abstract art while maintaining readability
-   - Use rotation, reflection, overlapping, negative space mastery
-   - Create depth through layering and sophisticated compositions
-   - Examples of excellence: IBM (technology stripes), HP (circular innovation), CNN (bold urgency)
+   - Use ONLY initials (2-3 letters) in a SIMPLE geometric container
+   - MUST AVOID: Complex patterns, random decorations, illegible letters, chaotic designs
+   - MUST DO: ONE clean container (circle/square/hexagon), bold centered letters (weight 800-900)
+   - Initials must be perfectly readable and centered
+   - Maximum 2-3 colors total
+   - Examples: IBM (clean stripes), HP (simple circle), CNN (simple rectangle)
 
-4. **UNIVERSAL REQUIREMENTS:**
-   - Use provided colors with intentional color theory (complementary, analogous, triadic)
-   - Apply gradients for modern, premium feel
-   - Varying opacities (0.3-1.0) for depth and sophistication
-   - Multiple font weights (300-900) for visual hierarchy
-   - Ensure scalability from 16px to 1000px+
-   - Production-ready, valid SVG markup with proper namespaces
+4. **UNIVERSAL REQUIREMENTS - NON-NEGOTIABLE:**
+   - **SIMPLICITY**: 2-4 shapes maximum. Less is more.
+   - **COHERENCE**: Every element must have a clear purpose and meaning
+   - **READABILITY**: Text must be instantly readable at 16px
+   - **PROFESSIONALISM**: Must look like a Fortune 500 company logo
+   - **SCALABILITY**: Works perfectly from 16px to 1000px
+   - **CLEAN CODE**: Valid SVG with proper xmlns namespace
+   - **COLOR DISCIPLINE**: Use provided colors, maximum 3-4 total
 
-5. **INNOVATION MANDATE:**
-   - Every design must be ORIGINAL and DISTINCTIVE
-   - Push boundaries while maintaining professionalism
-   - Think: "What would Pentagram or Landor create?"
-   - Avoid predictable, safe, or generic solutions
-   - Create designs that make people say "WOW!"
+5. **QUALITY CONTROL:**
+   - Ask yourself: "Can I explain why each shape/element is there?"
+   - Ask yourself: "Would Apple's design team approve this?"
+   - Ask yourself: "Is this simple enough to work as a 16px favicon?"
+   - If answer is "no" to any question, SIMPLIFY THE DESIGN
 
-STRICTLY AVOID:
-- Broken XML or invalid SVG syntax
-- Missing xmlns namespace declarations
-- Overlapping elements that reduce legibility
-- Poor spacing or composition
-- **Generic shapes**: basic circles, simple triangles, predictable patterns
-- **Cliché symbols**: light bulbs for ideas, gears for tech, globes for global
-- **Amateur mistakes**: Comic Sans vibes, rainbow gradients, clipart aesthetics
-- **Type mixing**: Adding icons to "name" type, or full names to "initial" type
-- **Dated designs**: 90s gradients, Web 2.0 glossy effects, outdated trends
-- **Lazy solutions**: Copy-paste designs, template-looking logos, uninspired layouts
+STRICTLY AVOID - THESE WILL RESULT IN REJECTION:
+- **Random shapes with no meaning**: Every shape must have a purpose
+- **Complex, chaotic designs**: More than 5 shapes in the icon
+- **Illegible text**: Text that's hard to read at any size
+- **Broken SVG code**: Invalid XML, missing namespaces
+- **Cliché symbols**: Light bulbs, gears, globes, generic icons
+- **Over-decoration**: Excessive effects, filters, or decorative elements
+- **Type mixing**: Icons in "name" type, full names in "initial" type
+- **Amateur aesthetics**: Clipart-looking, dated effects, unprofessional composition
 
-**CREATIVE INSPIRATION TECHNIQUES:**
-- Use unexpected color combinations that still feel harmonious
-- Apply the golden ratio for proportions (1.618:1)
-- Create visual tension through asymmetry, then resolve it
-- Use negative space to hide secondary meanings
-- Apply gestalt principles (proximity, similarity, closure)
-- Think in 3D even when designing in 2D
-- Use optical illusions subtly (like the FedEx arrow)
-- Apply color psychology intentionally
-- Create movement through implied lines and flow
-- Balance complexity with simplicity (sophisticated minimalism)
+**DESIGN APPROACH - FOLLOW THIS PROCESS:**
+1. **Understand the context**: Read the project industry, values, and target audience
+2. **Choose meaningful shapes**: Select 2-3 geometric shapes that represent the brand
+3. **Keep it simple**: Less is more - remove anything that doesn't add meaning
+4. **Ensure readability**: Text must be crystal clear at all sizes
+5. **Use colors intentionally**: Maximum 3-4 colors from the provided palette
+6. **Test scalability mentally**: Would this work at 16px? At 1000px?
+7. **Verify coherence**: Can you explain why each element is there?
 
-**FINAL QUALITY CHECK:**
-Before finalizing your design, ask yourself:
-1. Is this logo TRULY original, or have I seen something similar?
-2. Does it tell a story or evoke an emotion?
-3. Would it stand out in a lineup of 100 logos?
-4. Is it memorable enough that someone could describe it from memory?
-5. Does it work at both 16px and 1000px?
-6. Does it respect the logo type requirement (icon/name/initial)?
-7. Is the SVG code clean, valid, and production-ready?
+**FINAL QUALITY CHECKLIST - ALL MUST BE "YES":**
+1. ✓ Is every shape/element purposeful and explainable?
+2. ✓ Is the design simple enough (2-4 shapes maximum)?
+3. ✓ Is all text instantly readable at 16px?
+4. ✓ Does it look professional enough for a Fortune 500 company?
+5. ✓ Is the SVG code clean and valid?
+6. ✓ Does it respect the logo type (icon/name/initial)?
+7. ✓ Would it work as both a favicon and a billboard?
+8. ✓ Is it timeless (won't look dated in 5 years)?
 
-If you answer "no" to any question, REDESIGN until all answers are "yes".
+If ANY answer is "no", SIMPLIFY and REDESIGN.
 
-GOAL: Generate EXCEPTIONAL, ORIGINAL, production-ready SVG logos that perfectly match user preferences, create emotional impact, are immediately usable, professionally designed at world-class level, and scalable across all media formats. Make every logo a masterpiece.
+**REMEMBER:**
+- You are designing for a PROFESSIONAL brand, not an art project
+- SIMPLICITY and MEANING beat complexity and decoration
+- Every element must earn its place in the design
+- When in doubt, REMOVE elements rather than add them
+
+GOAL: Generate CLEAN, PROFESSIONAL, MEANINGFUL logos that work at all sizes, communicate the brand clearly, and look like they were designed by a world-class agency. Prioritize SIMPLICITY, COHERENCE, and PROFESSIONALISM above all else.
 `;
 

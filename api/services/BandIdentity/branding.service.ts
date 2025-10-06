@@ -42,14 +42,15 @@ export class BrandingService extends GenericService {
   private logoJsonToSvgService: LogoJsonToSvgService;
 
   // Configuration LLM pour la génération de logos et variations
+  // Temperature modérée pour équilibrer créativité et cohérence
   private static readonly LOGO_LLM_CONFIG = {
     provider: LLMProvider.GEMINI,
     modelName: "gemini-2.0-flash",
     llmOptions: {
-      maxOutputTokens: 3000,
-      temperature: 0.15,
-      topP: 0.85,
-      topK: 50,
+      maxOutputTokens: 3500,
+      temperature: 0.4, // Équilibre entre créativité et cohérence
+      topP: 0.9,
+      topK: 55,
     },
   };
 
@@ -130,13 +131,17 @@ export class BrandingService extends GenericService {
    */
   private extractProjectName(projectDescription: string): string {
     // Chercher le nom du projet dans la description (généralement au début)
-    const nameMatch = projectDescription.match(/(?:project name|nom du projet|name)[:\s]+([^\n.]+)/i);
+    const nameMatch = projectDescription.match(
+      /(?:project name|nom du projet|name)[:\s]+([^\n.]+)/i
+    );
     if (nameMatch) {
       return nameMatch[1].trim();
     }
     // Fallback: première ligne non vide
-    const firstLine = projectDescription.split('\n').find(line => line.trim());
-    return firstLine?.trim() || 'Brand';
+    const firstLine = projectDescription
+      .split("\n")
+      .find((line) => line.trim());
+    return firstLine?.trim() || "Brand";
   }
 
   /**
@@ -145,18 +150,18 @@ export class BrandingService extends GenericService {
   private generateInitials(projectName: string): string {
     // Nettoyer et diviser le nom
     const words = projectName
-      .replace(/[^\w\s]/g, '') // Enlever la ponctuation
+      .replace(/[^\w\s]/g, "") // Enlever la ponctuation
       .split(/\s+/)
-      .filter(word => word.length > 0);
-    
-    if (words.length === 0) return 'BR';
+      .filter((word) => word.length > 0);
+
+    if (words.length === 0) return "BR";
     if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
-    
+
     // Prendre la première lettre de chaque mot (max 3)
     return words
       .slice(0, 3)
-      .map(word => word[0].toUpperCase())
-      .join('');
+      .map((word) => word[0].toUpperCase())
+      .join("");
   }
 
   /**
@@ -170,53 +175,117 @@ export class BrandingService extends GenericService {
   } {
     // Analyser la description pour extraire le contexte
     const lowerDesc = projectDescription.toLowerCase();
-    
+
     // Détecter l'industrie
-    let industry = 'Technology';
-    if (lowerDesc.includes('food') || lowerDesc.includes('restaurant') || lowerDesc.includes('cuisine')) {
-      industry = 'Food & Beverage';
-    } else if (lowerDesc.includes('fashion') || lowerDesc.includes('clothing') || lowerDesc.includes('apparel')) {
-      industry = 'Fashion';
-    } else if (lowerDesc.includes('health') || lowerDesc.includes('medical') || lowerDesc.includes('wellness')) {
-      industry = 'Healthcare';
-    } else if (lowerDesc.includes('finance') || lowerDesc.includes('bank') || lowerDesc.includes('investment')) {
-      industry = 'Finance';
-    } else if (lowerDesc.includes('education') || lowerDesc.includes('learning') || lowerDesc.includes('school')) {
-      industry = 'Education';
-    } else if (lowerDesc.includes('sport') || lowerDesc.includes('fitness') || lowerDesc.includes('gym')) {
-      industry = 'Sports & Fitness';
-    } else if (lowerDesc.includes('travel') || lowerDesc.includes('tourism') || lowerDesc.includes('hotel')) {
-      industry = 'Travel & Hospitality';
-    } else if (lowerDesc.includes('eco') || lowerDesc.includes('green') || lowerDesc.includes('sustainable')) {
-      industry = 'Sustainability';
+    let industry = "Technology";
+    if (
+      lowerDesc.includes("food") ||
+      lowerDesc.includes("restaurant") ||
+      lowerDesc.includes("cuisine")
+    ) {
+      industry = "Food & Beverage";
+    } else if (
+      lowerDesc.includes("fashion") ||
+      lowerDesc.includes("clothing") ||
+      lowerDesc.includes("apparel")
+    ) {
+      industry = "Fashion";
+    } else if (
+      lowerDesc.includes("health") ||
+      lowerDesc.includes("medical") ||
+      lowerDesc.includes("wellness")
+    ) {
+      industry = "Healthcare";
+    } else if (
+      lowerDesc.includes("finance") ||
+      lowerDesc.includes("bank") ||
+      lowerDesc.includes("investment")
+    ) {
+      industry = "Finance";
+    } else if (
+      lowerDesc.includes("education") ||
+      lowerDesc.includes("learning") ||
+      lowerDesc.includes("school")
+    ) {
+      industry = "Education";
+    } else if (
+      lowerDesc.includes("sport") ||
+      lowerDesc.includes("fitness") ||
+      lowerDesc.includes("gym")
+    ) {
+      industry = "Sports & Fitness";
+    } else if (
+      lowerDesc.includes("travel") ||
+      lowerDesc.includes("tourism") ||
+      lowerDesc.includes("hotel")
+    ) {
+      industry = "Travel & Hospitality";
+    } else if (
+      lowerDesc.includes("eco") ||
+      lowerDesc.includes("green") ||
+      lowerDesc.includes("sustainable")
+    ) {
+      industry = "Sustainability";
     }
-    
+
     // Extraire les valeurs
     const values: string[] = [];
-    if (lowerDesc.includes('innovation') || lowerDesc.includes('innovative')) values.push('Innovation');
-    if (lowerDesc.includes('trust') || lowerDesc.includes('reliable')) values.push('Trust');
-    if (lowerDesc.includes('quality') || lowerDesc.includes('premium')) values.push('Quality');
-    if (lowerDesc.includes('speed') || lowerDesc.includes('fast') || lowerDesc.includes('quick')) values.push('Speed');
-    if (lowerDesc.includes('simple') || lowerDesc.includes('easy') || lowerDesc.includes('intuitive')) values.push('Simplicity');
-    if (lowerDesc.includes('creative') || lowerDesc.includes('artistic')) values.push('Creativity');
-    if (lowerDesc.includes('professional') || lowerDesc.includes('business')) values.push('Professionalism');
-    if (lowerDesc.includes('fun') || lowerDesc.includes('playful') || lowerDesc.includes('joy')) values.push('Playfulness');
-    
+    if (lowerDesc.includes("innovation") || lowerDesc.includes("innovative"))
+      values.push("Innovation");
+    if (lowerDesc.includes("trust") || lowerDesc.includes("reliable"))
+      values.push("Trust");
+    if (lowerDesc.includes("quality") || lowerDesc.includes("premium"))
+      values.push("Quality");
+    if (
+      lowerDesc.includes("speed") ||
+      lowerDesc.includes("fast") ||
+      lowerDesc.includes("quick")
+    )
+      values.push("Speed");
+    if (
+      lowerDesc.includes("simple") ||
+      lowerDesc.includes("easy") ||
+      lowerDesc.includes("intuitive")
+    )
+      values.push("Simplicity");
+    if (lowerDesc.includes("creative") || lowerDesc.includes("artistic"))
+      values.push("Creativity");
+    if (lowerDesc.includes("professional") || lowerDesc.includes("business"))
+      values.push("Professionalism");
+    if (
+      lowerDesc.includes("fun") ||
+      lowerDesc.includes("playful") ||
+      lowerDesc.includes("joy")
+    )
+      values.push("Playfulness");
+
     // Audience cible
-    let targetAudience = 'General Public';
-    if (lowerDesc.includes('young') || lowerDesc.includes('youth') || lowerDesc.includes('millennial')) {
-      targetAudience = 'Young Adults (18-35)';
-    } else if (lowerDesc.includes('professional') || lowerDesc.includes('business') || lowerDesc.includes('corporate')) {
-      targetAudience = 'Business Professionals';
-    } else if (lowerDesc.includes('luxury') || lowerDesc.includes('premium') || lowerDesc.includes('high-end')) {
-      targetAudience = 'Luxury Market';
-    } else if (lowerDesc.includes('family') || lowerDesc.includes('parent')) {
-      targetAudience = 'Families';
+    let targetAudience = "General Public";
+    if (
+      lowerDesc.includes("young") ||
+      lowerDesc.includes("youth") ||
+      lowerDesc.includes("millennial")
+    ) {
+      targetAudience = "Young Adults (18-35)";
+    } else if (
+      lowerDesc.includes("professional") ||
+      lowerDesc.includes("business") ||
+      lowerDesc.includes("corporate")
+    ) {
+      targetAudience = "Business Professionals";
+    } else if (
+      lowerDesc.includes("luxury") ||
+      lowerDesc.includes("premium") ||
+      lowerDesc.includes("high-end")
+    ) {
+      targetAudience = "Luxury Market";
+    } else if (lowerDesc.includes("family") || lowerDesc.includes("parent")) {
+      targetAudience = "Families";
     }
-    
+
     // Point de différenciation
     const uniqueSellingPoint = projectDescription.substring(0, 200);
-    
+
     return { industry, values, targetAudience, uniqueSellingPoint };
   }
 
@@ -238,63 +307,82 @@ export class BrandingService extends GenericService {
     let contextPrompt = `**PROJECT CONTEXT - USE THIS TO INSPIRE YOUR DESIGN:**\n`;
     contextPrompt += `- Project Name: "${projectName}"\n`;
     contextPrompt += `- Industry: ${projectContext.industry}\n`;
-    contextPrompt += `- Core Values: ${projectContext.values.length > 0 ? projectContext.values.join(', ') : 'Innovation, Quality, Trust'}\n`;
+    contextPrompt += `- Core Values: ${
+      projectContext.values.length > 0
+        ? projectContext.values.join(", ")
+        : "Innovation, Quality, Trust"
+    }\n`;
     contextPrompt += `- Target Audience: ${projectContext.targetAudience}\n`;
     contextPrompt += `- Project Description: ${projectContext.uniqueSellingPoint}\n`;
-    
+
     // Informations de design
-    const colorInfo = `Primary: ${colors.colors?.primary || "N/A"}, Secondary: ${colors.colors?.secondary || "N/A"}`;
-    const fontInfo = `Primary: ${typography.primaryFont || "N/A"}, Secondary: ${typography.secondaryFont || "N/A"}`;
+    const colorInfo = `Primary: ${
+      colors.colors?.primary || "N/A"
+    }, Secondary: ${colors.colors?.secondary || "N/A"}`;
+    const fontInfo = `Primary: ${typography.primaryFont || "N/A"}, Secondary: ${
+      typography.secondaryFont || "N/A"
+    }`;
     contextPrompt += `\n**DESIGN PALETTE:**\n`;
     contextPrompt += `- Colors: ${colorInfo}\n`;
     contextPrompt += `- Typography: ${fontInfo}\n`;
 
     // Ajouter les préférences utilisateur au contexte avec instructions détaillées
-    let preferenceContext = '';
+    let preferenceContext = "";
     if (preferences) {
       const typeDescriptions = {
-        icon: 'Icon Based - Create a memorable icon/symbol + full brand name (like Apple, Nike, Twitter)',
-        name: 'Name Based - Typography IS the logo, NO separate icon (like Coca-Cola, Google, FedEx)',
-        initial: 'Initial Based - Stylized initials as main element (like IBM, HP, CNN)'
+        icon: "Icon Based - Create a memorable icon/symbol + full brand name (like Apple, Nike, Twitter)",
+        name: "Name Based - Typography IS the logo, NO separate icon (like Coca-Cola, Google, FedEx)",
+        initial:
+          "Initial Based - Stylized initials as main element (like IBM, HP, CNN)",
       };
-      
-      preferenceContext = `\n**USER PREFERENCES:**\n- Logo Type: ${preferences.type} - ${typeDescriptions[preferences.type]}\n`;
-      
-      if (preferences.type === 'initial') {
+
+      preferenceContext = `\n**USER PREFERENCES:**\n- Logo Type: ${
+        preferences.type
+      } - ${typeDescriptions[preferences.type]}\n`;
+
+      if (preferences.type === "initial") {
         preferenceContext += `- Initials to use: "${projectInitials}" (from "${projectName}")\n`;
       }
-      
+
       if (preferences.customDescription) {
         preferenceContext += `- Custom Design Requirements: ${preferences.customDescription}\n`;
       }
-      
+
       preferenceContext += `\n**DESIGN DIRECTION FOR ${preferences.type.toUpperCase()} TYPE:**\n`;
-      preferenceContext += `Based on the project context (${projectContext.industry}, values: ${projectContext.values.join(', ')}), create a logo that:\n`;
-      
+      preferenceContext += `Based on the project context (${
+        projectContext.industry
+      }, values: ${projectContext.values.join(", ")}), create a logo that:\n`;
+
       switch (preferences.type) {
-        case 'icon':
+        case "icon":
           preferenceContext += `- Creates an icon that visually represents the ${projectContext.industry} industry\n`;
-          preferenceContext += `- Embodies the values: ${projectContext.values.join(', ')}\n`;
+          preferenceContext += `- Embodies the values: ${projectContext.values.join(
+            ", "
+          )}\n`;
           preferenceContext += `- Appeals to ${projectContext.targetAudience}\n`;
           preferenceContext += `- Includes the FULL brand name "${projectName}" as text\n`;
           preferenceContext += `- Makes the icon memorable and instantly recognizable\n`;
           break;
-        case 'name':
+        case "name":
           preferenceContext += `- Uses ONLY the brand name "${projectName}" with typography that reflects ${projectContext.industry}\n`;
-          preferenceContext += `- Conveys ${projectContext.values.join(' and ')} through font styling\n`;
+          preferenceContext += `- Conveys ${projectContext.values.join(
+            " and "
+          )} through font styling\n`;
           preferenceContext += `- Resonates with ${projectContext.targetAudience}\n`;
           preferenceContext += `- NO separate icon - typography IS the complete logo\n`;
           preferenceContext += `- Creates visual impact through creative letterforms\n`;
           break;
-        case 'initial':
+        case "initial":
           preferenceContext += `- Uses ONLY the initials "${projectInitials}" in a way that suggests ${projectContext.industry}\n`;
-          preferenceContext += `- Stylizes the letters to communicate ${projectContext.values.join(' and ')}\n`;
+          preferenceContext += `- Stylizes the letters to communicate ${projectContext.values.join(
+            " and "
+          )}\n`;
           preferenceContext += `- Creates appeal for ${projectContext.targetAudience}\n`;
           preferenceContext += `- NO full brand name - initials ARE the complete logo\n`;
           preferenceContext += `- Makes the initials iconic and sophisticated\n`;
           break;
       }
-      
+
       preferenceContext += `\n**IMPORTANT:** Let the project's industry, values, and target audience guide your creative decisions. The logo should tell the brand's story visually.\n`;
     }
 
@@ -789,7 +877,7 @@ export class BrandingService extends GenericService {
     logger.info(
       `Generating professional logo concept ${
         conceptIndex + 1
-      } with direct SVG generation - Type: ${preferences?.type || 'name'}`
+      } with direct SVG generation - Type: ${preferences?.type || "name"}`
     );
 
     // Build optimized prompt for direct SVG generation with user preferences
@@ -960,7 +1048,9 @@ export class BrandingService extends GenericService {
     logos: LogoModel[];
   }> {
     logger.info(
-      `Generating 3 logo concepts in parallel for userId: ${userId}, projectId: ${projectId}, logoType: ${preferences?.type || 'name'}`
+      `Generating 3 logo concepts in parallel for userId: ${userId}, projectId: ${projectId}, logoType: ${
+        preferences?.type || "name"
+      }`
     );
 
     // Étape 1: Récupération optimisée du projet avec fallback gracieux
@@ -1951,7 +2041,10 @@ Generated by Lexis API - Brand Identity System
     modificationPrompt: string
   ): Promise<{ logo: LogoModel }> {
     logger.info(
-      `Editing logo for userId: ${userId}, projectId: ${projectId}, modification: ${modificationPrompt.substring(0, 100)}...`
+      `Editing logo for userId: ${userId}, projectId: ${projectId}, modification: ${modificationPrompt.substring(
+        0,
+        100
+      )}...`
     );
 
     try {
@@ -2021,10 +2114,7 @@ ${LOGO_EDIT_PROMPT}`;
         logo: optimizedLogo,
       };
     } catch (error) {
-      logger.error(
-        `Error editing logo for projectId: ${projectId}`,
-        error
-      );
+      logger.error(`Error editing logo for projectId: ${projectId}`, error);
       throw error;
     }
   }
