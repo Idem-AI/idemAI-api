@@ -10,6 +10,7 @@ import {
   generateBrandingStreamingController,
   generateBrandingPdfController,
   generateLogosZipController,
+  editLogoController,
 } from "../controllers/branding.controller";
 import { authenticate } from "../services/auth.service"; // Updated import path
 import { checkQuota } from "../middleware/quota.middleware";
@@ -606,4 +607,102 @@ brandingRoutes.get(
   `/${resourceName}/logos-zip/:projectId/:extension`,
   authenticate,
   generateLogosZipController
+);
+
+// Edit an existing logo with AI
+/**
+ * @openapi
+ * /brandings/edit-logo/{projectId}:
+ *   post:
+ *     tags:
+ *       - Branding
+ *     summary: Edit an existing logo using AI based on user modification prompt
+ *     description: Uses AI to intelligently modify a logo while preserving its core identity. The AI will apply only the requested changes without redesigning the entire logo.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the project
+ *     requestBody:
+ *       description: Logo SVG and modification instructions
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - logosvg
+ *               - modificationPrompt
+ *             properties:
+ *               logosvg:
+ *                 type: string
+ *                 description: The current logo SVG content to be edited
+ *                 example: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80">...</svg>'
+ *               modificationPrompt:
+ *                 type: string
+ *                 description: User's instructions for how to modify the logo
+ *                 example: 'Change the icon color to blue and make the text bold'
+ *     responses:
+ *       '200':
+ *         description: Logo edited successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 logo:
+ *                   $ref: '#/components/schemas/LogoModel'
+ *       '400':
+ *         description: Bad request - Missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Logo SVG is required"
+ *       '401':
+ *         description: Unauthorized - User not authenticated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not authenticated"
+ *       '404':
+ *         description: Project not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Project not found"
+ *       '500':
+ *         description: Internal server error during logo editing
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error editing logo"
+ *                 error:
+ *                   type: string
+ *                   description: Detailed error message
+ */
+brandingRoutes.post(
+  `/${resourceName}/edit-logo/:projectId`,
+  authenticate,
+  checkQuota,
+  editLogoController
 );

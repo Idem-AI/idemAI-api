@@ -656,3 +656,71 @@ export const generateLogosZipController = async (
     }
   }
 };
+
+/**
+ * Contrôleur pour éditer un logo existant avec AI
+ */
+export const editLogoController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const { projectId } = req.params;
+  const { logosvg, modificationPrompt } = req.body;
+  const userId = req.user?.uid;
+  
+  logger.info(
+    `editLogoController called - UserId: ${userId}, ProjectId: ${projectId}`,
+    { modificationPrompt: modificationPrompt?.substring(0, 100) }
+  );
+
+  try {
+    if (!userId) {
+      logger.warn("User not authenticated for editLogoController");
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    if (!projectId) {
+      logger.warn("Project ID is required for editLogoController");
+      res.status(400).json({ message: "Project ID is required" });
+      return;
+    }
+
+    if (!logosvg) {
+      logger.warn("Logo SVG is required for editLogoController");
+      res.status(400).json({ message: "Logo SVG is required" });
+      return;
+    }
+
+    if (!modificationPrompt) {
+      logger.warn("Modification prompt is required for editLogoController");
+      res.status(400).json({ message: "Modification prompt is required" });
+      return;
+    }
+
+    // Éditer le logo avec AI
+    const result = await brandingService.editLogo(
+      userId,
+      projectId,
+      logosvg,
+      modificationPrompt
+    );
+
+    logger.info(
+      `Successfully edited logo - UserId: ${userId}, ProjectId: ${projectId}`
+    );
+    
+    userService.incrementUsage(userId, 2);
+    res.status(200).json(result);
+  } catch (error: any) {
+    logger.error(
+      `Error in editLogoController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack, body: req.body }
+    );
+
+    res.status(500).json({
+      message: "Error editing logo",
+      error: error.message,
+    });
+  }
+};
