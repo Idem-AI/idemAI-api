@@ -84,14 +84,24 @@ export interface LogoVariations {
   iconOnly?: LogoVariationSet; // Icon-only variations without text elements
 }
 
+export type LogoType = 'icon' | 'name' | 'initial';
+
+export interface LogoPreferences {
+  type: LogoType;
+  useAIGeneration: boolean;
+  customDescription?: string;
+}
+
 export interface LogoModel {
   id: string;
   name: string;
-  svg: string; // Main SVG logo (full version with text)
+  svg: string; // Main SVG logo (default full version)
   iconSvg?: string; // Icon-only SVG content (without text elements)
   concept: string; // Branding story or meaning behind the logo
   colors: string[]; // Array of HEX color codes used in the logo
   fonts: string[]; // Fonts used in the logo (if any)
+  type?: LogoType; // Type of logo (icon, name, initial)
+  customDescription?: string; // User-provided custom description
 
   variations?: LogoVariations; // Enhanced variations with text/icon separation
 }

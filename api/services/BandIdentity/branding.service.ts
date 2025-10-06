@@ -26,7 +26,7 @@ import {
   IPromptStep,
   ISectionResult,
 } from "../common/generic.service";
-import { LogoModel } from "../../models/logo.model";
+import { LogoModel, LogoPreferences } from "../../models/logo.model";
 import { COLORS_GENERATION_PROMPT } from "./prompts/singleGenerations/colors-generation.prompt";
 import { TYPOGRAPHY_GENERATION_PROMPT } from "./prompts/singleGenerations/typography-generation.prompt";
 import { PdfService } from "../pdf.service";
@@ -45,7 +45,7 @@ export class BrandingService extends GenericService {
     provider: LLMProvider.GEMINI,
     modelName: "gemini-2.0-flash",
     llmOptions: {
-      maxOutputTokens: 2000,
+      maxOutputTokens: 3000,
       temperature: 0.15,
       topP: 0.85,
       topK: 50,
@@ -125,12 +125,47 @@ export class BrandingService extends GenericService {
   }
 
   /**
-   * Construction du prompt optimisé pour la génération de logos
+   * Extrait le nom du projet depuis la description
+   */
+  private extractProjectName(projectDescription: string): string {
+    // Chercher le nom du projet dans la description (généralement au début)
+    const nameMatch = projectDescription.match(/(?:project name|nom du projet|name)[:\s]+([^\n.]+)/i);
+    if (nameMatch) {
+      return nameMatch[1].trim();
+    }
+    // Fallback: première ligne non vide
+    const firstLine = projectDescription.split('\n').find(line => line.trim());
+    return firstLine?.trim() || 'Brand';
+  }
+
+  /**
+   * Génère les initiales depuis le nom du projet
+   */
+  private generateInitials(projectName: string): string {
+    // Nettoyer et diviser le nom
+    const words = projectName
+      .replace(/[^\w\s]/g, '') // Enlever la ponctuation
+      .split(/\s+/)
+      .filter(word => word.length > 0);
+    
+    if (words.length === 0) return 'BR';
+    if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+    
+    // Prendre la première lettre de chaque mot (max 3)
+    return words
+      .slice(0, 3)
+      .map(word => word[0].toUpperCase())
+      .join('');
+  }
+
+  /**
+   * Construction du prompt optimisé pour la génération de logos avec préférences utilisateur
    */
   private buildOptimizedLogoPrompt(
     projectDescription: string,
     colors: ColorModel,
-    typography: TypographyModel
+    typography: TypographyModel,
+    preferences?: LogoPreferences
   ): string {
     // Prompt condensé avec informations essentielles uniquement
     const colorInfo = `Primary: ${
@@ -140,7 +175,56 @@ export class BrandingService extends GenericService {
       typography.secondaryFont || "N/A"
     }`;
 
-    return `${projectDescription}\n\nColors: ${colorInfo}\nTypography: ${fontInfo}\n\n${LOGO_GENERATION_PROMPT}`;
+    // Extraire le nom du projet et générer les initiales
+    const projectName = this.extractProjectName(projectDescription);
+    const projectInitials = this.generateInitials(projectName);
+
+    // Ajouter les préférences utilisateur au contexte avec instructions détaillées
+    let preferenceContext = '';
+    if (preferences) {
+      const typeDescriptions = {
+        icon: 'Icon Based - Create a memorable icon/symbol + full brand name (like Apple, Nike, Twitter)',
+        name: 'Name Based - Typography IS the logo, NO separate icon (like Coca-Cola, Google, FedEx)',
+        initial: 'Initial Based - Stylized initials as main element (like IBM, HP, CNN)'
+      };
+      
+      preferenceContext = `\n\n**USER PREFERENCES:**\n- Logo Type: ${preferences.type} - ${typeDescriptions[preferences.type]}\n`;
+      preferenceContext += `- Project Name: "${projectName}"\n`;
+      
+      if (preferences.type === 'initial') {
+        preferenceContext += `- Initials to use: "${projectInitials}" (extract from "${projectName}")\n`;
+      }
+      
+      if (preferences.customDescription) {
+        preferenceContext += `- Custom Design Requirements: ${preferences.customDescription}\n`;
+      }
+      
+      preferenceContext += `\n**CRITICAL INSTRUCTIONS FOR ${preferences.type.toUpperCase()} TYPE:**\n`;
+      
+      switch (preferences.type) {
+        case 'icon':
+          preferenceContext += `- Create a distinctive icon/symbol that represents the brand\n`;
+          preferenceContext += `- Include the FULL brand name "${projectName}" as text\n`;
+          preferenceContext += `- Icon should be the focal point, text is complementary\n`;
+          preferenceContext += `- Think: Apple's apple icon with "Apple" text\n`;
+          break;
+        case 'name':
+          preferenceContext += `- Use ONLY the brand name "${projectName}" with creative typography\n`;
+          preferenceContext += `- NO separate icon element - the text styling IS the logo\n`;
+          preferenceContext += `- Focus on font effects, colors, letter spacing, decorative elements\n`;
+          preferenceContext += `- Think: Coca-Cola's scripted text, Google's colorful letters\n`;
+          break;
+        case 'initial':
+          preferenceContext += `- Use ONLY the initials "${projectInitials}" as the main element\n`;
+          preferenceContext += `- Create an iconic, stylized design with these letters\n`;
+          preferenceContext += `- NO full brand name - initials ARE the entire logo\n`;
+          preferenceContext += `- May include geometric shapes or containers to enhance the initials\n`;
+          preferenceContext += `- Think: IBM's striped letters, HP in circle\n`;
+          break;
+      }
+    }
+
+    return `${projectDescription}\n\nColors: ${colorInfo}\nTypography: ${fontInfo}${preferenceContext}\n\n${LOGO_GENERATION_PROMPT}`;
   }
 
   async generateBrandingWithStreaming(
@@ -625,19 +709,21 @@ export class BrandingService extends GenericService {
     colors: ColorModel,
     typography: TypographyModel,
     project: ProjectModel,
-    conceptIndex: number
+    conceptIndex: number,
+    preferences?: LogoPreferences
   ): Promise<LogoModel> {
     logger.info(
       `Generating professional logo concept ${
         conceptIndex + 1
-      } with direct SVG generation`
+      } with direct SVG generation - Type: ${preferences?.type || 'name'}`
     );
 
-    // Build optimized prompt for direct SVG generation
+    // Build optimized prompt for direct SVG generation with user preferences
     const optimizedPrompt = this.buildOptimizedLogoPrompt(
       projectDescription,
       colors,
-      typography
+      typography,
+      preferences
     );
 
     // AI generation with direct SVG output
@@ -691,6 +777,8 @@ export class BrandingService extends GenericService {
       fonts: logoData.fonts || [],
       svg: logoData.svg, // Direct SVG from AI
       iconSvg: this.extractIconFromSvg(logoData.svg), // Extract icon part
+      type: preferences?.type,
+      customDescription: preferences?.customDescription,
     };
 
     // Apply SVG optimization
@@ -786,18 +874,19 @@ export class BrandingService extends GenericService {
   }
 
   /**
-   * Étape 1: Génère 3 concepts de logos principaux en parallèle - Version optimisée
+   * Étape 1: Génère 3 concepts de logos principaux en parallèle - Version optimisée avec préférences
    */
   async generateLogoConcepts(
     userId: string,
     projectId: string,
     selectedColors: ColorModel,
-    selectedTypography: TypographyModel
+    selectedTypography: TypographyModel,
+    preferences?: LogoPreferences
   ): Promise<{
     logos: LogoModel[];
   }> {
     logger.info(
-      `Generating 3 logo concepts in parallel for userId: ${userId}, projectId: ${projectId}`
+      `Generating 3 logo concepts in parallel for userId: ${userId}, projectId: ${projectId}, logoType: ${preferences?.type || 'name'}`
     );
 
     // Étape 1: Récupération optimisée du projet avec fallback gracieux
@@ -812,14 +901,15 @@ export class BrandingService extends GenericService {
     // Step 5: Parallel AI generation of 4 optimized logos using JSON-to-SVG
     const startTime = Date.now();
 
-    // Create 4 promises for parallel logo generation with token optimization
+    // Create 3 promises for parallel logo generation with token optimization and user preferences
     const logoPromises = Array.from({ length: 3 }, (_, index) =>
       this.generateSingleLogoConcept(
         projectDescription,
         selectedColors,
         selectedTypography,
         project,
-        index
+        index,
+        preferences
       )
     );
 
