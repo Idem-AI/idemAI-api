@@ -5,26 +5,38 @@ import logger from "../config/logger";
 import JSZip from "jszip";
 import fsExtra from "fs-extra";
 import path from "path";
+import { storageService } from "./storage.service";
+import { v4 as uuidv4 } from "uuid";
 
 class ProjectService {
   private projectRepository: IRepository<ProjectModel>;
 
   constructor() {
-    this.projectRepository =
-      RepositoryFactory.getRepository<ProjectModel>("projects");
+    // Use repository with explicit paths
+    this.projectRepository = RepositoryFactory.getRepository<ProjectModel>();
   }
 
   async createUserProject(
     userId: string,
     projectData: Omit<ProjectModel, "id" | "createdAt" | "updatedAt" | "userId">
-  ): Promise<string> {
+  ): Promise<ProjectModel> {
     if (!userId) {
       logger.error("User ID is required to create a project.");
       throw new Error("User ID is required.");
     }
 
     try {
-      const projectToCreate: Omit<
+      // Generate the final project ID using UUID
+      const projectId = uuidv4();
+
+      logger.info(`Creating project for user ${userId}`, {
+        userId,
+        projectId,
+        hasLogoVariations:
+          !!projectData.analysisResultModel?.branding?.logo?.variations,
+      });
+
+      let projectToCreate: Omit<
         ProjectModel,
         "id" | "createdAt" | "updatedAt"
       > = {
@@ -32,17 +44,123 @@ class ProjectService {
         userId: userId,
       };
 
+      // Check if there are logo variations to upload
+      const logoVariations =
+        projectData.analysisResultModel?.branding?.logo?.variations;
+      const primaryLogo = projectData.analysisResultModel?.branding?.logo?.svg;
+      if (
+        logoVariations &&
+        (logoVariations.iconOnly?.lightBackground ||
+          logoVariations.iconOnly?.darkBackground ||
+          logoVariations.iconOnly?.monochrome ||
+          logoVariations.withText?.lightBackground ||
+          logoVariations.withText?.darkBackground ||
+          logoVariations.withText?.monochrome ||
+          primaryLogo)
+      ) {
+        logger.info(`Uploading logo variations to Firebase Storage`, {
+          userId,
+          projectId,
+          variations: Object.keys(logoVariations),
+        });
+
+        try {
+          // Upload logo variations to Firebase Storage
+          const iconSvg =
+            projectData.analysisResultModel?.branding?.logo?.iconSvg;
+          const uploadResults = await storageService.uploadLogoVariations(
+            primaryLogo,
+            iconSvg,
+            logoVariations,
+            userId,
+            projectId
+          );
+
+          // Replace SVG content with download URLs
+          const updatedVariations = {
+            withText: {
+              lightBackground:
+                uploadResults.withText?.lightBackground?.downloadURL,
+              darkBackground:
+                uploadResults.withText?.darkBackground?.downloadURL,
+              monochrome: uploadResults.withText?.monochrome?.downloadURL,
+            },
+            iconOnly: {
+              lightBackground:
+                uploadResults.iconOnly?.lightBackground?.downloadURL,
+              darkBackground:
+                uploadResults.iconOnly?.darkBackground?.downloadURL,
+              monochrome: uploadResults.iconOnly?.monochrome?.downloadURL,
+            },
+          };
+
+          // Update the project data with the URLs
+          projectToCreate = {
+            ...projectToCreate,
+            analysisResultModel: {
+              ...projectToCreate.analysisResultModel,
+              branding: {
+                ...projectToCreate.analysisResultModel?.branding,
+                logo: {
+                  ...projectToCreate.analysisResultModel?.branding?.logo,
+                  svg: uploadResults.primaryLogo!.downloadURL,
+                  iconSvg: uploadResults.iconSvg?.downloadURL,
+                  variations: updatedVariations,
+                },
+              },
+            },
+          };
+
+          logger.info(`Logo variations uploaded successfully`, {
+            userId,
+            projectId,
+            uploadedUrls: {
+              withText: updatedVariations.withText,
+              iconOnly: updatedVariations.iconOnly,
+            },
+          });
+        } catch (uploadError: any) {
+          logger.error(`Failed to upload logo variations`, {
+            userId,
+            projectId,
+            error: uploadError.message,
+            stack: uploadError.stack,
+          });
+          // Continue with project creation even if logo upload fails
+          logger.warn(
+            `Continuing project creation without uploaded logo variations`
+          );
+        }
+      } else {
+        logger.info(`No logo variations to upload for project`, {
+          userId,
+          projectId,
+        });
+      }
+
+      // Create the project in the database with the generated UUID as document ID
       const newProject = await this.projectRepository.create(
         projectToCreate,
-        userId
+        `users/${userId}/projects`,
+        projectId
       );
+
       if (!newProject || !newProject.id) {
         throw new Error("Project creation failed or project ID is missing.");
       }
-      logger.info(`Project added successfully, ID: ${newProject.id}`);
-      return newProject.id;
+
+      logger.info(`Project created successfully`, {
+        userId,
+        projectId: newProject.id,
+        hasUploadedLogos: !!(
+          logoVariations && Object.keys(logoVariations).length > 0
+        ),
+      });
+
+      return newProject;
     } catch (error: any) {
       logger.error(`Error creating project in service: ${error.message}`, {
+        userId,
         stack: error.stack,
         details: error,
       });
@@ -59,7 +177,9 @@ class ProjectService {
     }
 
     try {
-      const projects = await this.projectRepository.findAll(userId);
+      const projects = await this.projectRepository.findAll(
+        `users/${userId}/projects`
+      );
       logger.info(`Projects fetched for user ${userId}: ${projects.length}`);
       return projects;
     } catch (error: any) {
@@ -81,7 +201,10 @@ class ProjectService {
     }
 
     try {
-      const project = await this.projectRepository.findById(projectId, userId);
+      const project = await this.projectRepository.findById(
+        projectId,
+        `users/${userId}/projects`
+      );
       if (!project) {
         logger.info(
           `Project ${projectId} not found for user ${userId} via repository`
@@ -106,7 +229,10 @@ class ProjectService {
     }
 
     try {
-      const success = await this.projectRepository.delete(projectId, userId);
+      const success = await this.projectRepository.delete(
+        projectId,
+        `users/${userId}/projects`
+      );
       if (success) {
         logger.info(
           `Project ${projectId} deleted successfully for user ${userId} via repository`
@@ -141,7 +267,7 @@ class ProjectService {
       const updatedProject = await this.projectRepository.update(
         projectId,
         updatedData,
-        userId
+        `users/${userId}/projects`
       );
       if (updatedProject) {
         logger.info(

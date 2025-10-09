@@ -32,6 +32,7 @@ if (serviceAccountFromEnv.project_id && serviceAccountFromEnv.private_key) {
       serviceAccountFromEnv as admin.ServiceAccount
     ),
     projectId: process.env.FIREBASE_PROJECT_ID,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
   });
   console.log("Firebase Admin SDK initialized successfully.");
 } else {
@@ -46,47 +47,92 @@ import { diagramRoutes } from "./routes/diagram.routes";
 import { businessPlanRoutes } from "./routes/businessPlan.routes";
 import { deploymentRoutes } from "./routes/deployment.routes";
 import { developmentRoutes } from "./routes/development.routes";
+import { userRoutes } from "./routes/user.routes";
+import githubRoutes from "./routes/github.routes";
+import archetypeRoutes from "./routes/archetype.routes";
+import quotaRoutes from "./routes/quota.routes";
+import cacheRoutes from "./routes/cache.routes";
+import { PdfService } from "./services/pdf.service";
+import RedisConnection from "./config/redis.config";
+import policyRoutes from "./routes/policy.routes";
 
 const app: Express = express();
 
 // HTTP request logging middleware
 app.use(morgan("combined", { stream: loggerStream }));
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 app.use(cookieParser());
 
 app.use(express.json());
-const allowedOrigins = [
-  "http://localhost:4200",
-  "http://localhost:3001",
-  "http://localhost:5173",
-  "https://idem.africa",
-  "https://webgen.idem.africa",
-  "https://chart.idem.africa",
-];
+
+// Parse CORS allowed origins from environment variable
+const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
+  ? process.env.CORS_ALLOWED_ORIGINS.split(",").map((origin) => origin.trim())
+  : [];
+
+console.log(`CORS allowed origins: ${allowedOrigins.join(", ")}`);
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Si pas d'origin (requêtes same-origin comme Swagger UI), autoriser
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      // Autoriser les requêtes depuis le même serveur (pour Swagger UI)
+      if (origin.startsWith(`http://localhost:${port}`)) {
+        callback(null, true);
+        return;
+      }
+
+      // Vérifier si l'origin est dans la liste autorisée
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
+        console.warn(`CORS: Origin not allowed: ${origin}`);
         callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Cache-Control",
+      "Accept",
+      "Accept-Language",
+      "Accept-Encoding",
+      "Connection",
+      "User-Agent",
+      "Referer",
+      "Origin",
+      "X-Requested-With",
+    ],
+    exposedHeaders: [
+      "Content-Type",
+      "Cache-Control",
+      "Connection",
+      "X-Accel-Buffering",
+    ],
   })
 );
 
-app.use("/api/projects", projectRoutes);
-app.use("/api/project", brandingRoutes);
-app.use("/api/project", diagramRoutes);
-app.use("/api/project", businessPlanRoutes);
-app.use("/api/project", deploymentRoutes);
-app.use("/api/webcontainers", developmentRoutes);
-app.use("/api/auth", authRoutes);
-app.use("/api/prompt", promptRoutes);
+app.use("/projects", projectRoutes);
+app.use("/project", brandingRoutes);
+app.use("/project", diagramRoutes);
+app.use("/project", businessPlanRoutes);
+app.use("/project", deploymentRoutes);
+app.use("/project", developmentRoutes);
+app.use("/auth", authRoutes);
+app.use("/auth", userRoutes);
+app.use("/prompt", promptRoutes);
+app.use("/quota", quotaRoutes);
+app.use("/archetypes", archetypeRoutes);
+app.use("/github", githubRoutes);
+app.use("/cache", cacheRoutes);
+app.use("/project", policyRoutes);
 
 // Swagger setup
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
@@ -109,8 +155,49 @@ app.use((err: Error, req: Request, res: Response /*, next: NextFunction */) => {
   res.status(500).send("Something broke!");
 });
 
-app.listen(port, () => {
+const server = app.listen(port, async () => {
   console.log(`Server running on port ${port}`);
+
+  // Initialiser le PdfService au démarrage pour optimiser les performances
+  try {
+    await PdfService.initialize();
+    console.log("PdfService initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize PdfService:", error);
+  }
+
+  // Tester la connexion Redis au démarrage
+  try {
+    const redisConnected = await RedisConnection.testConnection();
+    if (redisConnected) {
+      console.log("Redis connection established successfully");
+    } else {
+      console.warn("Redis connection test failed - cache will be disabled");
+    }
+  } catch (error) {
+    console.error("Redis connection error:", error);
+  }
+});
+
+// Gestion propre de l'arrêt de l'application
+process.on("SIGTERM", async () => {
+  console.log("SIGTERM received, shutting down gracefully...");
+  await PdfService.closeBrowser();
+  await RedisConnection.disconnect();
+  server.close(() => {
+    console.log("Server closed");
+    process.exit(0);
+  });
+});
+
+process.on("SIGINT", async () => {
+  console.log("SIGINT received, shutting down gracefully...");
+  await PdfService.closeBrowser();
+  await RedisConnection.disconnect();
+  server.close(() => {
+    console.log("Server closed");
+    process.exit(0);
+  });
 });
 
 export { admin };

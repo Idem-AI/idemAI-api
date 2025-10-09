@@ -1,12 +1,15 @@
 import { Router } from "express";
 import {
   generateDiagramController,
+  generateDiagramStreamingController,
   getDiagramsByProjectController,
   getDiagramByIdController,
   updateDiagramController,
   deleteDiagramController,
 } from "../controllers/diagram.controller";
 import { authenticate } from "../services/auth.service"; // Updated import path
+import { checkQuota } from "../middleware/quota.middleware";
+import { checkPolicyAcceptance } from "../middleware/policyCheck.middleware";
 
 export const diagramRoutes = Router();
 
@@ -65,10 +68,54 @@ const resourceName = "diagrams";
  *       '500':
  *         description: Internal server error.
  */
-diagramRoutes.post(
+diagramRoutes.get(
   `/${resourceName}/generate/:projectId`,
   authenticate,
+  checkPolicyAcceptance,
+  checkQuota,
   generateDiagramController
+);
+
+// Generate a new diagram for a project with streaming updates
+/**
+ * @openapi
+ * /diagrams/generate-stream/{projectId}:
+ *   post:
+ *     tags:
+ *       - Diagrams
+ *     summary: Generate a new diagram for a project with streaming updates
+ *     description: Returns each step's result as soon as it's generated using Server-Sent Events
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the project for which to generate the diagram.
+ *     responses:
+ *       '200':
+ *         description: Stream of diagram generation steps and final result.
+ *         content:
+ *           text/event-stream:
+ *             schema:
+ *               type: object
+ *       '400':
+ *         description: Bad request.
+ *       '401':
+ *         description: Unauthorized.
+ *       '404':
+ *         description: Project not found.
+ *       '500':
+ *         description: Internal server error.
+ */
+diagramRoutes.get(
+  `/${resourceName}/generate-stream/:projectId`,
+  authenticate,
+  checkPolicyAcceptance,
+  checkQuota,
+  generateDiagramStreamingController
 );
 
 // Get all diagrams for a specific project

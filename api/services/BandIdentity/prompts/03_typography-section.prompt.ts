@@ -1,51 +1,46 @@
 export const TYPOGRAPHY_SECTION_PROMPT = `
-You are a senior typography designer specializing in digital brand systems. Create a comprehensive typography section following strict technical requirements.
+You are a senior brand typography designer. Generate a polished and professional typography section in clean HTML using only Tailwind CSS utility classes.
 
-STRICT OUTPUT REQUIREMENTS:
-1. Generate ONLY one <section> with this exact structure:
-<section id="typography" class="brand-section type-section">
-  <h2>Typography System</h2>
-  <div class="content">
-    <div class="font-group">
-      <h3>Primary Font</h3>
-      <div class="font-example">
-        <p class="font-name">[FONT_NAME]</p>
-        <p class="font-license">[LICENSE_INFO]</p>
-        <div class="font-samples">
-          <p class="headline-example">Headline</p>
-          <p class="body-example">Body text sample</p>
-        </div>
-        <p class="font-rationale">[RATIONALE]</p>
-      </div>
-    </div>
-    [REPEAT FOR SECONDARY FONT]
-  </div>
-</section>
+OBJECTIVE:
+Create a premium, modern, and accessible typography guidelines section, fully optimized to fit on a single A4 portrait page (210mm × 297mm). The design must be elegant, minimal, and suitable for direct export as PDF for brand guidelines.
 
+OUTPUT RULES:
+- HTML only, using Tailwind utility classes exclusively
+- No custom CSS, no JavaScript
+- For icons, use PrimeIcons classes (pi pi-icon-name) - PrimeIcons CSS is automatically available, do NOT import or use CDN
+- Output must be a single-line, minified HTML string
+- No HTML prefix or suffix (return only the <section>…</section>)
+- All content must fit visually and spatially within a single A4 portrait page
+- Ensure WCAG AA compliance (contrast, spacing, readability)
+- Avoid overflow, redundancy, or unnecessary text
 
+CONTENT REQUIREMENTS:
+- Section title: "Typography System"
+- Short introduction (clear, premium tone)
+- Primary Typeface: [Primary Font Name], with weights (Regular, Medium, Bold, Black)
+  - English sample: "The quick brown fox jumps over the lazy dog"
+  - Usage guidelines and technical notes
+- Secondary Typeface: [Secondary Font Name], with weights (Light, Regular, Medium)
+  - English sample sentence
+  - Usage guidelines and readability notes
+- Typography Scale: concise samples (H1 → H4, Body Large, Body Regular, Body Small, Caption)
 
-DESIGN RULES:
-- Max 2 font families (1 primary, 1 secondary)
-- Google Fonts preferred (indicate if self-hosted)
-- Include specific weights for each usage
-- Show real text examples (not "Lorem ipsum")
-- Remove all line breaks in HTML
-- Escape " with \\"
+VISUAL GUIDELINES:
+- Use card-based blocks with rounded-3xl, soft shadows, and light gray/white backgrounds
+- Subtle gradient backgrounds (white → gray-50 / slate-50)
+- Color-coded badges (purple for primary, blue for secondary, slate for scale)
+- Clean spacing (px-8, py-12, gap-6) while remaining within one page
+- Palette: gray, slate, blue, purple (premium and modern)
+- Keep hierarchy clear but let layout creativity flow — do not enforce rigid positioning
+- Icons: use PrimeIcons for visual elements (pi pi-icon-name classes)
 
-TECHNICAL SPECS:
-1. Web Font Requirements:
-   - Subset fonts if self-hosted
-   - Specify WOFF2 format
-   - Include fallback stack (e.g., sans-serif)
+PROJECT CONTEXT:
+- Replace [Primary Font Name] and [Secondary Font Name] with actual brand fonts
+- Font descriptions must reflect character and purpose aligned with brand values
 
-2. Accessibility:
-   - Minimum 16px body text
-   - Line height 1.5 for body
-   - WCAG AA contrast compliant
+IMPORTANT:
+- not add any "html" tag or prefix on output
 
-3. Usage Guidelines:
-   - Heading hierarchy (h1-h6 specs)
-   - Button/UI text sizing
-   - Responsive scaling rules
-
-CONTEXT:`;
+OUTPUT:
+Generate ONLY the final HTML code, minified and well-structured, ready for single-page A4 PDF export.
+`;

@@ -4,43 +4,113 @@ import {
   TemplateDeploymentModel,
   AiAssistantDeploymentModel,
   ExpertDeploymentModel,
-  GitRepository,
-  EnvironmentVariable,
   ChatMessage,
-  ArchitectureTemplate,
-  CloudComponentDetailed,
-  ArchitectureComponent,
   PipelineStep,
-  CostEstimation,
   CreateDeploymentPayload,
   DeploymentFormData,
   DeploymentValidators,
+  EnvironmentVariable,
 } from "../../models/deployment.model";
 import logger from "../../config/logger";
-import { PromptService, LLMProvider } from "../prompt.service";
+import {
+  PromptService,
+  LLMProvider,
+  AIChatMessage,
+  PromptConfig,
+} from "../prompt.service";
 import { GenericService } from "../common/generic.service";
-import { exec } from "child_process";
-import { promisify } from "util";
+import { spawn } from "child_process";
 import { ProjectModel } from "../../models/project.model";
 import { AI_CHAT_INITIAL_PROMPT } from "./prompts/ai-chat.prompt";
-import {
-  MAIN_TF_PROMPT,
-  VARIABLES_TF_PROMPT,
-  VARIABLES_MAP_TF_PROMPT,
-  TERRAFORM_SYSTEM_PROMPT,
-  TerraformFile,
-  TerraformFilesMap,
-} from "./prompts/terraform/index";
+import { MAIN_TF_PROMPT } from "./prompts/terraform/00_main.prompt";
+import * as crypto from "crypto";
 import * as fs from "fs-extra";
 import * as path from "path";
-import * as os from "os";
+import { tmpdir } from "os";
 
 export class DeploymentService extends GenericService {
-  private contextFilePath?: string;
+  private readonly ENCRYPTION_ALGORITHM = "aes-256-gcm";
+  private readonly ENCRYPTION_KEY: string;
 
   constructor(promptService: PromptService) {
     super(promptService);
+
+    // Get encryption key from environment variable or generate a default one
+    this.ENCRYPTION_KEY =
+      process.env.SENSITIVE_VARS_ENCRYPTION_KEY || this.generateDefaultKey();
+
+    if (!process.env.SENSITIVE_VARS_ENCRYPTION_KEY) {
+      logger.warn(
+        "SENSITIVE_VARS_ENCRYPTION_KEY not set in environment. Using default key (not recommended for production)."
+      );
+    }
+
     logger.info("DeploymentService initialized.");
+  }
+
+  /**
+   * Generate a default encryption key (for development only)
+   */
+  private generateDefaultKey(): string {
+    return crypto
+      .scryptSync("idem-api-default-key", "salt", 32)
+      .toString("hex");
+  }
+
+  private encryptValue(value: string): string {
+    try {
+      const key = Buffer.from(this.ENCRYPTION_KEY, "hex");
+      const iv = crypto.randomBytes(16);
+      const cipher = crypto.createCipheriv(this.ENCRYPTION_ALGORITHM, key, iv);
+      cipher.setAAD(Buffer.from("idem-deployment-vars"));
+
+      let encrypted = cipher.update(value, "utf8", "hex");
+      encrypted += cipher.final("hex");
+
+      const authTag = cipher.getAuthTag();
+
+      // Combine IV, auth tag, and encrypted data
+      const result =
+        iv.toString("hex") + ":" + authTag.toString("hex") + ":" + encrypted;
+
+      logger.info("Successfully encrypted sensitive value");
+      return result;
+    } catch (error) {
+      logger.error("Error encrypting sensitive value:", error);
+      throw new Error("Failed to encrypt sensitive value");
+    }
+  }
+
+  private decryptValue(encryptedValue: string): string {
+    try {
+      const key = Buffer.from(this.ENCRYPTION_KEY, "hex");
+      const parts = encryptedValue.split(":");
+
+      if (parts.length !== 3) {
+        throw new Error("Invalid encrypted value format");
+      }
+
+      const iv = Buffer.from(parts[0], "hex");
+      const authTag = Buffer.from(parts[1], "hex");
+      const encrypted = parts[2];
+
+      const decipher = crypto.createDecipheriv(
+        this.ENCRYPTION_ALGORITHM,
+        key,
+        iv
+      );
+      decipher.setAAD(Buffer.from("idem-deployment-vars"));
+      decipher.setAuthTag(authTag);
+
+      let decrypted = decipher.update(encrypted, "hex", "utf8");
+      decrypted += decipher.final("utf8");
+
+      logger.info("Successfully decrypted sensitive value");
+      return decrypted;
+    } catch (error) {
+      logger.error("Error decrypting sensitive value:", error);
+      throw new Error("Failed to decrypt sensitive value");
+    }
   }
 
   async createDeployment(
@@ -49,17 +119,18 @@ export class DeploymentService extends GenericService {
     payload: CreateDeploymentPayload
   ): Promise<DeploymentModel> {
     logger.info(
-      `createDeployment called for userId: ${userId}, projectId: ${projectId}, name: ${payload.name}`
+      `createDeployment called for userId: ${userId}, projectId: ${projectId}`
     );
 
     try {
+      console.log("projectId", projectId);
       const project = await this.getProject(projectId, userId);
-      if (!project) {
+      if (project == null) {
         throw new Error("Project not found");
       }
-      // Validate the payload
+      console.log("+++project", project);
       const formData: DeploymentFormData = {
-        mode: "beginner", // Default mode, can be overridden
+        mode: "beginner",
         name: payload.name,
         environment: payload.environment,
         repoUrl: payload.gitRepository?.url,
@@ -76,7 +147,6 @@ export class DeploymentService extends GenericService {
         .toString(36)
         .substr(2, 9)}`;
 
-      // Base deployment properties
       const baseDeployment = {
         id: deploymentId,
         projectId,
@@ -121,7 +191,7 @@ export class DeploymentService extends GenericService {
             chatMessages: project.activeChatMessages,
             aiGeneratedArchitecture: !!payload.aiGeneratedConfig,
             aiRecommendations: [],
-            generatedComponents: payload.generatedComponents!,
+            architectureComponents: payload.generatedComponents!,
           };
 
           newDeployment = aiDeployment;
@@ -135,17 +205,6 @@ export class DeploymentService extends GenericService {
             architectureComponents: payload.architectureComponents!,
             customInfrastructureCode: false,
           };
-
-          // Add custom architecture components if specified
-          if (payload.customArchitecture?.components) {
-            expertDeployment.architectureComponents =
-              payload.customArchitecture.components.map((comp) => ({
-                ...this.getDefaultCloudComponent(),
-                instanceId: comp.instanceId,
-                type: comp.type,
-                configuration: comp.config,
-              }));
-          }
 
           newDeployment = expertDeployment;
           break;
@@ -170,7 +229,7 @@ export class DeploymentService extends GenericService {
           deployments: [...(project.deployments || []), newDeployment],
           ...(mode === "ai-assistant" ? { activeChatMessages: [] } : {}),
         },
-        userId
+        `users/${userId}/projects`
       );
 
       if (!updatedProject) {
@@ -183,17 +242,21 @@ export class DeploymentService extends GenericService {
 
       const generatedDeployment = await this.generateDeployment(
         userId,
-        projectId,
-        newDeployment.id
+        updatedProject,
+        newDeployment
       );
 
       logger.info(
-        `Deployment generated successfully - UserId: ${userId}, ProjectId: ${projectId}, DeploymentId: ${generatedDeployment.id}`
+        `Deployment generated successfully - UserId: ${userId}, ProjectId: ${updatedProject.id}, DeploymentId: ${generatedDeployment.id}`
       );
-
-      // start pipeline
-      await this.startDeploymentPipeline(userId, generatedDeployment.id);
-
+      await this.projectRepository.update(
+        projectId,
+        {
+          deployments: [...(project.deployments || []), generatedDeployment],
+          ...(mode === "ai-assistant" ? { activeChatMessages: [] } : {}),
+        },
+        `users/${userId}/projects`
+      );
       return generatedDeployment;
     } catch (error: any) {
       logger.error(
@@ -204,75 +267,531 @@ export class DeploymentService extends GenericService {
     }
   }
 
-  // Legacy method for backward compatibility
-  async generateDeployment(
-    userId: string,
-    projectId: string,
-    deploymentId: string
-  ): Promise<DeploymentModel> {
+  async executeDeployment(userId: string, deploymentId: string): Promise<void> {
     logger.info(
-      `generateDeployment called for userId: ${userId}, projectId: ${projectId}`
+      `executeDeployment called for userId: ${userId}, deploymentId: ${deploymentId}`
     );
 
     try {
-      // Get project information
-      const project = await this.getProject(projectId, userId);
-      if (!project) {
-        throw new Error("Project not found");
-      }
-
-      // Create a basic deployment configuration
-      const deployment = project.deployments.find(
-        (deployment) => deployment.id === deploymentId
-      );
+      // Retrieve deployment
+      const deployment = await this.getDeploymentById(userId, deploymentId);
       if (!deployment) {
         throw new Error("Deployment not found");
       }
 
-      // Generate Terraform files based on the deployment configuration
-      const generatedFiles = await this.generateTerraformFiles(
-        deployment,
-        userId
+      // Mark deployment as deploying
+      await this.updateDeployment(userId, deploymentId, {
+        status: "deploying",
+      });
+
+      logger.info(`Executing Docker command for deployment: ${deployment.id}`);
+
+      const deploymentExecutionCommand = `
+      docker run --rm \
+      -v $(pwd):/deploy \
+      -e CLOUD_PROVIDER=aws \
+      -e TF_BACKEND_BUCKET=idem-tf-state \
+      -e TF_BACKEND_KEY=project-x/terraform.tfstate \
+      -e TF_LOCK_TABLE=terraform-locks \
+      -e TF_REGION=us-east-1 \
+      -e TF_FIRST_RUN=true \
+      -e TEMPLATE_URL="https://github.com/Idem-IA/ecs_aws_template.git" \
+      ghcr.io/idem-ia/idem-worker:1.3
+      `;
+
+      // Compute the temp folder path used during generation for this deployment (if any)
+      const tempDir = path.join(tmpdir(), "idem-deployments", deployment.id);
+
+      // Ensure temporary directory exists
+      await fs.ensureDir(tempDir);
+
+      // Create terraform.tfvars file with sensitive variables injected
+      if (deployment.generatedTerraformTfvarsFileContent) {
+        // Inject sensitive variables into the tfvars content
+        let tfvarsContent = this.injectSensitiveVariables(
+          deployment.generatedTerraformTfvarsFileContent,
+          deployment
+        );
+
+        // Strip markdown fences if present
+        const trimmed = tfvarsContent.trim();
+        if (trimmed.startsWith("```")) {
+          tfvarsContent = trimmed.replace(
+            /^```(?:terraform\.tfvars)?\s*\n?/,
+            ""
+          );
+          tfvarsContent = tfvarsContent.replace(/\n?```\s*$/, "");
+        }
+
+        // Write terraform.tfvars file to temporary directory
+        const tfvarsPath = path.join(tempDir, "terraform.tfvars");
+        await fs.writeFile(tfvarsPath, tfvarsContent, "utf8");
+
+        logger.info(
+          `Created terraform.tfvars file with sensitive variables at: ${tfvarsPath}`,
+          { deploymentId: deployment.id }
+        );
+      }
+
+      // Log the full command being executed
+      logger.info(
+        `Executing Docker command: ${deploymentExecutionCommand.trim()}`,
+        { deploymentId: deployment.id, tempDir }
       );
 
-      if (generatedFiles && generatedFiles.length > 0) {
-        // Convert array of TerraformFile objects to the expected format in DeploymentModel
-        const terraformFilesMap: TerraformFilesMap = {
-          main: "",
-          variables: "",
-          variablesMap: "",
-        };
+      try {
+        const child = spawn(deploymentExecutionCommand, {
+          shell: true,
+          env: {
+            ...process.env,
+            DOCKER_BUILDKIT: "0",
+            TF_LOG: "INFO",
+            GIT_TRACE: "1",
+            VERBOSE: "1",
+            DEBUG: "1",
+          },
+          stdio: ["pipe", "pipe", "pipe"],
+        });
 
-        // Map the array items to the expected object structure
-        generatedFiles.forEach((file) => {
-          if (file.name === "main.tf") {
-            terraformFilesMap.main = file.content;
-          } else if (file.name === "variables.tf") {
-            terraformFilesMap.variables = file.content;
-          } else if (file.name === "variables.map.tf") {
-            terraformFilesMap.variablesMap = file.content;
+        // Capture and log ALL output with timestamps
+        child.stdout.on("data", (data: Buffer) => {
+          const msg = data.toString();
+          const timestamp = new Date().toISOString();
+          try {
+            process.stdout.write(`[${timestamp}] ${msg}`);
+          } catch {}
+          const lines = msg
+            .split("\n")
+            .filter((line) => line.trim().length > 0);
+          lines.forEach((line) => {
+            logger.info(`[DOCKER-STDOUT] ${line.trim()}`);
+          });
+        });
+
+        child.stderr.on("data", (data: Buffer) => {
+          const msg = data.toString();
+          const timestamp = new Date().toISOString();
+          try {
+            process.stderr.write(`[${timestamp}] ${msg}`);
+          } catch {}
+          const lines = msg
+            .split("\n")
+            .filter((line) => line.trim().length > 0);
+          lines.forEach((line) => {
+            logger.warn(`[DOCKER-STDERR] ${line.trim()}`);
+          });
+        });
+
+        logger.info(`Docker process started with PID: ${child.pid}`);
+
+        const exitCode: number = await new Promise((resolve, reject) => {
+          child.on("error", (err) => {
+            logger.error(`Docker process error: ${err.message}`, {
+              error: err,
+            });
+            reject(err);
+          });
+          child.on("close", (code) => {
+            logger.info(`Docker process completed with exit code: ${code}`);
+            resolve(code ?? 0);
+          });
+        });
+
+        if (exitCode !== 0) {
+          throw new Error(`Docker process exited with code ${exitCode}`);
+        }
+
+        // Success: mark deployment as deployed
+        await this.updateDeployment(userId, deploymentId, {
+          status: "deployed",
+          deployedAt: new Date(),
+        });
+
+        logger.info(
+          `Deployment executed successfully - UserId: ${userId}, DeploymentId: ${deployment.id}`
+        );
+      } finally {
+        try {
+          // await fs.remove(tempDir);
+          logger.info(`Temporary deployment folder deleted: ${tempDir}`, {
+            deploymentId: deployment.id,
+          });
+        } catch (cleanupErr: any) {
+          logger.warn(
+            `Failed to delete temporary deployment folder ${tempDir}: ${
+              cleanupErr?.message || cleanupErr
+            }`,
+            { deploymentId: deployment.id }
+          );
+        }
+      }
+    } catch (error: any) {
+      // Failure: mark deployment as failed
+      try {
+        await this.updateDeployment(userId, deploymentId, { status: "failed" });
+      } catch {}
+
+      logger.error(
+        `Error executing deployment for userId: ${userId}, deploymentId: ${deploymentId}. Error: ${error.message}`,
+        { error: error.stack }
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Execute deployment with streaming logs via SSE callback
+   */
+  async executeDeploymentWithStreaming(
+    userId: string,
+    deploymentId: string,
+    streamCallback?: (logData: {
+      type: "stdout" | "stderr" | "info" | "error" | "status";
+      message: string;
+      timestamp: string;
+      step?: string;
+    }) => Promise<void>
+  ): Promise<void> {
+    logger.info(
+      `executeDeploymentWithStreaming called for userId: ${userId}, deploymentId: ${deploymentId}`
+    );
+
+    const sendLog = async (
+      type: "stdout" | "stderr" | "info" | "error" | "status",
+      message: string,
+      step?: string
+    ) => {
+      const logData = {
+        type,
+        message,
+        timestamp: new Date().toISOString(),
+        ...(step && { step }),
+      };
+
+      if (streamCallback) {
+        await streamCallback(logData);
+      }
+    };
+
+    try {
+      await sendLog(
+        "info",
+        "Starting deployment execution...",
+        "initialization"
+      );
+
+      // Retrieve deployment
+      const deployment = await this.getDeploymentById(userId, deploymentId);
+      if (!deployment) {
+        await sendLog("error", "Deployment not found");
+        throw new Error("Deployment not found");
+      }
+
+      await sendLog(
+        "info",
+        `Found deployment: ${deployment.name}`,
+        "validation"
+      );
+
+      // Mark deployment as deploying
+      await this.updateDeployment(userId, deploymentId, {
+        status: "deploying",
+      });
+
+      await sendLog(
+        "status",
+        'Deployment status updated to "deploying"',
+        "status-update"
+      );
+      // Compute the temp folder path used during generation for this deployment (if any)
+      const tempDir = path.join(tmpdir(), "idem-deployments", deployment.id);
+
+      console.log("tempDir", tempDir);
+
+      // Ensure temporary directory exists
+      await fs.ensureDir(tempDir);
+      await sendLog(
+        "info",
+        `Created temporary directory: ${tempDir}`,
+        "docker-setup"
+      );
+
+      // Create terraform.tfvars file in temporary directory
+      if (deployment.generatedTerraformTfvarsFileContent) {
+        await sendLog(
+          "info",
+          "Processing terraform.tfvars file content...",
+          "terraform-setup"
+        );
+
+        // Inject sensitive variables into the tfvars content
+        let tfvarsContent = this.injectSensitiveVariables(
+          deployment.generatedTerraformTfvarsFileContent,
+          deployment
+        );
+
+        // Strip markdown fences if present, e.g., ```terraform.tfvars ... ```
+        const trimmed = tfvarsContent.trim();
+        if (trimmed.startsWith("```")) {
+          // Remove leading fence with optional language hint
+          tfvarsContent = trimmed.replace(
+            /^```(?:terraform\.tfvars)?\s*\n?/,
+            ""
+          );
+          // Remove trailing fence
+          tfvarsContent = tfvarsContent.replace(/\n?```\s*$/, "");
+        }
+
+        // Write terraform.tfvars file to temporary directory
+        const tfvarsPath = path.join(tempDir, "terraform.tfvars");
+        await fs.writeFile(tfvarsPath, tfvarsContent, "utf8");
+
+        await sendLog(
+          "info",
+          `Created terraform.tfvars file at: ${tfvarsPath}`,
+          "terraform-setup"
+        );
+      } else {
+        await sendLog(
+          "info",
+          "No terraform.tfvars content found in deployment",
+          "terraform-setup"
+        );
+      }
+
+      await sendLog(
+        "info",
+        `Preparing Docker command for deployment: ${deployment.id}`,
+        "docker-setup"
+      );
+
+      const deploymentExecutionCommand = `
+      docker run --rm \
+      -v "${tempDir}":/deploy \
+      -e CLOUD_PROVIDER=aws \
+      -e TF_BACKEND_BUCKET=idem-tf-state \
+      -e TF_BACKEND_KEY=project-x/terraform.tfstate \
+      -e TF_LOCK_TABLE=terraform-locks \
+      -e TF_REGION=us-east-1 \
+      -e TF_FIRST_RUN=true \
+      -e TEMPLATE_URL="https://github.com/Idem-IA/ecs_aws_template.git" \
+      ghcr.io/idem-ia/idem-worker:1.6
+      `;
+
+      await sendLog(
+        "info",
+        `Docker command prepared. Temp directory: ${tempDir}`,
+        "docker-setup"
+      );
+      await sendLog(
+        "info",
+        `Executing: ${deploymentExecutionCommand.trim()}`,
+        "docker-execution"
+      );
+
+      logger.info(
+        `Executing Docker command: ${deploymentExecutionCommand.trim()}`,
+        { deploymentId: deployment.id, tempDir }
+      );
+
+      try {
+        const child = spawn(deploymentExecutionCommand, {
+          shell: true,
+          cwd: tempDir, // Run from temporary directory
+          env: {
+            ...process.env,
+            DOCKER_BUILDKIT: "0",
+            TF_LOG: "INFO",
+            GIT_TRACE: "1",
+            VERBOSE: "1",
+            DEBUG: "1",
+          },
+          stdio: ["pipe", "pipe", "pipe"],
+        });
+
+        await sendLog(
+          "info",
+          `Docker process started with PID: ${child.pid}`,
+          "docker-execution"
+        );
+
+        // Capture and stream ALL output with timestamps
+        child.stdout.on("data", async (data: Buffer) => {
+          const msg = data.toString();
+          const timestamp = new Date().toISOString();
+          try {
+            process.stdout.write(`[${timestamp}] ${msg}`);
+          } catch {}
+          const lines = msg
+            .split("\n")
+            .filter((line) => line.trim().length > 0);
+
+          for (const line of lines) {
+            logger.info(`[DOCKER-STDOUT] ${line.trim()}`);
+            await sendLog("stdout", line.trim(), "docker-execution");
           }
         });
 
-        deployment.generatedTerraformFiles = terraformFilesMap;
+        child.stderr.on("data", async (data: Buffer) => {
+          const msg = data.toString();
+          const timestamp = new Date().toISOString();
+          try {
+            process.stderr.write(`[${timestamp}] ${msg}`);
+          } catch {}
+          const lines = msg
+            .split("\n")
+            .filter((line) => line.trim().length > 0);
+
+          for (const line of lines) {
+            logger.warn(`[DOCKER-STDERR] ${line.trim()}`);
+            await sendLog("stderr", line.trim(), "docker-execution");
+          }
+        });
+
+        logger.info(`Docker process started with PID: ${child.pid}`);
+
+        const exitCode: number = await new Promise((resolve, reject) => {
+          child.on("error", async (err) => {
+            logger.error(`Docker process error: ${err.message}`, {
+              error: err,
+            });
+            await sendLog(
+              "error",
+              `Docker process error: ${err.message}`,
+              "docker-execution"
+            );
+            reject(err);
+          });
+          child.on("close", async (code) => {
+            logger.info(`Docker process completed with exit code: ${code}`);
+            await sendLog(
+              "info",
+              `Docker process completed with exit code: ${code}`,
+              "docker-execution"
+            );
+            resolve(code ?? 0);
+          });
+        });
+
+        if (exitCode !== 0) {
+          await sendLog(
+            "error",
+            `Docker process exited with code ${exitCode}`,
+            "docker-execution"
+          );
+          throw new Error(`Docker process exited with code ${exitCode}`);
+        }
+
+        await sendLog(
+          "info",
+          "Docker execution completed successfully",
+          "docker-execution"
+        );
+        await sendLog(
+          "status",
+          'Updating deployment status to "deployed"',
+          "status-update"
+        );
+
+        // Success: mark deployment as deployed
+        await this.updateDeployment(userId, deploymentId, {
+          status: "deployed",
+          deployedAt: new Date(),
+        });
+
+        await sendLog(
+          "status",
+          "Deployment completed successfully!",
+          "completion"
+        );
+        logger.info(
+          `Deployment executed successfully - UserId: ${userId}, DeploymentId: ${deployment.id}`
+        );
+      } finally {
+        try {
+          await sendLog(
+            "info",
+            `Cleaning up temporary folder: ${tempDir}`,
+            "cleanup"
+          );
+          // await fs.remove(tempDir);
+          logger.info(`Temporary deployment folder deleted: ${tempDir}`, {
+            deploymentId: deployment.id,
+          });
+          await sendLog("info", "Cleanup completed", "cleanup");
+        } catch (cleanupErr: any) {
+          const cleanupMessage = `Failed to delete temporary deployment folder ${tempDir}: ${
+            cleanupErr?.message || cleanupErr
+          }`;
+          logger.warn(cleanupMessage, { deploymentId: deployment.id });
+          await sendLog("error", cleanupMessage, "cleanup");
+        }
+      }
+    } catch (error: any) {
+      // Failure: mark deployment as failed
+      try {
+        await this.updateDeployment(userId, deploymentId, { status: "failed" });
+        await sendLog(
+          "status",
+          'Deployment status updated to "failed"',
+          "status-update"
+        );
+      } catch {}
+
+      const errorMessage = `Error executing deployment: ${error.message}`;
+      await sendLog("error", errorMessage, "error");
+      logger.error(
+        `Error executing deployment for userId: ${userId}, deploymentId: ${deploymentId}. Error: ${error.message}`,
+        { error: error.stack }
+      );
+      throw error;
+    }
+  }
+
+  // Legacy method for backward compatibility
+  async generateDeployment(
+    userId: string,
+    project: ProjectModel,
+    deployment: DeploymentModel
+  ): Promise<DeploymentModel> {
+    logger.info(
+      `generateDeployment called for userId: ${userId}, projectId: ${project.id}`
+    );
+
+    try {
+      const generatedFile = await this.generateTerraformTfvarsFile(
+        deployment,
+        project,
+        userId
+      );
+      if (!generatedFile) {
+        throw new Error("Terraform tfvars file not generated");
       }
 
-      // Add the deployment to the project
-      if (!project.deployments) {
-        project.deployments = [];
-      }
-      project.deployments.push(deployment);
+      deployment.generatedTerraformTfvarsFileContent = generatedFile;
+      // Write the generated tfvars to a temp folder for this deployment
+      const tempDir = path.join(tmpdir(), "idem-deployments", deployment.id);
+      await fs.ensureDir(tempDir);
+      const tfvarsPath = path.join(tempDir, "terraform.tfvars");
+      await fs.writeFile(tfvarsPath, generatedFile, "utf8");
+      logger.info(`Terraform tfvars saved to temporary folder: ${tfvarsPath}`, {
+        deploymentId: deployment.id,
+      });
 
       // Update the project with the new deployment
-      await this.projectRepository.update(projectId, project, userId);
+      await this.projectRepository.update(
+        project.id!,
+        project,
+        `users/${userId}/projects`
+      );
 
       logger.info(
-        `Successfully generated deployment for userId: ${userId}, projectId: ${projectId}, deploymentId: ${deploymentId}`
+        `Successfully generated deployment for userId: ${userId}, projectId: ${project.id}, deploymentId: ${deployment.id}`
       );
       return deployment;
     } catch (error: any) {
       logger.error(
-        `Error generating deployment for userId: ${userId}, projectId: ${projectId}. Error: ${error.message}`,
+        `Error generating deployment for userId: ${userId}, projectId: ${project.id}. Error: ${error.message}`,
         { error: error.stack }
       );
       throw error;
@@ -284,265 +803,220 @@ export class DeploymentService extends GenericService {
    * @param deployment Deployment model
    * @returns Array of file contents with name and content
    */
-  private async generateTerraformFiles(
+  private async generateTerraformTfvarsFile(
     deployment: DeploymentModel,
-    userId: string
-  ): Promise<TerraformFile[]> {
+    Project: ProjectModel,
+    userId: string,
+    customValues: Record<string, any> = {}
+  ): Promise<string> {
     logger.info(
-      `Generating Terraform files for deploymentId: ${deployment.id}`
+      `Generating Terraform tfvars file using AI for deployment: ${deployment.id}`
     );
 
-    // Temporary file path for context accumulation
-    this.contextFilePath = undefined;
-
     try {
-      const project = await this.getProject(deployment.projectId, userId);
+      // Import ArchetypeService to get all archetypes
+      const { ArchetypeService } = await import("../archetype.service");
+      const archetypeService = new ArchetypeService();
 
-      if (!project) {
-        logger.error(`Project ${deployment.projectId} not found `);
-        return [];
-      }
-
-      // Initialize temporary file for context
-      this.contextFilePath = path.join(
-        os.tmpdir(),
-        `terraform_context_${deployment.id}_${Date.now()}.txt`
-      );
-      logger.debug(`Created temporary context file: ${this.contextFilePath}`);
-
-      // Initialize context with initial data
-      const contextData = this.prepareContextData(deployment, project);
-      await fs.writeFile(
-        this.contextFilePath,
-        JSON.stringify(contextData, null, 2),
-        "utf-8"
-      );
-
-      // Generate Terraform files sequentially
-      const terraformFiles: TerraformFile[] = [];
-
-      // Generate main.tf
-      logger.info(`Generating main.tf for deployment ${deployment.id}`);
-      const mainTfContent = await this.generateTerraformFileContent(
-        MAIN_TF_PROMPT,
-        "main.tf",
-        contextData
-      );
-      if (mainTfContent) {
-        terraformFiles.push({ name: "main.tf", content: mainTfContent });
-        await this.addToContextFile("Generated main.tf:", mainTfContent);
-      }
-
-      // Generate variables.tf
-      logger.info(`Generating variables.tf for deployment ${deployment.id}`);
-      const variablesTfContent = await this.generateTerraformFileContent(
-        VARIABLES_TF_PROMPT,
-        "variables.tf",
-        contextData
-      );
-      if (variablesTfContent) {
-        terraformFiles.push({
-          name: "variables.tf",
-          content: variablesTfContent,
-        });
-        await this.addToContextFile(
-          "Generated variables.tf:",
-          variablesTfContent
-        );
-      }
-
-      // Generate variables.map.tf (a map of all environment variables)
-      logger.info(
-        `Generating variables.map.tf for deployment ${deployment.id}`
-      );
-
-      const variablesMapContent = await this.generateTerraformFileContent(
-        VARIABLES_MAP_TF_PROMPT,
-        "variables.map.tf",
-        contextData
-      );
-
-      if (variablesMapContent) {
-        terraformFiles.push({
-          name: "variables.map.tf",
-          content: variablesMapContent,
-        });
-        await this.addToContextFile(
-          "Generated variables.map.tf:",
-          variablesMapContent
-        );
-      }
-
-      // Clean up temp file
-      try {
-        await fs.unlink(this.contextFilePath);
-        logger.debug(`Removed temporary context file: ${this.contextFilePath}`);
-        this.contextFilePath = undefined;
-      } catch (cleanupError) {
-        logger.warn(`Failed to clean up temporary file: ${cleanupError}`);
-      }
+      // Get all available archetypes to include in the AI prompt
+      const allArchetypes = await archetypeService.getArchetypes();
 
       logger.info(
-        `Generated ${terraformFiles.length} Terraform files for deploymentId: ${deployment.id}`
-      );
-
-      return terraformFiles;
-    } catch (error) {
-      logger.error(
-        `Error in Terraform file generation process for deployment ${deployment.id}:`,
-        error
-      );
-      // Clean up temp file in case of error
-      if (this.contextFilePath) {
-        try {
-          await fs.unlink(this.contextFilePath);
-          logger.debug(
-            `Cleaned up temp file after error: ${this.contextFilePath}`
-          );
-        } catch (cleanupError) {
-          logger.warn(`Failed to clean up temporary file: ${cleanupError}`);
+        `Retrieved ${allArchetypes.length} archetypes for AI context`,
+        {
+          deploymentId: deployment.id,
+          archetypeCount: allArchetypes.length,
         }
-        this.contextFilePath = undefined;
-      }
-      return [];
-    }
-  }
-
-  /**
-   * Prepare context data for Terraform generation
-   * @param deployment The deployment model
-   * @param project The project model
-   * @returns Context data object
-   */
-  private prepareContextData(
-    deployment: DeploymentModel,
-    project: ProjectModel
-  ): any {
-    // Prepare the components for the prompt
-    let architectureComponents: any[] = [];
-
-    // Extract components based on deployment mode
-    if (
-      deployment.mode === "expert" &&
-      "architectureComponents" in deployment
-    ) {
-      architectureComponents = (deployment as any).architectureComponents || [];
-    } else if (
-      deployment.mode === "ai-assistant" &&
-      "generatedComponents" in deployment
-    ) {
-      architectureComponents = (deployment as any).generatedComponents || [];
-    }
-
-    return {
-      projectInfo: {
-        name: project.name,
-        description: project.description,
-        type: project.type,
-      },
-      deploymentInfo: {
-        id: deployment.id,
-        name: deployment.name,
-        mode: deployment.mode,
-        environment: deployment.environment,
-        status: deployment.status,
-      },
-      architectureComponents,
-      environmentVariables: deployment.environmentVariables || [],
-      gitRepository: deployment.gitRepository || {},
-    };
-  }
-
-  /**
-   * Adds content to the context file for Terraform generation
-   * @param header Header text to add
-   * @param content Content to add
-   */
-  private async addToContextFile(
-    header: string,
-    content: string
-  ): Promise<void> {
-    if (!this.contextFilePath) {
-      logger.warn("Context file path not initialized for adding content");
-      return;
-    }
-
-    try {
-      await fs.appendFile(
-        this.contextFilePath,
-        `\n\n${header}\n${content}\n\n---\n`,
-        "utf-8"
       );
-      logger.debug(`Added content to context file: ${this.contextFilePath}`);
-    } catch (error) {
-      logger.error(`Error adding to context file: ${error}`);
-    }
-  }
 
-  /**
-   * Generates content for a specific Terraform file
-   * @param promptConstant The prompt template for the file type
-   * @param stepName Name of the file being generated
-   * @param contextData Context data for generation
-   * @returns Generated file content
-   */
-  private async generateTerraformFileContent(
-    promptConstant: string,
-    stepName: string,
-    contextData: any
-  ): Promise<string> {
-    logger.info(`Generating Terraform content for ${stepName}`);
-
-    const userPrompt =
-      `You are generating a specific Terraform file: ${stepName}\n\n` +
-      promptConstant +
-      "\n\n" +
-      "Use the project information and other details to create appropriate, well-commented Terraform code.";
-
-    try {
-      const response = await this.promptService.runPrompt({
-        provider: LLMProvider.GEMINI,
-        modelName: "gemini-2.0-flash",
-        messages: [
-          { role: "system", content: TERRAFORM_SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
-        ],
-        file: this.contextFilePath
-          ? { localPath: this.contextFilePath, mimeType: "text/plain" }
-          : undefined,
-        llmOptions: {
-          temperature: 0.2,
-          maxOutputTokens: 4096,
+      // Prepare deployment context for AI
+      const deploymentContext = {
+        projectName: Project.name,
+        deployment: {
+          name: deployment.name,
+          environment: deployment.environment,
+          // Include non-secret environment variables only
+          environmentVariables:
+            deployment.environmentVariables?.filter((env) => !env.isSecret) ||
+            [],
         },
-      });
+        architectureTemplate: deployment.architectureComponents,
+        customValues,
+      };
 
-      if (!response) {
-        logger.warn(`No response from LLM for ${stepName} generation`);
+      // Format archetypes for AI prompt
+      const archetypesForPrompt = allArchetypes.map((archetype) => ({
+        archetype_id: archetype.id,
+        name: archetype.name,
+        description: archetype.description,
+        provider: archetype.provider,
+        category: archetype.category,
+        tags: archetype.tags,
+        terraformVariables: archetype.terraformVariables.map((variable) => ({
+          name: variable.name,
+          type: variable.type,
+          description: variable.description,
+          default: variable.default,
+          required: variable.required,
+          sensitive: variable.sensitive,
+          allowed_values: variable.allowed_values,
+          validation: variable.validation,
+        })),
+        defaultValues: archetype.defaultValues,
+      }));
+
+      // Build the AI prompt with system prompt and context
+      const systemPrompt = MAIN_TF_PROMPT;
+      const userPrompt = `
+Please generate a terraform.tfvars file for the following deployment:
+
+**Deployment Information:**
+${JSON.stringify(deploymentContext, null, 2)}
+
+**Available Archetypes:**
+${JSON.stringify(archetypesForPrompt, null, 2)}
+
+**Instructions:**
+1. Analyze the deployment requirements and architecture template
+2. Select the most appropriate archetype from the available list
+3. Generate a complete terraform.tfvars file based on the selected archetype
+4. Include all required variables with appropriate values
+5. Use deployment-specific information (name, environment, etc.) in the variable values
+6. Include environment variables as terraform variables where appropriate
+7. Follow the archetype's variable definitions strictly
+
+Please provide only the terraform.tfvars file content as output.`;
+
+      // Use AI to generate the tfvars content
+      const promptConfig: PromptConfig = {
+        provider: LLMProvider.GEMINI,
+        modelName: "gemini-2.5-flash",
+        llmOptions: {
+          temperature: 0.3,
+          maxOutputTokens: 4000,
+        },
+        userId,
+        promptType: "terraform_tfvars_generation",
+      };
+
+      const messages: AIChatMessage[] = [
+        {
+          role: "system",
+          content: systemPrompt,
+        },
+        {
+          role: "user",
+          content: userPrompt,
+        },
+      ];
+
+      const aiResponse = await this.promptService.runPrompt(
+        promptConfig,
+        messages
+      );
+
+      if (!aiResponse || aiResponse.trim().length === 0) {
+        logger.error(
+          `AI failed to generate tfvars content for deployment ${deployment.id}`
+        );
         return "";
       }
 
-      // Clean response - extract code from code blocks if present
-      let fileContent = response;
-
-      // Look for HCL/Terraform code blocks
-      const codeBlockRegex = /```(?:hcl|terraform)?\s*([\s\S]*?)\s*```/g;
-      const match = codeBlockRegex.exec(response);
-      if (match && match[1]) {
-        fileContent = match[1].trim();
-        logger.info(`Extracted code block from ${stepName} response`);
-      }
-
-      logger.debug(
-        `Generated ${stepName} content (first 100 chars): ${fileContent.substring(
-          0,
-          100
-        )}...`
+      logger.info(
+        `AI generated Terraform tfvars file for deployment: ${deployment.id}`,
+        {
+          deploymentId: deployment.id,
+          contentLength: aiResponse.length,
+          archetypesUsed: allArchetypes.length,
+        }
       );
-      return fileContent;
+
+      // Return the AI-generated content WITHOUT injecting sensitive variables
+      // Sensitive variables will be injected only during execution in executeDeployment/executeDeploymentWithStreaming
+      return aiResponse;
     } catch (error) {
-      logger.error(`Error generating ${stepName}: ${error}`);
+      logger.error(
+        `Error generating Terraform tfvars file with AI for deployment ${deployment.id}:`,
+        {
+          error: error instanceof Error ? error.message : error,
+          stack: error instanceof Error ? error.stack : undefined,
+          deploymentId: deployment.id,
+        }
+      );
       return "";
     }
+  }
+
+  /**
+   * Inject sensitive variables into the generated tfvars content
+   * @param tfvarsContent Original tfvars content generated by AI
+   * @param deployment Deployment containing sensitive variables
+   * @returns Modified tfvars content with sensitive variables injected
+   */
+  private injectSensitiveVariables(
+    tfvarsContent: string,
+    deployment: DeploymentModel
+  ): string {
+    if (
+      !deployment.sensitiveVariables ||
+      deployment.sensitiveVariables.length === 0
+    ) {
+      logger.info(
+        `No sensitive variables to inject for deployment ${deployment.id}`
+      );
+      return tfvarsContent;
+    }
+
+    let modifiedContent = tfvarsContent;
+
+    // Inject each sensitive variable into the tfvars content
+    deployment.sensitiveVariables.forEach((variable) => {
+      const variableName = variable.key;
+
+      // Decrypt the sensitive value before injection
+      let decryptedValue: string;
+      try {
+        decryptedValue = this.decryptValue(variable.value);
+      } catch (error) {
+        logger.error(
+          `Failed to decrypt sensitive variable ${variableName} for deployment ${deployment.id}:`,
+          error
+        );
+        return; // Skip this variable if decryption fails
+      }
+
+      // Format the value based on type (string values need quotes)
+      const formattedValue =
+        typeof decryptedValue === "string"
+          ? `"${decryptedValue}"`
+          : decryptedValue;
+
+      // Check if variable already exists in the content
+      const variableRegex = new RegExp(`^\\s*${variableName}\\s*=.*$`, "gm");
+
+      if (variableRegex.test(modifiedContent)) {
+        // Replace existing variable
+        modifiedContent = modifiedContent.replace(
+          variableRegex,
+          `${variableName} = ${formattedValue}`
+        );
+        logger.info(
+          `Replaced sensitive variable ${variableName} in tfvars for deployment ${deployment.id}`
+        );
+      } else {
+        // Add new variable at the end
+        modifiedContent += `\n\n# Sensitive variable injected securely\n${variableName} = ${formattedValue}`;
+        logger.info(
+          `Added sensitive variable ${variableName} to tfvars for deployment ${deployment.id}`
+        );
+      }
+    });
+
+    logger.info(
+      `Successfully injected ${deployment.sensitiveVariables.length} sensitive variables for deployment ${deployment.id}`
+    );
+
+    return modifiedContent;
   }
 
   async getDeploymentsByProject(
@@ -585,7 +1059,9 @@ export class DeploymentService extends GenericService {
 
       // If not found, we need to search through all projects to find the one containing this deployment
       if (!project) {
-        const allProjects = await this.projectRepository.findAll(userId);
+        const allProjects = await this.projectRepository.findAll(
+          `users/${userId}/projects`
+        );
         for (const proj of allProjects) {
           if (
             proj.deployments &&
@@ -639,7 +1115,9 @@ export class DeploymentService extends GenericService {
 
       // If not found, we need to search through all projects to find the one containing this deployment
       if (!project) {
-        const allProjects = await this.projectRepository.findAll(userId);
+        const allProjects = await this.projectRepository.findAll(
+          `users/${userId}/projects`
+        );
         for (const proj of allProjects) {
           if (
             proj.deployments &&
@@ -691,7 +1169,7 @@ export class DeploymentService extends GenericService {
       const updatedProject = await this.projectRepository.update(
         projectId,
         { deployments: updatedDeployments },
-        userId
+        `users/${userId}/projects`
       );
       if (!updatedProject) {
         throw new Error("Project not found");
@@ -732,7 +1210,9 @@ export class DeploymentService extends GenericService {
 
       // If not found, we need to search through all projects to find the one containing this deployment
       if (!project) {
-        const allProjects = await this.projectRepository.findAll(userId);
+        const allProjects = await this.projectRepository.findAll(
+          `users/${userId}/projects`
+        );
         for (const proj of allProjects) {
           if (
             proj.deployments &&
@@ -783,7 +1263,7 @@ export class DeploymentService extends GenericService {
       const updatedProject = await this.projectRepository.update(
         projectId,
         { deployments: updatedDeployments },
-        userId
+        `users/${userId}/projects`
       );
 
       if (updatedProject) {
@@ -800,108 +1280,6 @@ export class DeploymentService extends GenericService {
     } catch (error: any) {
       logger.error(
         `Error deleting deployment for userId: ${userId}, deploymentId: ${deploymentId}. Error: ${error.message}`,
-        { error: error.stack }
-      );
-      throw error;
-    }
-  }
-
-  // Configuration Management Methods
-  async updateGitRepository(
-    userId: string,
-    deploymentId: string,
-    gitConfig: GitRepository
-  ): Promise<DeploymentModel | null> {
-    logger.info(
-      `updateGitRepository called for userId: ${userId}, deploymentId: ${deploymentId}`
-    );
-
-    try {
-      const validationErrors =
-        DeploymentValidators.validateGitRepository(gitConfig);
-      if (validationErrors.length > 0) {
-        throw new Error(
-          `Git repository validation failed: ${validationErrors.join(", ")}`
-        );
-      }
-
-      return await this.updateDeployment(userId, deploymentId, {
-        gitRepository: gitConfig,
-      });
-    } catch (error: any) {
-      logger.error(
-        `Error updating git repository for deployment ${deploymentId}: ${error.message}`,
-        { error: error.stack }
-      );
-      throw error;
-    }
-  }
-
-  async updateEnvironmentVariables(
-    userId: string,
-    deploymentId: string,
-    environmentVariables: EnvironmentVariable[]
-  ): Promise<DeploymentModel | null> {
-    logger.info(
-      `updateEnvironmentVariables called for userId: ${userId}, deploymentId: ${deploymentId}, count: ${environmentVariables.length}`
-    );
-
-    try {
-      return await this.updateDeployment(userId, deploymentId, {
-        environmentVariables,
-      });
-    } catch (error: any) {
-      logger.error(
-        `Error updating environment variables for deployment ${deploymentId}: ${error.message}`,
-        { error: error.stack }
-      );
-      throw error;
-    }
-  }
-
-  async updateArchitectureComponents(
-    userId: string,
-    deploymentId: string,
-    components: ArchitectureComponent[]
-  ): Promise<DeploymentModel | null> {
-    logger.info(
-      `updateArchitectureComponents called for userId: ${userId}, deploymentId: ${deploymentId}, count: ${components.length}`
-    );
-
-    try {
-      const deployment = await this.getDeploymentById(userId, deploymentId);
-      if (!deployment) {
-        return null;
-      }
-
-      const validationErrors =
-        DeploymentValidators.validateArchitectureComponents(components);
-      if (validationErrors.length > 0) {
-        throw new Error(
-          `Architecture components validation failed: ${validationErrors.join(
-            ", "
-          )}`
-        );
-      }
-
-      // Update based on deployment mode
-      if (deployment.mode === "expert") {
-        return await this.updateDeployment(userId, deploymentId, {
-          architectureComponents: components,
-        } as Partial<ExpertDeploymentModel>);
-      } else if (deployment.mode === "ai-assistant") {
-        return await this.updateDeployment(userId, deploymentId, {
-          generatedComponents: components,
-        } as Partial<AiAssistantDeploymentModel>);
-      } else {
-        logger.warn(
-          `Cannot update architecture components for deployment mode: ${deployment.mode}`
-        );
-        return deployment;
-      }
-    } catch (error: any) {
-      logger.error(
-        `Error updating architecture components for deployment ${deploymentId}: ${error.message}`,
         { error: error.stack }
       );
       throw error;
@@ -930,7 +1308,9 @@ export class DeploymentService extends GenericService {
         );
 
         try {
-          // Convert chat messages to the format expected by PromptService
+          if (!project.activeChatMessages) {
+            project.activeChatMessages = [];
+          }
           project.activeChatMessages.push(message);
           const promptMessages = this.convertToPromptMessages(
             project.activeChatMessages,
@@ -938,19 +1318,20 @@ export class DeploymentService extends GenericService {
           );
 
           // Call the PromptService to generate a response
-          const aiResponse = await this.promptService.runPrompt({
-            provider: LLMProvider.GEMINI,
-            modelName: "gemini-2.0-flash",
-            messages: promptMessages,
-            llmOptions: {
-              temperature: 0.7,
-              maxOutputTokens: 1024,
+          const aiResponse = await this.promptService.runPrompt(
+            {
+              provider: LLMProvider.GEMINI,
+              modelName: "gemini-2.5-flash",
+              llmOptions: {
+                temperature: 0.7,
+                maxOutputTokens: 1024,
+              },
             },
-          });
+            promptMessages
+          );
           console.log("aiResponse", aiResponse);
 
           // Create an AI message and parse the response as JSON if possible
-          let aiMessage: ChatMessage;
 
           try {
             // Try to extract JSON from the response (it might be wrapped in markdown code blocks)
@@ -961,15 +1342,22 @@ export class DeploymentService extends GenericService {
             const parsedResponse = JSON.parse(jsonContent);
 
             // Create an AI message from the structured response
-            aiMessage = {
+            const aiMessage: ChatMessage = {
               sender: "ai",
               text: parsedResponse.message || aiResponse, // Fallback to raw response if message field missing
               timestamp: new Date(),
               isRequestingDetails: parsedResponse.isRequestingDetails || false,
               isProposingArchitecture:
                 parsedResponse.isProposingArchitecture || false,
+              isRequestingSensitiveVariables:
+                parsedResponse.isRequestingSensitiveVariables || false,
               proposedComponents: parsedResponse.proposedComponents || [],
+              asciiArchitecture: parsedResponse.asciiArchitecture || "",
+              archetypeUrl: parsedResponse.archetypeUrl || "",
+              requestedSensitiveVariables:
+                parsedResponse.requestedSensitiveVariables || [],
             };
+            project.activeChatMessages.push(aiMessage);
 
             logger.info(
               `Successfully parsed AI response as structured JSON for project ${projectId}`
@@ -983,40 +1371,37 @@ export class DeploymentService extends GenericService {
             );
 
             // Fallback to treating the response as plain text
-            aiMessage = {
+            const message: ChatMessage = {
               sender: "ai",
               text: aiResponse,
               timestamp: new Date(),
               isRequestingDetails: false,
               isProposingArchitecture: false,
+              isRequestingSensitiveVariables: false,
             };
+            project.activeChatMessages.push(message);
           }
-
-          // Add the AI message to the chat history
-          if (!project.activeChatMessages) {
-            project.activeChatMessages = [];
-          }
-          project.activeChatMessages.push(aiMessage);
         } catch (promptError: any) {
           logger.error(
             `Error generating AI response for project ${projectId}: ${promptError.message}`,
             { error: promptError.stack }
           );
 
-          // Add a fallback AI message indicating the error
-          if (!project.activeChatMessages) {
-            project.activeChatMessages = [];
-          }
           project.activeChatMessages.push({
             sender: "ai",
             text: "I'm sorry, I encountered an error while processing your request. Please try again later.",
             timestamp: new Date(),
             isRequestingDetails: false,
             isProposingArchitecture: false,
+            isRequestingSensitiveVariables: false,
           });
         }
       }
-      await this.projectRepository.update(projectId, project, userId);
+      await this.projectRepository.update(
+        projectId,
+        project,
+        `users/${userId}/projects`
+      );
       // Update the deployment with the new messages
       return project.activeChatMessages[project.activeChatMessages.length - 1];
     } catch (error: any) {
@@ -1246,29 +1631,6 @@ export class DeploymentService extends GenericService {
     }
   }
 
-  // Cost Estimation Methods
-  async updateCostEstimation(
-    userId: string,
-    deploymentId: string,
-    costEstimation: CostEstimation
-  ): Promise<DeploymentModel | null> {
-    logger.info(
-      `updateCostEstimation called for userId: ${userId}, deploymentId: ${deploymentId}, cost: ${costEstimation.monthlyCost}`
-    );
-
-    try {
-      return await this.updateDeployment(userId, deploymentId, {
-        costEstimation,
-      });
-    } catch (error: any) {
-      logger.error(
-        `Error updating cost estimation for deployment ${deploymentId}: ${error.message}`,
-        { error: error.stack }
-      );
-      throw error;
-    }
-  }
-
   // Validation Methods
   private validateDeploymentData(formData: DeploymentFormData): string[] {
     const errors: string[] = [];
@@ -1378,19 +1740,6 @@ export class DeploymentService extends GenericService {
     ];
   }
 
-  private getDefaultCloudComponent(): CloudComponentDetailed {
-    return {
-      id: "",
-      name: "",
-      description: "",
-      category: "",
-      provider: "aws",
-      icon: "",
-      pricing: "$0.00/month",
-      options: [],
-    };
-  }
-
   private async executePipeline(
     userId: string,
     deploymentId: string,
@@ -1431,69 +1780,55 @@ export class DeploymentService extends GenericService {
             }
           );
 
-          // Execute the Docker command
-          const execAsync = promisify(exec);
-          const { stdout: runOutput, stderr: runError } = await execAsync(
-            dockerRunCommand
-          );
+          // Execute the Docker command (streaming)
+          let buildOutput = "";
+          const childBuild = spawn(dockerRunCommand, {
+            shell: true,
+            env: process.env,
+          });
 
-          if (runError) {
-            logger.warn(`Docker run command produced stderr: ${runError}`);
+          childBuild.stdout.on("data", (data: Buffer) => {
+            const msg = data.toString();
+            buildOutput += msg;
+            if (msg.trim().length > 0) {
+              logger.info(`[build stdout] ${msg.trim()}`);
+            }
+          });
+
+          childBuild.stderr.on("data", (data: Buffer) => {
+            const msg = data.toString();
+            if (msg.trim().length > 0) {
+              logger.warn(`[build stderr] ${msg.trim()}`);
+            }
+          });
+
+          const exitCode: number = await new Promise((resolve, reject) => {
+            childBuild.on("error", (err) => reject(err));
+            childBuild.on("close", (code) => resolve(code ?? 0));
+          });
+
+          if (exitCode !== 0) {
+            throw new Error(`Build process exited with code ${exitCode}`);
           }
 
           // Update logs with Docker container start information
           await this.updatePipelineStep(userId, deploymentId, stepName, 0, {
-            logs: `Running build in Docker container: ${containerName}\nCommand: ${dockerRunCommand}\n\n[Container Started]\n${runOutput}\nContainer started successfully with ID ${containerName}\n\nBuilding project...`,
+            logs: `Running build in Docker container: ${containerName}\nCommand: ${dockerRunCommand}\n\n[Container Started]\n${buildOutput}\nContainer started successfully with ID ${containerName}\n\nBuilding project...`,
           });
 
           // Wait a moment to let container start working
           await new Promise((resolve) => setTimeout(resolve, 2000));
 
-          // Get container logs
-          const dockerLogsCommand = `docker logs ${containerName}`;
-          let buildOutput = "";
-
-          // Poll for logs every 2 seconds for up to 30 seconds
-          for (let i = 0; i < 15; i++) {
-            try {
-              const { stdout } = await execAsync(dockerLogsCommand);
-              buildOutput = stdout;
-
-              // Update step logs with latest output
-              const currentStep = (
-                await this.getDeploymentById(userId, deploymentId)
-              )?.pipelines?.[0]?.steps?.find((s) => s.name === "Build");
-              const currentLogs = currentStep?.logs || "";
-              await this.updatePipelineStep(userId, deploymentId, stepName, 0, {
-                logs: `${
-                  currentLogs.split("[Container Logs]")[0]
-                }[Container Logs]\n${buildOutput}`,
-              });
-
-              // Check if build is complete
-              if (buildOutput.includes("Build completed successfully")) {
-                break;
-              }
-
-              // Wait before polling again
-              await new Promise((resolve) => setTimeout(resolve, 2000));
-            } catch (logError: any) {
-              logger.warn(`Error getting container logs: ${logError.message}`, {
-                error: logError,
-              });
-            }
-          }
-
-          // Cleanup the container
-          try {
-            await execAsync(`docker rm -f ${containerName}`);
-            logger.info(`Removed Docker container ${containerName}`);
-          } catch (cleanupError: any) {
-            logger.warn(
-              `Error removing Docker container: ${cleanupError.message}`,
-              { error: cleanupError }
-            );
-          }
+          // Update step logs with collected output
+          const currentStep = (
+            await this.getDeploymentById(userId, deploymentId)
+          )?.pipelines?.[0]?.steps?.find((s) => s.name === "Build");
+          const currentLogs = currentStep?.logs || "";
+          await this.updatePipelineStep(userId, deploymentId, stepName, 0, {
+            logs: `${
+              currentLogs.split("[Container Logs]")[0]
+            }[Container Logs]\n${buildOutput}`,
+          });
         } catch (error: any) {
           logger.error(`Docker build execution failed: ${error.message}`, {
             error,
@@ -1565,12 +1900,86 @@ export class DeploymentService extends GenericService {
     logger.info(`Pipeline execution completed for deployment ${deploymentId}`);
   }
 
-  async estimateDeploymentCost(
+  /**
+   * Store sensitive variables for a deployment
+   * @param userId User ID
+   * @param projectId Project ID
+   * @param deploymentId Deployment ID
+   * @param sensitiveVariables Array of sensitive variables to store
+   * @returns Updated deployment
+   */
+  async storeSensitiveVariables(
     userId: string,
-    deploymentId: string
-  ): Promise<CostEstimation | null> {
+    projectId: string,
+    deploymentId: string,
+    sensitiveVariables: EnvironmentVariable[]
+  ): Promise<DeploymentModel | null> {
     logger.info(
-      `estimateDeploymentCost called for userId: ${userId}, deploymentId: ${deploymentId}`
+      `storeSensitiveVariables called for userId: ${userId}, projectId: ${projectId}, deploymentId: ${deploymentId}`
+    );
+
+    try {
+      const project = await this.getProject(projectId, userId);
+      if (!project) {
+        logger.warn(`Project not found: ${projectId} for user: ${userId}`);
+        return null;
+      }
+
+      const deployment = project.deployments?.find(
+        (d) => d.id === deploymentId
+      );
+      if (!deployment) {
+        logger.warn(
+          `Deployment not found: ${deploymentId} in project: ${projectId}`
+        );
+        return null;
+      }
+
+      // Encrypt all sensitive variables before storage
+      const encryptedVariables = sensitiveVariables.map((variable) => ({
+        ...variable,
+        isSecret: true,
+        value: this.encryptValue(variable.value),
+      }));
+
+      // Store sensitive variables separately
+      deployment.sensitiveVariables = encryptedVariables;
+
+      // Update the project with the modified deployment
+      await this.projectRepository.update(
+        projectId,
+        project,
+        `users/${userId}/projects`
+      );
+
+      logger.info(
+        `Successfully stored ${sensitiveVariables.length} sensitive variables for deployment ${deploymentId}`
+      );
+      return deployment;
+    } catch (error: any) {
+      logger.error(
+        `Error storing sensitive variables for userId: ${userId}, projectId: ${projectId}, deploymentId: ${deploymentId}. Error: ${error.message}`,
+        { error: error.stack }
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Edit a deployment's Terraform tfvars file
+   * @param userId User ID
+   * @param deploymentId Deployment ID
+   * @param tfvarsFileContent New Terraform tfvars file content
+   * @returns Updated DeploymentModel
+   */
+  async editTerraformTfvarsFile(
+    userId: string,
+    projectId: string,
+    deploymentId: string,
+    tfvarsFileContent: string
+  ): Promise<DeploymentModel | null> {
+    logger.info(
+      `editTerraformTfvarsFile called for userId: ${userId}, projectId: ${projectId}, deploymentId: ${deploymentId}`
     );
 
     try {
@@ -1579,85 +1988,22 @@ export class DeploymentService extends GenericService {
         return null;
       }
 
-      // Get architecture components based on deployment mode
-      let components: ArchitectureComponent[] = [];
+      // Update generatedTerraformTfvarsFileContent
+      deployment.generatedTerraformTfvarsFileContent = tfvarsFileContent;
 
-      if (deployment.mode === "expert") {
-        const expertDeployment = deployment as ExpertDeploymentModel;
-        components = expertDeployment.architectureComponents || [];
-      } else if (deployment.mode === "ai-assistant") {
-        const aiDeployment = deployment as AiAssistantDeploymentModel;
-        components = aiDeployment.generatedComponents || [];
-      }
+      // Update the deployment
+      await this.updateDeployment(userId, deploymentId, deployment);
 
-      // Calculate cost based on architecture components
-      const costEstimation = this.calculateCostEstimation(components);
-
-      // Update deployment with new cost estimation
-      await this.updateDeployment(userId, deploymentId, { costEstimation });
-
-      return costEstimation;
+      logger.info(
+        `Successfully edited Terraform tfvars file for deployment ${deploymentId}`
+      );
+      return deployment;
     } catch (error: any) {
       logger.error(
-        `Error estimating deployment cost for deployment ${deploymentId}: ${error.message}`,
+        `Error editing Terraform tfvars file for userId: ${userId}, projectId: ${projectId}, deploymentId: ${deploymentId}. Error: ${error.message}`,
         { error: error.stack }
       );
       throw error;
     }
-  }
-
-  private calculateCostEstimation(
-    components: ArchitectureComponent[]
-  ): CostEstimation {
-    let monthlyCost = 0;
-    let hourlyCost = 0;
-    let oneTimeCost = 0;
-
-    components.forEach((component) => {
-      switch (component.type) {
-        case "lambda":
-        case "function":
-          monthlyCost += 10; // Base Lambda cost
-          hourlyCost += 0.01;
-          break;
-        case "database":
-          monthlyCost += 25; // Database cost
-          hourlyCost += 0.04;
-          break;
-        case "storage":
-          monthlyCost += 5; // Storage cost
-          hourlyCost += 0.007;
-          break;
-        case "cdn":
-          monthlyCost += 15; // CDN cost
-          hourlyCost += 0.02;
-          break;
-        case "load-balancer":
-          monthlyCost += 20; // Load balancer cost
-          hourlyCost += 0.03;
-          break;
-        default:
-          monthlyCost += 5; // Default component cost
-          hourlyCost += 0.007;
-      }
-    });
-
-    // Add base infrastructure cost
-    monthlyCost += 10;
-    hourlyCost += 0.014;
-
-    return {
-      monthlyCost,
-      hourlyCost,
-      oneTimeCost,
-      currency: "USD",
-      estimatedAt: new Date(),
-      breakdown: components.map((component) => ({
-        componentId: component.id,
-        componentName: component.name,
-        cost: 10, // Simplified cost per component
-        description: `Cost for ${component.type} component`,
-      })),
-    };
   }
 }

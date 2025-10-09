@@ -1,7 +1,8 @@
-import { Response, NextFunction } from "express";
+import { Response, NextFunction, CookieOptions } from "express";
 import admin from "firebase-admin";
 import { CustomRequest } from "../interfaces/express.interface";
 import logger from "../config/logger";
+import { refreshTokenService } from "./refreshToken.service";
 
 /**
  * Middleware to authenticate requests using Firebase Admin SDK.
@@ -36,8 +37,53 @@ export async function authenticate(
         stack: error.stack,
         details: error,
       });
-      // If cookie is invalid, respond immediately.
-      // Do not fall back to bearer token to avoid ambiguity in auth method.
+
+      // Tenter de rafraîchir automatiquement le token si un refresh token est disponible
+      const refreshToken = req.cookies.refreshToken;
+      if (refreshToken) {
+        try {
+          const validation = await refreshTokenService.validateRefreshToken(
+            refreshToken
+          );
+          if (validation.isValid && validation.userId) {
+            // Créer un nouveau session cookie
+            const customToken = await admin
+              .auth()
+              .createCustomToken(validation.userId);
+            const expiresIn = 14 * 24 * 60 * 60 * 1000; // 14 jours
+            const isProduction = process.env.NODE_ENV === "production";
+
+            const newSessionCookie = await admin
+              .auth()
+              .createSessionCookie(customToken, { expiresIn });
+
+            // Vérifier le nouveau cookie
+            const decodedToken = await admin
+              .auth()
+              .verifySessionCookie(newSessionCookie, true);
+            req.user = decodedToken;
+
+            // Mettre à jour le cookie dans la réponse
+            const options: CookieOptions = {
+              maxAge: expiresIn,
+              httpOnly: true,
+              secure: isProduction,
+              sameSite: isProduction ? "none" : "lax",
+              path: "/",
+            };
+            res.cookie("session", newSessionCookie, options);
+
+            logger.info(
+              `Session cookie auto-refreshed for user: ${validation.userId}`
+            );
+            return next();
+          }
+        } catch (refreshError: any) {
+          logger.error(`Error during auto-refresh: ${refreshError.message}`);
+        }
+      }
+
+      // Si l'auto-refresh échoue, répondre avec une erreur
       res
         .status(403)
         .json({ message: "Forbidden: Invalid or expired session cookie" });

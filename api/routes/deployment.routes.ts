@@ -1,19 +1,20 @@
 import { Router } from "express";
 import { authenticate } from "../services/auth.service";
+import { checkPolicyAcceptance } from "../middleware/policyCheck.middleware";
 import {
   CreateDeploymentController,
   GetDeploymentsByProjectController,
   GetDeploymentByIdController,
   UpdateDeploymentController,
   DeleteDeploymentController,
-  UpdateGitConfigController,
-  UpdateEnvironmentVariablesController,
-  UpdateArchitectureComponentsController,
   AddChatMessageController,
   StartPipelineController,
   GetPipelineStatusController,
-  EstimateCostController,
-  GenerateDeploymentController,
+  generateDeploymentController,
+  editTerraformTfvarsFileController,
+  ExecuteDeploymentController,
+  ExecuteDeploymentStreamingController,
+  storeSensitiveVariablesController,
 } from "../controllers/deployment.controller";
 
 export const deploymentRoutes = Router();
@@ -71,10 +72,7 @@ const resourceName = "/deployments";
  *       500:
  *         description: Internal server error
  */
-deploymentRoutes.post(
-  `${resourceName}/generate`,
-  GenerateDeploymentController
-);
+deploymentRoutes.post(`${resourceName}/generate`, authenticate, checkPolicyAcceptance, generateDeploymentController);
 
 /**
  * @openapi
@@ -240,107 +238,6 @@ deploymentRoutes.delete(
   DeleteDeploymentController
 );
 
-// Configuration Update Routes
-/**
- * @openapi
- * /deployments/updateGitConfig/{deploymentId}:
- *   put:
- *     tags:
- *       - Deployments Configuration
- *     summary: Update Git repository configuration
- *     description: Updates the Git repository settings for a specific deployment
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: deploymentId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the deployment to update
- *         example: "deployment_123456789"
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/UpdateGitRepositoryDto'
- *     responses:
- *       200:
- *         description: Git repository configuration updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/BaseResponseDto'
- *       400:
- *         description: Bad request - validation error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/BaseResponseDto'
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Deployment not found
- *       500:
- *         description: Internal server error
- */
-deploymentRoutes.put(
-  `${resourceName}/updateGitConfig/:deploymentId`,
-  authenticate,
-  UpdateGitConfigController
-);
-
-/**
- * @openapi
- * /deployments/updateEnvVars/{deploymentId}:
- *   put:
- *     tags:
- *       - Deployments Configuration
- *     summary: Update environment variables
- *     description: Updates the environment variables for a specific deployment
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: deploymentId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the deployment to update
- *         example: "deployment_123456789"
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/UpdateEnvironmentVariablesDto'
- *     responses:
- *       200:
- *         description: Environment variables updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/BaseResponseDto'
- *       400:
- *         description: Bad request - validation error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/BaseResponseDto'
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Deployment not found
- *       500:
- *         description: Internal server error
- */
-deploymentRoutes.put(
-  `${resourceName}/updateEnvVars/:deploymentId`,
-  authenticate,
-  UpdateEnvironmentVariablesController
-);
-
 /**
  * @openapi
  * /deployments/{deploymentId}/chat:
@@ -409,14 +306,15 @@ deploymentRoutes.post(
   AddChatMessageController
 );
 
+// Pipeline Management
 /**
  * @openapi
- * /deployments/updateArchitectureTemplates/{deploymentId}:
- *   put:
+ * /deployments/execute/{deploymentId}:
+ *   post:
  *     tags:
- *       - Deployments Configuration
- *     summary: Update architecture components
- *     description: Updates the architecture components for a specific deployment
+ *       - Deployments
+ *     summary: Execute deployment
+ *     description: Runs the deployment execution (Docker worker) for a given deployment
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -425,23 +323,10 @@ deploymentRoutes.post(
  *         required: true
  *         schema:
  *           type: string
- *         description: The ID of the deployment to update
- *         example: "deployment_123456789"
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/UpdateArchitectureComponentsDto'
+ *         description: The ID of the deployment to execute
  *     responses:
  *       200:
- *         description: Architecture components updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/BaseResponseDto'
- *       400:
- *         description: Bad request - validation error
+ *         description: Deployment execution started
  *         content:
  *           application/json:
  *             schema:
@@ -453,13 +338,13 @@ deploymentRoutes.post(
  *       500:
  *         description: Internal server error
  */
-deploymentRoutes.put(
-  `${resourceName}/updateArchitectureTemplates/:deploymentId`,
+deploymentRoutes.post(
+  `${resourceName}/execute/:deploymentId`,
   authenticate,
-  UpdateArchitectureComponentsController
+  checkPolicyAcceptance,
+  ExecuteDeploymentController
 );
 
-// Pipeline Management
 /**
  * @openapi
  * /deployments/startPipeline/{deploymentId}:
@@ -544,44 +429,6 @@ deploymentRoutes.get(
 
 /**
  * @openapi
- * /deployments/estimateCost/{deploymentId}:
- *   get:
- *     tags:
- *       - Deployments Pipeline
- *     summary: Estimate deployment cost
- *     description: Calculates and returns cost estimation for the deployment
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: deploymentId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the deployment to estimate the cost for
- *         example: "deployment_123456789"
- *     responses:
- *       200:
- *         description: Deployment cost estimation retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/BaseResponseDto'
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Deployment not found
- *       500:
- *         description: Internal server error
- */
-deploymentRoutes.get(
-  `${resourceName}/estimateCost/:deploymentId`,
-  authenticate,
-  EstimateCostController
-);
-
-/**
- * @openapi
  * /deployments/create:
  *   post:
  *     tags:
@@ -643,7 +490,7 @@ deploymentRoutes.post(
  *             type: string
  *           description: Array of error messages
  *           example: ["Validation failed", "Required field missing"]
- *     
+ *
  *     CreateDeploymentDto:
  *       type: object
  *       required:
@@ -689,7 +536,7 @@ deploymentRoutes.post(
  *           type: string
  *           description: ID of the architecture template to use
  *           example: "template_web_app"
- *     
+ *
  *     UpdateDeploymentDto:
  *       type: object
  *       properties:
@@ -723,7 +570,7 @@ deploymentRoutes.post(
  *           items:
  *             $ref: '#/components/schemas/ChatMessageDto'
  *           description: Chat messages for the deployment
- *     
+ *
  *     GitRepositoryDto:
  *       type: object
  *       required:
@@ -752,7 +599,7 @@ deploymentRoutes.post(
  *           type: string
  *           description: Webhook ID for repository integration
  *           example: "webhook_123456789"
- *     
+ *
  *     UpdateGitRepositoryDto:
  *       type: object
  *       properties:
@@ -768,7 +615,7 @@ deploymentRoutes.post(
  *           type: string
  *           description: Access token for repository access
  *           example: "ghp_xxxxxxxxxxxxxxxx"
- *     
+ *
  *     EnvironmentVariableDto:
  *       type: object
  *       required:
@@ -788,7 +635,7 @@ deploymentRoutes.post(
  *           type: boolean
  *           description: Whether this is a secret variable
  *           example: true
- *     
+ *
  *     UpdateEnvironmentVariablesDto:
  *       type: object
  *       required:
@@ -799,7 +646,7 @@ deploymentRoutes.post(
  *           items:
  *             $ref: '#/components/schemas/EnvironmentVariableDto'
  *           description: Array of environment variables
- *     
+ *
  *     ArchitectureComponentDto:
  *       type: object
  *       required:
@@ -825,7 +672,7 @@ deploymentRoutes.post(
  *             type: string
  *           description: Array of component dependencies
  *           example: ["comp_987654321"]
- *     
+ *
  *     UpdateArchitectureComponentsDto:
  *       type: object
  *       required:
@@ -836,7 +683,7 @@ deploymentRoutes.post(
  *           items:
  *             $ref: '#/components/schemas/ArchitectureComponentDto'
  *           description: Array of architecture components
- *     
+ *
  *     ChatMessageDto:
  *       type: object
  *       required:
@@ -852,7 +699,7 @@ deploymentRoutes.post(
  *           type: string
  *           description: Message content
  *           example: "How do I configure the database?"
- *     
+ *
  *     UpdateChatMessagesDto:
  *       type: object
  *       required:
@@ -863,7 +710,7 @@ deploymentRoutes.post(
  *           items:
  *             $ref: '#/components/schemas/ChatMessageDto'
  *           description: Array of chat messages
- *     
+ *
  *     PipelineStepDto:
  *       type: object
  *       required:
@@ -901,7 +748,7 @@ deploymentRoutes.post(
  *           type: string
  *           description: AI recommendation for the step
  *           example: "Consider optimizing the build process"
- *     
+ *
  *     PipelineStatusDto:
  *       type: object
  *       required:
@@ -927,7 +774,7 @@ deploymentRoutes.post(
  *           format: date-time
  *           description: Estimated completion time
  *           example: "2024-01-15T10:30:00Z"
- *     
+ *
  *     CostEstimationDto:
  *       type: object
  *       required:
@@ -987,3 +834,198 @@ deploymentRoutes.post(
  *                 example: "Monthly cost for Lambda function"
  */
 
+/**
+ * @swagger
+ * /deployment/editTerraformTfvars/{deploymentId}:
+ *   post:
+ *     summary: Edit Terraform tfvars file for a deployment
+ *     description: Update Terraform tfvars file for a deployment
+ *     tags:
+ *       - Deployment
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: path
+ *         name: deploymentId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID of the deployment
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tfvarsFileContent
+ *             properties:
+ *               tfvarsFileContent:
+ *                 type: string
+ *                 description: New Terraform tfvars file content
+ *     responses:
+ *       200:
+ *         description: Updated DeploymentModel
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DeploymentModel'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         description: Deployment not found
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
+deploymentRoutes.post(
+  `${resourceName}/editTerraformTfvars/:deploymentId`,
+  authenticate,
+  editTerraformTfvarsFileController
+);
+
+/**
+ * @openapi
+ * /deployments/execute/stream/{deploymentId}:
+ *   get:
+ *     tags:
+ *       - Deployments
+ *     summary: Execute deployment with streaming logs
+ *     description: Executes deployment and streams real-time logs via Server-Sent Events (SSE)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: deploymentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the deployment to execute
+ *         example: "deployment_123456789"
+ *     responses:
+ *       200:
+ *         description: SSE stream of deployment logs
+ *         content:
+ *           text/event-stream:
+ *             schema:
+ *               type: string
+ *               description: Server-Sent Events stream with deployment logs
+ *               example: |
+ *                 data: {"type":"info","message":"Starting deployment execution...","timestamp":"2024-01-15T10:00:00.000Z","step":"initialization","deploymentId":"deployment_123"}
+ *                 
+ *                 data: {"type":"stdout","message":"Docker container starting...","timestamp":"2024-01-15T10:00:05.000Z","step":"docker-execution","deploymentId":"deployment_123"}
+ *                 
+ *                 data: {"type":"complete","message":"Deployment execution completed successfully","timestamp":"2024-01-15T10:05:00.000Z","deploymentId":"deployment_123"}
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Deployment not found
+ *       500:
+ *         description: Internal server error
+ */
+deploymentRoutes.get(
+  `${resourceName}/execute/stream/:deploymentId`,
+  authenticate,
+  checkPolicyAcceptance,
+  ExecuteDeploymentStreamingController
+);
+
+/**
+ * @openapi
+ * /deployments/{projectId}/{deploymentId}/sensitive-variables:
+ *   post:
+ *     tags:
+ *       - Deployments
+ *     summary: Store sensitive variables for a deployment
+ *     description: Securely store sensitive variables (API keys, passwords, tokens) for a deployment
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the project
+ *         example: "project_123456789"
+ *       - in: path
+ *         name: deploymentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the deployment
+ *         example: "deployment_123456789"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               sensitiveVariables:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     key:
+ *                       type: string
+ *                       description: Variable name
+ *                       example: "aws_access_key"
+ *                     value:
+ *                       type: string
+ *                       description: Variable value (will be encrypted)
+ *                       example: "AKIA1234567890EXAMPLE"
+ *                     isSecret:
+ *                       type: boolean
+ *                       description: Whether this is a secret variable
+ *                       example: true
+ *                 description: Array of sensitive variables to store
+ *             required:
+ *               - sensitiveVariables
+ *           example:
+ *             sensitiveVariables:
+ *               - key: "aws_access_key"
+ *                 value: "AKIA1234567890EXAMPLE"
+ *                 isSecret: true
+ *               - key: "aws_secret_key"
+ *                 value: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+ *                 isSecret: true
+ *               - key: "db_password"
+ *                 value: "MySecurePassword123!"
+ *                 isSecret: true
+ *     responses:
+ *       200:
+ *         description: Sensitive variables stored successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Sensitive variables stored successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deploymentId:
+ *                       type: string
+ *                       example: "deployment_123456789"
+ *                     sensitiveVariablesCount:
+ *                       type: number
+ *                       example: 3
+ *       400:
+ *         description: Invalid request data
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Deployment not found
+ *       500:
+ *         description: Internal server error
+ */
+deploymentRoutes.post(
+  `${resourceName}/:projectId/:deploymentId/sensitive-variables`,
+  authenticate,
+  storeSensitiveVariablesController
+);

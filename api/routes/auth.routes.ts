@@ -1,8 +1,12 @@
 import { Router } from "express";
-import {
+import { 
   sessionLoginController,
-  profileController,
-} from "../controllers/auth.controller"; // Adjusted path
+  refreshTokenController,
+  logoutController,
+  logoutAllController,
+  getRefreshTokensController
+} from "../controllers/auth.controller";
+import { authenticate } from "../services/auth.service";
 
 export const authRoutes = Router();
 
@@ -19,7 +23,7 @@ export const authRoutes = Router();
  *       content:
  *         application/json:
  *           schema:
- *             type: object
+ *             type: objects
  *             required:
  *               - idToken
  *             properties:
@@ -63,43 +67,153 @@ authRoutes.post("/sessionLogin", sessionLoginController);
 
 /**
  * @openapi
- * /profile:
+ * /refresh:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Refresh access token using refresh token
+ *     description: Uses a refresh token to generate a new session cookie.
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: Refresh token (can also be provided via cookie)
+ *     responses:
+ *       '200':
+ *         description: Access token refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Access token refreshed successfully.
+ *                 sessionCookie:
+ *                   type: string
+ *       '400':
+ *         description: Refresh token missing
+ *       '401':
+ *         description: Invalid or expired refresh token
+ */
+authRoutes.post("/refresh", refreshTokenController);
+
+/**
+ * @openapi
+ * /logout:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Logout user
+ *     description: Revokes the current refresh token and clears cookies.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: Refresh token to revoke (can also be provided via cookie)
+ *     responses:
+ *       '200':
+ *         description: Logged out successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Logged out successfully.
+ *       '401':
+ *         description: User not authenticated
+ */
+authRoutes.post("/logout", authenticate, logoutController);
+
+/**
+ * @openapi
+ * /logout-all:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Logout user from all devices
+ *     description: Revokes all refresh tokens for the user.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Logged out from all devices successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Logged out from all devices successfully.
+ *       '401':
+ *         description: User not authenticated
+ */
+authRoutes.post("/logout-all", authenticate, logoutAllController);
+
+/**
+ * @openapi
+ * /refresh-tokens:
  *   get:
  *     tags:
  *       - Authentication
- *     summary: Get authenticated user's profile
- *     description: Retrieves profile information for the user associated with the current session cookie.
+ *     summary: Get user's refresh tokens info
+ *     description: Returns information about active refresh tokens (without the actual tokens).
  *     security:
- *       - cookieAuth: [] # Implies that a 'session' cookie is required
+ *       - bearerAuth: []
  *     responses:
  *       '200':
- *         description: User profile retrieved successfully.
+ *         description: Refresh tokens retrieved successfully
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 uid:
- *                   type: string
- *                   description: User's unique ID.
- *                 email:
- *                   type: string
- *                   description: User's email address.
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 refreshTokens:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       expiresAt:
+ *                         type: string
+ *                         format: date-time
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       lastUsed:
+ *                         type: string
+ *                         format: date-time
+ *                       deviceInfo:
+ *                         type: string
+ *                       ipAddress:
+ *                         type: string
  *       '401':
- *         description: Unauthenticated. No session cookie, or invalid/expired session.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: 'Unauthenticated: No session cookie provided.'
- *                 error:
- *                   type: string
- *                   nullable: true
- *                   example: 'Error message details if applicable.'
- *       '500':
- *         description: Internal server error.
+ *         description: User not authenticated
  */
-authRoutes.get("/profile", profileController);
+authRoutes.get("/refresh-tokens", authenticate, getRefreshTokensController);

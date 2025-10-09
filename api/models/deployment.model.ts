@@ -21,8 +21,8 @@ export interface PipelineStep {
   status: "pending" | "in-progress" | "succeeded" | "failed" | "skipped";
   startedAt?: Date;
   finishedAt?: Date;
-  logs?: string; 
-  errorMessage?: string; 
+  logs?: string;
+  errorMessage?: string;
   aiRecommendation?: string;
 }
 
@@ -40,17 +40,32 @@ export interface CostEstimation {
   }[];
 }
 
+export interface SensitiveVariable {
+  name: string;
+  label: string;
+  type: "string" | "number" | "boolean";
+  required: boolean;
+  sensitive: boolean;
+  description?: string;
+  placeholder?: string;
+}
+
 export interface ChatMessage {
   sender: "user" | "ai";
   text: string;
   timestamp?: Date;
   isRequestingDetails?: boolean;
   isProposingArchitecture?: boolean;
+  isRequestingSensitiveVariables?: boolean;
   proposedComponents?: ArchitectureComponent[];
+  asciiArchitecture?: string;
+  archetypeUrl?: string;
+  requestedSensitiveVariables?: SensitiveVariable[];
 }
 
 export interface ArchitectureTemplate {
   id: string;
+  archetype_id: string;
   provider: "aws" | "gcp" | "azure";
   category: string;
   name: string;
@@ -122,6 +137,7 @@ export interface BaseDeploymentModel {
   // Configuration
   gitRepository?: GitRepository;
   environmentVariables?: EnvironmentVariable[];
+  sensitiveVariables?: EnvironmentVariable[]; // Stored encrypted, separate from regular env vars
 
   // Monitoring of the pipeline
   pipelines?: {
@@ -148,12 +164,8 @@ export interface BaseDeploymentModel {
   // Rollback management
   rollbackVersions?: string[]; // Previous versions for rollback
   lastSuccessfulDeployment?: string; // ID of the last successful deployment
-
-  generatedTerraformFiles?: {
-    main: string;
-    variables: string;
-    variablesMap: string;
-  };
+  architectureComponents?: ArchitectureComponent[];
+  generatedTerraformTfvarsFileContent?: string;
   generatedK8sFiles?: { name: string; content: string }[];
   generatedDockerFiles?: { name: string; content: string }[];
 
@@ -194,7 +206,6 @@ export interface AiAssistantDeploymentModel extends BaseDeploymentModel {
   chatMessages: ChatMessage[];
   aiGeneratedArchitecture?: boolean;
   aiRecommendations?: string[];
-  generatedComponents?: ArchitectureComponent[];
 }
 
 /**
@@ -204,7 +215,6 @@ export interface ExpertDeploymentModel extends BaseDeploymentModel {
   readonly mode: "expert";
   // Expert specific fields
   cloudComponents: CloudComponentDetailed[];
-  architectureComponents: ArchitectureComponent[];
   customInfrastructureCode?: boolean;
   infrastructureAsCodeFiles?: { name: string; content: string }[];
 }
@@ -338,105 +348,5 @@ export class DeploymentValidators {
     const gitUrlPattern =
       /^https?:\/\/(?:[\w.-]+@)?[\w.-]+(?:\.[\w.-]+)*\/?[\w./-]+$/;
     return gitUrlPattern.test(url);
-  }
-}
-
-// Mapping utilities
-export class DeploymentMapper {
-  static fromFormToPayload(
-    formData: DeploymentFormData,
-    projectId: string
-  ): CreateDeploymentPayload {
-    const payload: CreateDeploymentPayload = {
-      name: formData.name,
-      environment: formData.environment,
-      mode: formData.mode,
-      projectId: projectId,
-    };
-
-    // Map git repository if provided
-    if (formData.repoUrl) {
-      payload.gitRepository = {
-        url: formData.repoUrl,
-        branch: formData.branch || "main",
-        provider: this.inferGitProvider(formData.repoUrl),
-      };
-    }
-
-    // Map based on deployment mode
-    switch (formData.mode) {
-      case "template":
-        payload.architectureTemplate = formData.templateId;
-        break;
-
-      case "expert":
-        if (formData.customComponents && formData.customComponents.length > 0) {
-          payload.customArchitecture = {
-            name: "Custom Architecture",
-            components: formData.customComponents.map((comp) => ({
-              instanceId: comp.instanceId,
-              type: comp.id,
-              config: {}, // This should be filled with actual form data
-            })),
-          };
-        }
-        break;
-
-      case "ai-assistant":
-        if (formData.aiPrompt) {
-          payload.aiGeneratedConfig = {
-            prompt: formData.aiPrompt,
-            generatedInfrastructure: {},
-          };
-        }
-        break;
-    }
-
-    // Add environment variables if provided
-    if (formData.environmentVariables?.length) {
-      payload.environmentVariables = formData.environmentVariables;
-    }
-
-    return payload;
-  }
-
-  static toFormData(deployment: DeploymentModel): Partial<DeploymentFormData> {
-    const baseData: Partial<DeploymentFormData> = {
-      name: deployment.name,
-      environment: deployment.environment,
-      repoUrl: deployment.gitRepository?.url,
-      branch: deployment.gitRepository?.branch,
-      mode: deployment.mode,
-      environmentVariables: deployment.environmentVariables,
-    };
-
-    // Add mode-specific data
-    switch (deployment.mode) {
-      case "expert":
-        const expertDeployment = deployment as ExpertDeploymentModel;
-        baseData.customComponents = expertDeployment.architectureComponents;
-        break;
-      case "template":
-        const templateDeployment = deployment as TemplateDeploymentModel;
-        baseData.templateId = templateDeployment.templateId;
-        break;
-      case "ai-assistant":
-        // AI assistant specific data could be added here if needed
-        break;
-      case "beginner":
-        // Beginner specific data could be added here if needed
-        break;
-    }
-
-    return baseData;
-  }
-
-  private static inferGitProvider(url: string): GitRepository["provider"] {
-    if (url.includes("github.com")) return "github";
-    if (url.includes("gitlab.com")) return "gitlab";
-    if (url.includes("bitbucket.org")) return "bitbucket";
-    if (url.includes("azure.com") || url.includes("visualstudio.com"))
-      return "azure-repos";
-    return "github"; // default
   }
 }

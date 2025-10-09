@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { projectController } from "../controllers/project.controller";
 import { authenticate } from "../services/auth.service";
+import { checkQuota } from "../middleware/quota.middleware";
 
 export const projectRoutes = Router();
 
@@ -50,6 +51,7 @@ projectRoutes.post("/create", authenticate, projectController.createProject);
 
 
 
+
 // Get all projects for the authenticated user
 /**
  * @openapi
@@ -74,7 +76,7 @@ projectRoutes.post("/create", authenticate, projectController.createProject);
  *       '500':
  *         description: Internal server error.
  */
-projectRoutes.get('/', authenticate, projectController.getAllProjects);
+projectRoutes.get('/', authenticate,  projectController.getAllProjects);
 
 // Get a specific project by ID
 /**

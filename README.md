@@ -12,7 +12,7 @@
 
 IDEM is a revolutionary open-source platform that leverages artificial intelligence to generate all elements of the software development lifecycle. From initial business planning to deployment, IDEM streamlines the creation process for developers, entrepreneurs, and product managers while making the entire software development process accessible to users of all technical backgrounds.
 
-**Frontend Demo:** [https://idem.africa](https://idem.africa)
+**Frontend Demo:** [https://idem-ai.com](https://idem-ai.com)
 
 ## Features
 
@@ -96,36 +96,36 @@ FIREBASE_PROJECT_ID=your_firebase_project_id
 ### Projects
 
 ```
-GET /api/projects - Get all projects for the authenticated user
-GET /api/projects/:projectId - Get a specific project
-POST /api/projects - Create a new project
-PUT /api/projects/:projectId - Update a project
-DELETE /api/projects/:projectId - Delete a project
-GET /api/projects/:projectId/agentic - Generate a ZIP with project structure
+GET /projects - Get all projects for the authenticated user
+GET /projects/:projectId - Get a specific project
+POST /projects - Create a new project
+PUT /projects/:projectId - Update a project
+DELETE /projects/:projectId - Delete a project
+GET /projects/:projectId/agentic - Generate a ZIP with project structure
 ```
 
 ### Business Plans
 
 ```
-POST /api/planning/business-plans - Generate a business plan
-GET /api/planning/business-plans/:id - Get a business plan by ID
-PUT /api/planning/business-plans/:id - Update a business plan
-DELETE /api/planning/business-plans/:id - Delete a business plan
+POST /planning/business-plans - Generate a business plan
+GET /planning/business-plans/:id - Get a business plan by ID
+PUT /planning/business-plans/:id - Update a business plan
+DELETE /planning/business-plans/:id - Delete a business plan
 ```
 
 ### Branding
 
 ```
-POST /api/branding/logos - Generate a logo
-GET /api/branding/logos/:id - Get a logo by ID
+POST /branding/logos - Generate a logo
+GET /branding/logos/:id - Get a logo by ID
 # Additional branding endpoints...
 ```
 
 ### Diagrams
 
 ```
-POST /api/diagrams - Generate UML diagrams
-GET /api/diagrams/:id - Get a diagram by ID
+POST /diagrams - Generate UML diagrams
+GET /diagrams/:id - Get a diagram by ID
 # Additional diagram endpoints...
 ```
 
@@ -146,4 +146,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Contact
 
 - Project Creator: [arolleaguekeng](https://github.com/arolleaguekeng)
-- Website: [https://idem.africa](https://idem.africa)
+- Website: [https://idem-ai.com](https://idem-ai.com)
